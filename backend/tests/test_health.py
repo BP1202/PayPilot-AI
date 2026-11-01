@@ -1,0 +1,58 @@
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+@pytest.fixture(scope="module")
+def client():
+    return TestClient(app)
+
+
+def test_root_endpoint(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Welcome to PayPilot AI",
+        "status": "running",
+    }
+
+
+def test_health_endpoint(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "healthy",
+        "service": "PayPilot AI Backend",
+    }
+
+
+def test_api_v1_health_endpoint(client):
+    response = client.get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "healthy",
+        "application": "PayPilot AI",
+        "environment": "development",
+    }
+
+
+@pytest.mark.parametrize("endpoint", ["/", "/health", "/api/v1/health"])
+def test_endpoints_do_not_expose_sensitive_credentials(client, endpoint):
+    response = client.get(endpoint)
+    assert response.status_code == 200
+    response_text = response.text.lower()
+
+    sensitive_keys = [
+        "paypal_client_id",
+        "paypal_client_secret",
+        "database_url",
+        "ai_api_key",
+        "client_secret",
+        "api_key",
+        "password",
+    ]
+
+    for key in sensitive_keys:
+        assert key not in response_text, f"Potential credential leak detected for '{key}' on {endpoint}"
+
