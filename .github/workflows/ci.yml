@@ -22,16 +22,16 @@ jobs:
     env:
       APP_ENV: test
       DEBUG: "true"
-      DATABASE_URL: postgresql+psycopg://${{secrets.POSTGRES_USER}}:${{secrets.POSTGRES_PASSWORD}}@localhost:5433/paypilot_ai
-      POSTGRES_USER: ${secrets.POSTGRES_USER}
-      POSTGRES_PASSWORD: ${secrets.POSTGRES_PASSWORD}
+      DATABASE_URL: postgresql+psycopg://postgres@localhost:5433/paypilot_ai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ""
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5433
       POSTGRES_DB: paypilot_ai
       PAYPAL_BASE_URL: https://api-m.sandbox.paypal.com
       PAYPAL_CLIENT_ID: mock-paypal-client-id
       PAYPAL_CLIENT_SECRET: mock-paypal-client-secret
-      AI_API_KEY: mock-ai-key
+      AI_API_KEY: ""
 
     steps:
       - name: Checkout Code

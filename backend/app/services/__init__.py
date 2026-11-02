@@ -1,3 +1,4 @@
+from app.services.copilot_service import CopilotService
 from app.services.payment_provider import (
     MockPaymentProvider,
     PaymentProviderError,
@@ -10,6 +11,7 @@ from app.services.payment_service import (
 )
 
 __all__ = [
+    "CopilotService",
     "MockPaymentProvider",
     "PaymentApprovalRequiredError",
     "PaymentProviderError",
