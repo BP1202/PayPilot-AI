@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 
-from app.core.config import Settings
-
-settings = Settings()
+from app.api.v1.router import api_v1_router
+from app.core.config import settings
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -11,6 +10,7 @@ app = FastAPI(
 )
 
 
+# Root status
 @app.get("/")
 async def root():
     return {
@@ -19,6 +19,7 @@ async def root():
     }
 
 
+# Health check
 @app.get("/health")
 async def health_check():
     return {
@@ -27,6 +28,7 @@ async def health_check():
     }
 
 
+# API v1 health check
 @app.get(f"{settings.API_V1_PREFIX}/health")
 async def api_v1_health():
     return {
@@ -34,3 +36,7 @@ async def api_v1_health():
         "application": settings.APP_NAME,
         "environment": settings.APP_ENV,
     }
+
+
+# Include API v1 router
+app.include_router(api_v1_router, prefix=settings.API_V1_PREFIX)
