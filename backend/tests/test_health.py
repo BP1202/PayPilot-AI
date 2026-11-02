@@ -1,7 +1,7 @@
 import pytest
-from fastapi.testclient import TestClient
-
+from app.core.config import settings
 from app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope="module")
@@ -13,7 +13,7 @@ def test_root_endpoint(client):
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {
-        "message": "Welcome to PayPilot AI",
+        "message": f"Welcome to {settings.APP_NAME}",
         "status": "running",
     }
 
@@ -23,7 +23,7 @@ def test_health_endpoint(client):
     assert response.status_code == 200
     assert response.json() == {
         "status": "healthy",
-        "service": "PayPilot AI Backend",
+        "service": f"{settings.APP_NAME} Backend",
     }
 
 
@@ -32,8 +32,8 @@ def test_api_v1_health_endpoint(client):
     assert response.status_code == 200
     assert response.json() == {
         "status": "healthy",
-        "application": "PayPilot AI",
-        "environment": "development",
+        "application": settings.APP_NAME,
+        "environment": settings.APP_ENV,
     }
 
 
@@ -54,5 +54,6 @@ def test_endpoints_do_not_expose_sensitive_credentials(client, endpoint):
     ]
 
     for key in sensitive_keys:
-        assert key not in response_text, f"Potential credential leak detected for '{key}' on {endpoint}"
-
+        assert key not in response_text, (
+            f"Potential credential leak detected for '{key}' on {endpoint}"
+        )
