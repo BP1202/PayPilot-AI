@@ -38,7 +38,8 @@ def client_with_db():
     engine.dispose()
 
 
-def test_get_copilot_recommendation_endpoint(client_with_db):
+def test_get_copilot_recommendation_endpoint(client_with_db, monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.AI_API_KEY", "")
     response = client_with_db.get("/api/v1/copilot/recommendation")
     assert response.status_code == 200
     data = response.json()
@@ -54,7 +55,18 @@ def test_get_copilot_recommendation_endpoint(client_with_db):
     assert data["suggested_action"]["transaction_ref"] == "TXN-DEMO-202611-005"
 
 
-def test_copilot_chat_endpoint(client_with_db):
+def test_get_copilot_recommendation_endpoint_with_live_ai_mode(
+    client_with_db, monkeypatch
+):
+    monkeypatch.setattr("app.core.config.settings.AI_API_KEY", "mock-live-key")
+    response = client_with_db.get("/api/v1/copilot/recommendation")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["mode"] == "LIVE_AI"
+
+
+def test_copilot_chat_endpoint(client_with_db, monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.AI_API_KEY", "")
     payload = {"prompt": "What is our financial health and pending revenue?"}
     response = client_with_db.post("/api/v1/copilot/chat", json=payload)
     assert response.status_code == 200
