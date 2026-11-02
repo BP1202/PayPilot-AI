@@ -22,3 +22,4 @@ describe("DashboardStats Component", () => {
     expect(screen.getByText("5")).toBeInTheDocument();
   });
 });
+

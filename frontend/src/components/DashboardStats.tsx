@@ -91,3 +91,4 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ totals, loading 
     </div>
   );
 };
+

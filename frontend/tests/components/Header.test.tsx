@@ -19,3 +19,4 @@ describe("Header Component", () => {
     expect(screen.getByText("PayPal Simulated Sandbox")).toBeInTheDocument();
   });
 });
+

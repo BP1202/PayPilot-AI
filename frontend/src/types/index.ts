@@ -87,3 +87,4 @@ export interface ApprovePaymentRequest {
   owner_approved: boolean;
   idempotency_key: string;
 }
+

@@ -48,3 +48,4 @@ export const Header: React.FC<HeaderProps> = ({ business }) => {
     </header>
   );
 };
+
