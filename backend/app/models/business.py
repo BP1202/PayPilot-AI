@@ -12,8 +12,12 @@ class Business(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
-    industry: Mapped[str] = mapped_column(String(100), nullable=True)
-    description: Mapped[str] = mapped_column(String(500), nullable=True)
+    industry: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    business_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    website: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    user_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

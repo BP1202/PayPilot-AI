@@ -1,152 +1,91 @@
 ---
 name: frontend-engineering
-description: Design, implement, test, and maintain responsive, accessible, performant frontend applications, components, interfaces, and user interactions.
+description: Design, implement, test, and maintain responsive, accessible, performant frontend applications, Opportunity lifecycle interfaces, human-in-the-loop forms, and user interactions for PayPilot AI.
 ---
 
 # Frontend Engineering Skill
 
 ## 1. Purpose
 
-Build frontend experiences that are intuitive, responsive, accessible, consistent, and reliable.
+Build frontend experiences for PayPilot AI — the AI-powered Idea-to-Business Opportunity Network — that are intuitive, responsive, accessible, consistent, and reliable.
 
-The interface should make complex functionality easy to understand while helping users complete tasks confidently.
+The interface guides users through the complete 9-stage opportunity lifecycle:
+**Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
 ## 2. When to Use
 
 Use this skill when:
 
-- Creating or modifying pages, layouts, and UI components.
-- Implementing dashboards, charts, forms, and data tables.
-- Connecting frontend applications to backend APIs.
-- Managing application state and user interactions.
-- Improving accessibility, responsiveness, and performance.
-- Implementing loading, error, and empty states.
-- Reviewing frontend code and design consistency.
+- Creating or modifying opportunity pages, layouts, and components across the 8 PayPilot modules.
+- Implementing Idea Capture Studio forms with editable AI-extracted suggestions.
+- Building AI Business Analyst opportunity breakdown and assumption views.
+- Developing Opportunity Press draft preview and creator publication controls.
+- Building Opportunity Discovery Network search, filtering, and match badges.
+- Implementing the AI Deal Room proposal comparison and milestone acceptance UI.
+- Integrating PayPal milestone checkout buttons and transaction receipts.
+- Designing responsive, accessible, and user-friendly error boundaries and empty states.
 
-## 3. Design Principles
+For overall opportunity lifecycle guidance, consult the `opportunity-lifecycle` skill.
 
-- Prioritize clarity, usability, and visual consistency.
-- Use a coherent design system for colors, typography, spacing, and components.
-- Keep layouts clean and avoid unnecessary visual complexity.
-- Establish clear visual hierarchy and readable content.
-- Use meaningful feedback for important user actions.
-- Avoid decorative elements that reduce usability.
-- Follow existing design conventions before introducing new ones.
+## 3. Design Principles & Opportunity UX
 
-## 4. Component Architecture
+- **Opportunity-Centered Experience:** Keep the opportunity front and center. Show its current stage, required capabilities, and progress clearly.
+- **Human-in-the-Loop Agency:** AI suggestions must never be auto-saved. Always present AI extractions in editable form fields with explicit "Confirm" or "Save" buttons.
+- **Anti-Hallucination Forms:** When fields are unmentioned in input descriptions, display clean blank inputs (`""`), never invented placeholder text.
+- **Evidence Transparency:** Visually distinguish user-entered facts, AI hypotheses, verified external metrics, and recommendations using clear badges.
+- **Visual Consistency:** Use Tailwind CSS with established project design tokens (colors, typography, spacing).
 
-- Build reusable components around clear responsibilities.
-- Keep components focused and reasonably small.
-- Separate presentation from business logic where practical.
-- Reuse shared layouts, styles, hooks, and utilities.
-- Avoid unnecessary component nesting and duplication.
-- Use descriptive names and predictable component interfaces.
-- Avoid introducing abstractions without a real reuse or maintenance benefit.
+## 4. Error Handling & User-Friendly UX
 
-## 5. Responsive Design
+- **Zero Technical Jargon:** Never expose internal API URLs (e.g. `http://127.0.0.1:8000/api/v1`), stack traces, HTTP status codes, or raw backend exception messages on the UI.
+- **Actionable & Empathetic Messages:** Communicate problems in plain, understandable language with clear recovery actions (e.g. *"We're having trouble connecting right now. Please check your internet connection or try again in a few moments."*).
+- Provide clear loading skeletons, empty states with clear calls-to-action, and non-blocking toast notifications.
 
-- Support mobile, tablet, and desktop layouts.
-- Use flexible layouts and appropriate responsive breakpoints.
-- Prevent horizontal overflow and clipped content.
-- Keep navigation and important actions accessible on smaller screens.
-- Ensure charts, tables, and forms remain usable across screen sizes.
-- Test actual layouts rather than assuming responsiveness from CSS alone.
+## 5. Component Architecture & Next.js
 
-## 6. Accessibility
+- Follow Next.js App Router conventions.
+- Prefer Server Components for data-fetching pages; use Client Components (`"use client"`) only where interactive state or browser events are required.
+- Keep components modular, focused, and single-responsibility.
+- Separate UI presentation from business logic and data access.
+- Reuse shared layouts, styles, hooks, and UI primitives.
 
-- Use semantic HTML elements appropriately.
-- Support keyboard navigation.
-- Provide visible focus indicators.
-- Associate form labels with their inputs.
-- Use meaningful accessible names for interactive controls.
-- Maintain sufficient text and interface contrast.
-- Provide appropriate alternative text for meaningful images.
-- Do not rely on color alone to communicate important information.
-- Respect reduced-motion preferences where animations are used.
+## 6. Accessibility (WCAG 2.1 AA)
 
-## 7. Frontend State and API Integration
+- Use semantic HTML elements (`<main>`, `<nav>`, `<article>`, `<button>`, `<label>`).
+- Support full keyboard navigation and logical tab ordering.
+- Provide visible focus rings for interactive elements.
+- Associate all form labels explicitly with inputs.
+- Maintain sufficient color contrast ratios.
+- Support screen readers with appropriate ARIA attributes.
 
-- Keep state ownership clear and predictable.
-- Avoid unnecessary duplicated state.
-- Validate user input before submission.
-- Handle loading, success, empty, and error states.
-- Use typed API contracts where supported.
-- Avoid hardcoded production data or fake success responses.
-- Handle expired sessions and failed requests gracefully.
-- Never expose private backend credentials in client-side code.
+## 7. Financial & PayPal UI Standards
 
-## 8. Financial and Payment Interfaces
+- Display currency amounts and milestone values with clear, consistent formatting (e.g., `$1,250.00 USD`).
+- Always show transparent milestone details and deliverables before prompting payment.
+- Require explicit user confirmation before initiating checkout.
+- Never declare a payment successful based solely on a frontend event; wait for verified backend capture confirmation.
+- Disable submit buttons during pending transactions to prevent duplicate charges.
 
-For financial applications:
+## 8. Frontend Testing & Verification
 
-- Display currency and amounts consistently.
-- Distinguish actual values from forecasts and estimates.
-- Clearly identify pending, completed, failed, and cancelled transactions.
-- Make payment recipients, amounts, and currencies easy to review.
-- Require clear confirmation before consequential actions.
-- Prevent accidental duplicate submissions.
-- Do not present frontend state as proof of a completed transaction.
-- Communicate errors and payment status honestly.
+- Test component rendering, form validation, and user interactions with React Testing Library or Playwright.
+- Test error boundaries: verify that network disconnections show helpful user-friendly messages without technical jargon.
+- Test responsive layouts across desktop, tablet, and mobile breakpoints.
+- Run type checks (`tsc --noEmit`) and lint checks before completing work.
 
-For PayPilot AI, AI recommendations should be visually distinguishable from verified financial records and actual payment outcomes.
+## 9. Quality Checklist
 
-## 9. Performance
+- [ ] Interface aligns with the opportunity lifecycle.
+- [ ] AI-suggested fields are editable and require explicit human confirmation.
+- [ ] Unprovided attributes remain blank, never invented.
+- [ ] Error messages are friendly and free of technical URLs or traces.
+- [ ] Responsive across desktop, tablet, and mobile.
+- [ ] Meets WCAG 2.1 AA accessibility standards.
+- [ ] TypeScript types are clean with no `any`.
+- [ ] Frontend tests pass.
 
-- Avoid unnecessary rendering and expensive computations.
-- Load large or optional components only when appropriate.
-- Optimize images and static assets.
-- Avoid excessive dependencies.
-- Use pagination or virtualization for large datasets when beneficial.
-- Keep animations smooth and purposeful.
-- Measure performance before introducing complex optimizations.
+## 10. Completion Standard
 
-## 10. Error Handling and User Feedback
+Frontend work is complete when interfaces are intuitive, accessible, responsive, error-resilient, and faithfully implement the opportunity lifecycle workflow.
 
-- Provide understandable validation messages.
-- Show clear feedback after user actions.
-- Prevent repeated submissions while operations are in progress.
-- Handle network failures without losing important user input.
-- Avoid exposing internal errors or technical stack traces.
-- Provide recovery options where practical.
-- Never display a success state before the operation is confirmed.
-
-## 11. Frontend Testing
-
-- Test important components and user interactions.
-- Verify form validation and error handling.
-- Test API loading and failure states.
-- Check responsive layouts at relevant viewport sizes.
-- Test keyboard navigation and accessibility.
-- Validate important end-to-end user workflows.
-- Check browser console output for unexpected errors.
-- Do not rely exclusively on screenshots or successful builds.
-
-## 12. Frontend Development Workflow
-
-1. Understand the user workflow and expected interface behavior.
-2. Inspect existing pages, components, styles, and design conventions.
-3. Identify required API data and state dependencies.
-4. Plan the component structure.
-5. Implement the interface and interactions.
-6. Add loading, empty, success, and error states.
-7. Test responsive behavior and accessibility.
-8. Review the final UI and verify important workflows.
-
-## 13. Quality Checklist
-
-- [ ] Interface follows the existing design system.
-- [ ] Components have clear responsibilities.
-- [ ] Layout works across relevant screen sizes.
-- [ ] Interactive elements are accessible.
-- [ ] API integration handles success and failure.
-- [ ] Loading and empty states are implemented.
-- [ ] Financial information is clearly presented.
-- [ ] Sensitive information is not exposed.
-- [ ] Important user workflows are tested.
-- [ ] No obvious visual or browser-console issues remain.
-
-## 14. Completion Standard
-
-Frontend work is complete when the interface behaves correctly, communicates application state accurately, works across relevant screen sizes, and provides an accessible and consistent user experience.
-
-**Final principle:** Build interfaces that make powerful functionality feel simple, trustworthy, and effortless.
+**Final principle:** A great interface empowers the user to turn an idea into commercial reality with confidence, clarity, and complete control.

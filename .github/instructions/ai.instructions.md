@@ -1,102 +1,96 @@
 ---
 name: AI Engineering Standards
-description: Project-specific instructions for LLM integrations, prompt engineering, structured outputs, AI tools, and business intelligence.
-applyTo: "backend/**/*ai*.py,backend/**/*llm*.py,backend/**/*prompt*.py,backend/**/*agent*.py,frontend/**/*ai*.{ts,tsx},frontend/**/*copilot*.{ts,tsx}"
+description: Project-specific instructions for LLM integrations, prompt engineering, structured outputs, opportunity extraction, matchmaking, and financial AI intelligence.
+applyTo: "backend/**/*ai*.py,backend/**/*llm*.py,backend/**/*prompt*.py,backend/**/*agent*.py,backend/**/*opportunity*.py,frontend/**/*ai*.{ts,tsx},frontend/**/*copilot*.{ts,tsx},frontend/**/*opportunity*.{ts,tsx}"
 ---
 
 # AI Engineering Instructions
 
-## 1. AI Architecture
+## 1. Product Context & AI Purpose
 
-- Follow the existing AI service architecture.
-- Keep model integrations separate from business logic.
-- Use clear interfaces for AI providers and services.
-- Avoid unnecessary provider abstractions.
-- Verify provider capabilities using official documentation.
+PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
 
-## 2. Prompt Engineering
+AI services must power the opportunity lifecycle:
+**Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
-- Keep system prompts focused and version-controlled.
-- Clearly define the model's role, context, objectives, and limitations.
-- Specify expected response formats.
-- Include instructions for missing or insufficient information.
-- Treat user input and retrieved content as untrusted.
-- Never rely on prompts alone for security or authorization.
+AI capabilities map to specific modules:
+- **Idea Capture Studio:** Extract structured business opportunities from raw natural language descriptions, notes, and problem statements.
+- **AI Business Analyst:** Structure business models, identify unstated assumptions, analyze risks, and assess commercial requirements.
+- **Opportunity Press:** Draft executive summaries, public overviews, and capability needs while keeping sensitive internal notes confidential.
+- **Intelligent Matchmaking:** Analyze complementary skills, resources, and goals between participants with explainable match rationale.
+- **AI Deal Room:** Assist participants in drafting structured proposals, comparing commercial terms, and defining verifiable milestones.
 
-## 3. Structured Outputs
+A generic chatbot that merely answers conversational prompts does not fulfill the product mission.
 
-- Prefer structured responses for application workflows.
-- Define and validate output schemas.
-- Reject malformed or incomplete responses.
-- Handle unexpected fields and invalid values safely.
-- Keep user-facing explanations separate from machine-readable data.
+## 2. Anti-Hallucination and Factuality Rules
 
-## 4. AI and Business Data
+- **Zero Invention Rule:** If a user description or opportunity text does not specify an attribute (e.g. website, country, budget, target market), that field MUST remain empty (`""` or `null`). Never invent realistic-sounding placeholders or guess unstated details.
+- **Evidence Labeling:** Every AI-generated output or recommendation must distinguish:
+  - User-Provided Facts (raw input directly from the user).
+  - Verified Data (grounded in database records or validated external APIs).
+  - Deterministic Calculations (backend formula/ledger results).
+  - AI Hypotheses / Inferences (labeled clearly as suggested interpretations).
+  - Action Recommendations (subject to human approval).
+  - Missing Information (explicitly highlighted for the user to supply).
+- Never fabricate revenue, customer traction, market validation, investor commitments, or commercial guarantees.
 
-- Ground recommendations in available business data.
-- Never invent transactions, balances, revenue, expenses, or metrics.
-- Distinguish verified figures from estimates and forecasts.
-- Identify missing information and assumptions.
-- Do not present unsupported recommendations as facts.
-- Protect private business information.
+## 3. Human-in-the-Loop Safeguards
 
-## 5. Financial Intelligence
+- AI-generated opportunity drafts, business profiles, and proposals must NEVER be auto-saved or auto-published without explicit user confirmation.
+- The UI and backend must present AI suggestions in editable form so the human creator maintains full agency.
+- Requiring explicit creator authorization before:
+  - Publishing an opportunity to the network.
+  - Sharing private notes or confidential attachments.
+  - Accepting commercial proposals or milestone terms.
+  - Initiating payments or financial transactions.
 
-- Use deterministic backend services for financial calculations.
-- Never use LLM output as the source of truth for monetary values.
-- Validate financial inputs and outputs independently.
-- AI may explain or recommend financial decisions.
-- AI must never independently authorize or execute payments.
-- Require explicit application-level approval for consequential actions.
+## 4. Structured Outputs & Schema Enforcement
 
-## 6. Tool Calling
+- Use Pydantic schemas (backend) and TypeScript interfaces (frontend) for all AI outputs.
+- Require strict JSON mode or tool-call structured outputs with type validation.
+- Validate every field before returning data to frontend or persisting to the database.
+- Gracefully handle malformed, partial, or unexpected model responses without crashing or silently corrupting application state.
+- Keep machine-readable structured payloads strictly separated from human-readable explanatory text.
 
-- Give AI tools narrowly defined responsibilities.
-- Validate tool arguments before execution.
-- Enforce permissions outside the model.
-- Validate tool results before using them.
-- Prevent unauthorized database, shell, or payment operations.
-- Handle repeated calls, timeouts, and failures safely.
+## 5. Financial and Pricing Determinism
 
-## 7. Reliability and Error Handling
+- **Never rely on an LLM for financial arithmetic, fee calculations, balances, or transaction state transitions.**
+- All monetary calculations, currency conversions, milestone sums, and escrow balances must use deterministic backend application logic (`Decimal`).
+- AI may suggest milestone breakdowns or pricing strategies, but final pricing totals must be deterministically calculated by backend code.
+- AI must never independently authorize, sign, or execute payments or commercial commitments.
 
-- Handle provider outages and rate limits.
-- Apply appropriate request timeouts.
-- Validate responses before application use.
-- Provide useful fallback behavior.
-- Avoid unnecessary model calls.
-- Do not silently replace failed AI responses with fabricated information.
+## 6. Prompt Engineering & Versioning
 
-## 8. Security and Privacy
+- Keep system prompts focused, modular, version-controlled, and testable.
+- Explicitly instruct models on role boundaries, tone, format constraints, and negative constraints (what NOT to do).
+- Treat all prompt inputs (user notes, opportunity descriptions, external web content) as untrusted user data.
+- Defend against prompt injection, jailbreaking, and prompt leaking by sanitizing inputs and using system/user role separation.
 
-- Never expose provider API keys.
-- Send only necessary data to model providers.
-- Treat retrieved documents and user content as untrusted.
-- Protect sensitive business information.
-- Avoid logging private prompts and responses unnecessarily.
-- Do not allow model output to bypass application authorization.
+## 7. Scoped Tool Calling
 
-## 9. Testing and Evaluation
+- Give tools narrow, single-purpose responsibilities.
+- Validate tool arguments with strict schemas prior to execution.
+- Enforce user authorization, tenant boundaries, and least-privilege access outside the model.
+- Disallow any tool from executing arbitrary shell commands, destructive database updates, or untrusted network calls.
+- Prevent infinite tool loops with execution caps and circuit breakers.
 
-Test:
+## 8. Reliability, Rate Limits & Fallbacks
 
-- Normal and incomplete inputs.
-- Ambiguous questions.
-- Missing or conflicting business data.
-- Invalid structured responses.
-- Unsupported financial claims.
-- Prompt injection attempts.
-- Unauthorized tool requests.
-- Provider errors and timeouts.
-- Response consistency and usefulness.
+- Implement exponential backoff, rate limit handling, and sensible timeouts for external model API calls.
+- Provide clean, deterministic heuristic fallbacks when AI provider APIs are unavailable.
+- Never replace a failed AI call with fabricated data; return a helpful, non-technical error or allow the user to proceed manually.
 
-Maintain regression tests for important AI workflows.
+## 9. Security, Privacy & Data Protection
 
-## 10. Change Management
+- Never hardcode or expose AI provider API keys (`GEMINI_API_KEY`, `OPENAI_API_KEY`, etc.); load them securely via server environment variables.
+- Send only the minimal necessary context to model providers; never send credentials, passwords, or unrelated tenant data.
+- Respect opportunity visibility settings: private creator notes must never be leaked into public prompt contexts.
 
-- Inspect existing AI implementations before modifying them.
-- Avoid unrelated prompt or architecture changes.
-- Document important prompt and schema changes.
-- Report model limitations and actual test results.
-- Never claim AI accuracy without meaningful evaluation.
-- Never commit or push without authorization.
+## 10. Testing & Evaluation
+
+- Maintain unit and integration tests covering:
+  - Extraction accuracy with various input lengths and styles.
+  - Missing field handling (confirming unprovided fields stay empty).
+  - Schema validation failure handling.
+  - Prompt injection resilience.
+  - Provider timeout and fallback behavior.

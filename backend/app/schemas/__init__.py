@@ -1,4 +1,9 @@
-from app.schemas.business import BusinessCreate, BusinessRead
+from app.schemas.business import (
+    BusinessCreate,
+    BusinessProfileExtraction,
+    BusinessProfileExtractRequest,
+    BusinessRead,
+)
 from app.schemas.copilot import (
     CopilotChatRequest,
     CopilotChatResponse,
@@ -6,6 +11,16 @@ from app.schemas.copilot import (
     CopilotRecommendation,
     FinancialImpact,
     RecommendedAction,
+)
+from app.schemas.opportunity import (
+    OpportunityAnalysisData,
+    OpportunityAnalyzeRequest,
+    OpportunityAnalyzeResponse,
+    OpportunityCreate,
+    OpportunityListResponse,
+    OpportunityReanalyzeRequest,
+    OpportunityResponse,
+    OpportunityUpdate,
 )
 from app.schemas.payment import (
     ApprovePaymentRequest,
@@ -24,6 +39,8 @@ from app.schemas.transaction import (
 __all__ = [
     "ApprovePaymentRequest",
     "BusinessCreate",
+    "BusinessProfileExtractRequest",
+    "BusinessProfileExtraction",
     "BusinessRead",
     "CopilotChatRequest",
     "CopilotChatResponse",
@@ -34,6 +51,14 @@ __all__ = [
     "DashboardTotals",
     "FinancialImpact",
     "LedgerListResponse",
+    "OpportunityAnalysisData",
+    "OpportunityAnalyzeRequest",
+    "OpportunityAnalyzeResponse",
+    "OpportunityCreate",
+    "OpportunityListResponse",
+    "OpportunityReanalyzeRequest",
+    "OpportunityResponse",
+    "OpportunityUpdate",
     "RecommendedAction",
     "TransactionCreate",
     "TransactionRead",

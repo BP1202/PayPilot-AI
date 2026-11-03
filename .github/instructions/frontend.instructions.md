@@ -1,92 +1,72 @@
 ---
 name: Frontend Engineering Standards
-description: Project-specific instructions for Next.js, React, TypeScript, Tailwind CSS, and frontend integrations.
+description: Project-specific instructions for Next.js, React, TypeScript, Tailwind CSS, Opportunity lifecycle interfaces, human-in-the-loop forms, and PayPal UI integration.
 applyTo: "frontend/**/*.{ts,tsx,js,jsx,css}"
 ---
 
 # Frontend Engineering Instructions
 
-## 1. Architecture
+## 1. Product Context & Opportunity Interfaces
 
-- Follow the existing Next.js project structure.
-- Use TypeScript for application development.
-- Keep components focused and reusable.
-- Separate UI presentation from business logic.
-- Reuse existing layouts, components, and design tokens.
-- Avoid unnecessary dependencies.
+PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
 
-## 2. React and Next.js
+The frontend guides users through the complete opportunity lifecycle:
+**Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
-- Follow established React and Next.js conventions.
-- Use Server Components by default where appropriate.
-- Use Client Components only when browser interactivity or client-side state is needed.
-- Keep component responsibilities clear.
-- Use appropriate loading and error boundaries.
-- Avoid unnecessary client-side JavaScript.
+Core product modules and interfaces:
+- **Idea Capture Studio:** Simple, inviting interface to capture ideas, notes, and business problems. Displays extracted attributes in editable form fields.
+- **AI Business Analyst Views:** Structured breakdown of opportunity potential, key assumptions, required skills/resources, and risk indicators.
+- **Opportunity Press:** Professional publication preview with visibility toggles (`PRIVATE`, `SHARED`, `PUBLIC`) and explicit Publish approval.
+- **Opportunity Discovery Network & Matchmaking:** Search, filter, and discover compatible opportunities and collaborators with explainable match rationale badges.
+- **AI Deal Room:** Interactive proposal builder, milestone breakdown table, and mutual approval actions for commercial terms.
+- **Payments & Transaction Intelligence:** Milestone settlement cards, PayPal SDK checkout integration, clear payment status indicators, and ledger receipts.
+- **Opportunity Evolution:** Visual progress tracking of opportunity maturation from raw idea through funded commercial execution.
 
-## 3. TypeScript
+## 2. Human-in-the-Loop & Anti-Hallucination UX
 
-- Define clear types for component props and API responses.
-- Avoid `any` unless genuinely necessary.
-- Validate external data at application boundaries.
-- Keep shared types consistent with backend contracts.
-- Do not assume API responses are valid without checking them.
+- **AI Suggestions Are Never Auto-Saved:** Extracted business details, opportunity drafts, and proposal terms must be presented as editable suggestions. The user must review, modify, and explicitly confirm before data is persisted.
+- **No Invented Data:** When AI extracts fields from a description, unprovided attributes must remain clean, blank input fields (`""`). Never fill forms with fictional default values.
+- **Evidence Transparency:** Visually distinguish user-provided inputs, AI hypotheses, verified external data, and system-calculated totals with clear badges or subtle visual cues.
 
-## 4. UI and Design
+## 3. Human-Understandable Error Handling & UX
 
-- Use Tailwind CSS and existing project design conventions.
-- Maintain consistent spacing, typography, colors, and layouts.
-- Build responsive interfaces for desktop, tablet, and mobile.
-- Prioritize accessibility and keyboard navigation.
-- Use semantic HTML and meaningful labels.
-- Provide loading, empty, success, and error states.
+- **No Technical Jargon in the UI:** Never expose internal API URLs (e.g. `http://127.0.0.1:8000/api/v1`), stack traces, HTTP error codes, or raw backend exception messages to the user.
+- **Actionable, Empathetic Messaging:** Translate network or server failures into helpful, user-oriented text (e.g., *"We're having trouble connecting to PayPilot services right now. Please check your connection or try again shortly."*).
+- Provide clear loading states (skeletons), empty states with calls to action, and non-blocking toast notifications.
 
-## 5. API Integration
+## 4. Next.js and React Architecture
 
-- Use established API service or data-access patterns.
-- Keep API calls out of unrelated presentation components.
-- Handle loading, errors, and unexpected responses.
-- Do not expose private API keys or backend credentials.
-- Avoid duplicating backend business logic in the frontend.
+- Follow Next.js App Router conventions.
+- Prefer React Server Components for data-fetching pages; use Client Components (`"use client"`) only where interactive state, forms, or browser events are required.
+- Keep components modular, focused, and single-responsibility.
+- Avoid bulky third-party UI libraries when lightweight Tailwind components and primitives suffice.
 
-## 6. Financial UI Requirements
+## 5. TypeScript & Data Contracts
 
-- Display currency and monetary values consistently.
-- Distinguish actual values from estimates and forecasts.
-- Display transaction states accurately.
-- Never present unverified payment results as successful.
-- Prevent accidental duplicate submissions.
-- Require clear user confirmation for consequential actions.
+- Define strict TypeScript interfaces for all opportunity lifecycle stages, proposals, business profiles, and API payloads.
+- Keep frontend types in sync with backend Pydantic schemas.
+- Do not use `any`. Validate incoming API payloads at network boundaries.
+- Gracefully handle nullable and optional opportunity attributes.
 
-## 7. Security
+## 6. Financial UI & PayPal Integration
 
-- Treat browser input and API responses as untrusted.
-- Never rely on frontend checks for authorization.
-- Avoid unsafe HTML rendering.
-- Do not store sensitive credentials in browser storage.
-- Do not expose private business information unnecessarily.
+- Display currency amounts, milestone values, and fees with consistent formatting and explicit currency symbols (e.g., `$1,250.00 USD`).
+- Always show clear milestone breakdown cards before requesting payment.
+- Require explicit user confirmation before opening PayPal approval flows.
+- Never declare a payment successful based solely on a frontend event; wait for verified server-to-server capture confirmation.
+- Disable submit buttons during pending transactions to prevent double-clicks or duplicate charges.
 
-## 8. Performance
+## 7. Accessibility, Responsiveness & Styling
 
-- Avoid unnecessary re-renders.
-- Optimize images and expensive components.
-- Load large or rarely used features appropriately.
-- Avoid unnecessary network requests.
-- Follow existing project performance conventions.
+- Use Tailwind CSS with established design tokens (colors, typography, spacing).
+- Ensure full responsiveness across desktop, tablet, and mobile breakpoints.
+- Meet WCAG 2.1 AA accessibility guidelines: proper heading hierarchy, ARIA attributes, semantic HTML, keyboard focus management, and accessible color contrast.
 
-## 9. Testing
+## 8. Testing & Verification
 
-- Test important component behavior.
-- Validate forms and user interactions.
-- Test API success and failure states.
-- Verify responsive behavior.
-- Test critical payment-related interactions.
-- Run relevant frontend checks after changes.
-
-## 10. Change Management
-
-- Avoid unrelated UI redesigns.
-- Preserve existing user workflows.
-- Update shared types when API contracts change.
-- Report files changed and checks actually executed.
-- Never commit or push without authorization.
+- Write component and integration tests (React Testing Library / Jest / Playwright) covering:
+  - Form editing and submission flows.
+  - Extraction review and confirmation behavior.
+  - Error and loading boundary handling.
+  - Deal Room proposal acceptance interactions.
+- Run type checks (`tsc --noEmit`) and lint checks before completing tasks.

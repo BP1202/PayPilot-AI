@@ -1,0 +1,549 @@
+{
+  "info": {
+    "_postman_id": "c194a4b2-9221-4fa3-b6d8-9df8c519aa01",
+    "name": "PayPilot AI - Core API Collection",
+    "description": "Production-ready Postman collection for PayPilot AI. Covers health monitoring, AI-assisted business profile onboarding, dashboard metrics, commerce ledger, AI copilot decision support, and payment approval workflows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. System & Health",
+      "item": [
+        {
+          "name": "Root Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{rootUrl}}/",
+              "host": ["{{rootUrl}}"],
+              "path": [""]
+            },
+            "description": "Returns backend service name and running status."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Backend is running\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql(\"running\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{rootUrl}}/health",
+              "host": ["{{rootUrl}}"],
+              "path": ["health"]
+            },
+            "description": "System health probe."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Service is healthy\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql(\"healthy\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "API v1 Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "API v1 sub-router health check."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Business Onboarding & Profile",
+      "item": [
+        {
+          "name": "Extract Business Profile (AI Extraction)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"ABC Company is an electronics wholesaler based in Ahmedabad, India. We sell electronic components to retailers and receive payments online.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/extract",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "extract"]
+            },
+            "description": "Extracts structured entity suggestions (name, industry, business_type, country, currency) from natural language text without hallucinating missing fields."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Extracts business name and entities\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data.name).to.eql(\"ABC Company\");",
+                  "    pm.expect(data.industry).to.eql(\"Electronics\");",
+                  "    pm.expect(data.business_type).to.eql(\"Wholesaler\");",
+                  "    pm.expect(data.country).to.eql(\"India\");",
+                  "    pm.expect(data.currency).to.eql(\"INR\");",
+                  "    pm.expect(data.website).to.eql(\"\"); // Anti-hallucination check",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Business Profile (Persist to DB)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ABC Electronics Wholesale\",\n  \"currency\": \"INR\",\n  \"industry\": \"Electronics\",\n  \"business_type\": \"Wholesaler\",\n  \"country\": \"India\",\n  \"website\": \"https://abcelectronics.example.com\",\n  \"description\": \"Specialized wholesale distributor of electronic components in Ahmedabad.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business",
+              "host": ["{{baseUrl}}"],
+              "path": ["business"]
+            },
+            "description": "Creates and persists a verified business profile in PostgreSQL, belonging to the authenticated user."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Profile created with ID and user association\", function () {",
+                  "    pm.expect(data.id).to.be.a('number');",
+                  "    pm.expect(data.name).to.eql(\"ABC Electronics Wholesale\");",
+                  "    pm.expect(data.user_id).to.eql(pm.environment.get(\"userId\"));",
+                  "});",
+                  "pm.environment.set(\"createdBusinessId\", data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User Business Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/business/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "me"]
+            },
+            "description": "Retrieves the active profile for the authenticated owner."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns business schema\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('name');",
+                  "    pm.expect(data).to.have.property('currency');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List User Business Profiles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/business",
+              "host": ["{{baseUrl}}"],
+              "path": ["business"]
+            },
+            "description": "Lists all business profiles configured for the authenticated user."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Response is an array of businesses\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(Array.isArray(data)).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Dashboard & Metrics",
+      "item": [
+        {
+          "name": "Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "overview"]
+            },
+            "description": "Retrieves the primary KPIs: total revenue, completed transaction count, pending count, pending receivables, and business profile."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Contains business and totals objects\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('business');",
+                  "    pm.expect(data).to.have.property('totals');",
+                  "    pm.expect(data.totals).to.have.property('total_revenue');",
+                  "    pm.expect(data.totals).to.have.property('completed_count');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Commerce Ledger",
+      "item": [
+        {
+          "name": "List All Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ledger",
+              "host": ["{{baseUrl}}"],
+              "path": ["ledger"]
+            },
+            "description": "Retrieves transactions from the commerce ledger."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Items array is present\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(Array.isArray(data.items)).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Transactions Filtered by Status (PENDING)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ledger?status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["ledger"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            },
+            "description": "Retrieves pending receivables awaiting capture or owner approval."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.items.length > 0) {",
+                  "    pm.environment.set(\"transactionRef\", data.items[0].transaction_ref);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. AI Copilot Decision Support",
+      "item": [
+        {
+          "name": "Get Copilot Recommendation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/copilot/recommendation",
+              "host": ["{{baseUrl}}"],
+              "path": ["copilot", "recommendation"]
+            },
+            "description": "Computes working capital acceleration impact and generates owner approval recommendation grounded in verified ledger data."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Contains financial impact projection\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('title');",
+                  "    pm.expect(data).to.have.property('mode');",
+                  "    pm.expect(data).to.have.property('financial_impact');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask Copilot Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"What is our settled revenue and pending receivables status?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/copilot/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["copilot", "chat"]
+            },
+            "description": "Interacts with PayPilot AI assistant grounded in deterministic commerce data."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns valid reply and context\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data.reply).to.be.a('string');",
+                  "    pm.expect(data.context_summary).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Payment Approval Workflows",
+      "item": [
+        {
+          "name": "Approve Customer Payment (Owner Approval)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_ref\": \"{{transactionRef}}\",\n  \"owner_approved\": true,\n  \"idempotency_key\": \"postman-exec-{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "approve"]
+            },
+            "description": "Executes owner-approved payment capture with idempotency guarantees."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 or 400 (if already captured/invalid)\", function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Collection-level pre-request setup",
+          "if (!pm.environment.get(\"userId\")) {",
+          "    pm.environment.set(\"userId\", \"owner_default\");",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}
+

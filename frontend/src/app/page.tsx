@@ -6,18 +6,25 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { CommerceLedger } from "@/components/CommerceLedger";
 import { CopilotChat } from "@/components/CopilotChat";
+import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
+import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
+import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
 import {
+  Business,
   DashboardOverview,
   CopilotRecommendation,
   Transaction,
   TransactionStatus,
+  Opportunity,
+  OpportunityStatus,
 } from "@/types";
 import {
   fetchDashboardOverview,
   fetchCopilotRecommendation,
   fetchLedgerTransactions,
+  fetchUserOpportunities,
 } from "@/lib/api";
-import { RefreshCw, AlertCircle } from "lucide-react";
+import { RefreshCw, AlertCircle, CheckCircle2, X } from "lucide-react";
 
 function sanitizeErrorMessage(rawMessage?: string): string {
   if (!rawMessage) {
@@ -55,6 +62,17 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Opportunities state (Stage 1 & 2)
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [oppLoading, setOppLoading] = useState(true);
+  const [selectedOppStatus, setSelectedOppStatus] = useState<OpportunityStatus | undefined>(undefined);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [activeOpportunity, setActiveOpportunity] = useState<Opportunity | null>(null);
+
+  // Modals & alerts
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
   const loadData = useCallback(async (statusFilter?: TransactionStatus) => {
     try {
       setLoading(true);
@@ -77,24 +95,90 @@ export default function Home() {
     }
   }, []);
 
+  const loadOpportunities = useCallback(async (statusFilter?: OpportunityStatus) => {
+    try {
+      setOppLoading(true);
+      const res = await fetchUserOpportunities(statusFilter);
+      setOpportunities(res.items);
+    } catch {
+      // Graceful fallback for offline/disconnected states
+      setOpportunities([]);
+    } finally {
+      setOppLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadData(selectedStatus);
   }, [loadData, selectedStatus]);
+
+  useEffect(() => {
+    loadOpportunities(selectedOppStatus);
+  }, [loadOpportunities, selectedOppStatus]);
 
   const handleFilterChange = (newStatus?: TransactionStatus) => {
     setSelectedStatus(newStatus);
   };
 
+  const handleOppFilterChange = (newStatus?: OpportunityStatus) => {
+    setSelectedOppStatus(newStatus);
+  };
+
   const handlePaymentSuccess = () => {
-    // Reload data to reflect captured payment and refreshed dashboard totals
     loadData(selectedStatus);
+  };
+
+  const handleProfileCreated = (newBiz: Business) => {
+    setSuccessToast(`Business profile for "${newBiz.name}" saved successfully.`);
+    loadData(selectedStatus);
+  };
+
+  const handleOpportunitySuccess = (savedOpp: Opportunity, message: string) => {
+    setSuccessToast(message);
+    loadOpportunities(selectedOppStatus);
+  };
+
+  const handleOpenNewStudio = () => {
+    setActiveOpportunity(null);
+    setIsStudioOpen(true);
+  };
+
+  const handleOpenExistingStudio = (opp: Opportunity) => {
+    setActiveOpportunity(opp);
+    setIsStudioOpen(true);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Header business={overview?.business} />
+      <Header
+        business={overview?.business}
+        onCreateProfile={() => setIsOnboardingOpen(true)}
+        onCreateOpportunity={handleOpenNewStudio}
+      />
 
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+        {/* Success toast after saving */}
+        {successToast && (
+          <div
+            role="status"
+            className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 text-xs text-emerald-900 shadow-xs"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <p className="font-semibold">{successToast}</p>
+            </div>
+            <button
+              onClick={() => setSuccessToast(null)}
+              className="p-1 text-emerald-700 hover:text-emerald-900 transition"
+              aria-label="Dismiss message"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Friendly notification if connection has an issue */}
         {error && (
           <div
@@ -111,7 +195,10 @@ export default function Home() {
               </div>
             </div>
             <button
-              onClick={() => loadData(selectedStatus)}
+              onClick={() => {
+                loadData(selectedStatus);
+                loadOpportunities(selectedOppStatus);
+              }}
               className="inline-flex items-center justify-center space-x-1.5 rounded-xl bg-amber-800 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-900 transition-colors cursor-pointer self-start sm:self-auto"
             >
               <RefreshCw className="h-3.5 w-3.5" />
@@ -119,6 +206,18 @@ export default function Home() {
             </button>
           </div>
         )}
+
+        {/* Stage 1 & 2 Opportunity Workspace */}
+        <section aria-label="Opportunity Workspace">
+          <OpportunityDraftsList
+            opportunities={opportunities}
+            isLoading={oppLoading}
+            onSelectOpportunity={handleOpenExistingStudio}
+            onCreateNew={handleOpenNewStudio}
+            selectedStatus={selectedOppStatus}
+            onFilterChange={handleOppFilterChange}
+          />
+        </section>
 
         {/* Top: 4 Dashboard Overview Cards */}
         <section aria-label="Business Metrics">
@@ -152,9 +251,26 @@ export default function Home() {
         </div>
       </main>
 
+      <BusinessOnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onSuccess={handleProfileCreated}
+      />
+
+      <OpportunityStudioModal
+        isOpen={isStudioOpen}
+        onClose={() => {
+          setIsStudioOpen(false);
+          setActiveOpportunity(null);
+        }}
+        onSuccess={handleOpportunitySuccess}
+        existingOpportunity={activeOpportunity}
+        businessId={overview?.business?.id}
+      />
+
       <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 PayPilot AI — Decision-to-Payment Demonstration.</p>
+          <p>© 2026 PayPilot AI — Idea-to-Business Opportunity Network.</p>
           <p className="text-[11px] text-slate-400">
             Simulated payment operations. No live PayPal accounts or real funds are used.
           </p>

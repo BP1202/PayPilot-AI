@@ -3,9 +3,36 @@ export interface Business {
   name: string;
   currency: string;
   industry?: string;
+  business_type?: string;
+  country?: string;
+  website?: string;
   description?: string;
+  user_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface BusinessProfileExtraction {
+  name: string;
+  description: string;
+  industry: string;
+  business_type: string;
+  country: string;
+  website: string;
+  currency: string;
+  confidence: number;
+  extracted_fields: string[];
+}
+
+export interface BusinessCreatePayload {
+  name: string;
+  currency: string;
+  industry?: string;
+  business_type?: string;
+  country?: string;
+  website?: string;
+  description?: string;
+  user_id?: string;
 }
 
 export interface DashboardTotals {
@@ -88,3 +115,135 @@ export interface ApprovePaymentRequest {
   idempotency_key: string;
 }
 
+// ---------------------------------------------------------------------------
+// Opportunity Domain & Stage 1-2 Lifecycle Interfaces
+// ---------------------------------------------------------------------------
+
+export type OpportunityType = "IDEA" | "PROBLEM";
+
+export type OpportunityStatus =
+  | "DRAFT"
+  | "ANALYSED"
+  | "PUBLISHED"
+  | "MATCHING"
+  | "NEGOTIATING"
+  | "TRANSACTING"
+  | "GROWING"
+  | "COMPLETED"
+  | "ARCHIVED";
+
+export type OpportunityVisibility = "PRIVATE" | "SHARED" | "PUBLIC";
+
+export type ProvenanceCategory =
+  | "USER_PROVIDED"
+  | "AI_SUGGESTION"
+  | "AI_HYPOTHESIS"
+  | "VERIFIED_EXTERNAL"
+  | "DETERMINISTIC_CALCULATION"
+  | "MISSING_UNKNOWN";
+
+export interface OpportunityAnalysisData {
+  suggested_title: string;
+  problem_statement: string;
+  proposed_solution: string;
+  target_customer_segments: string[];
+  customer_pain_points: string[];
+  value_proposition: string;
+  industry: string;
+  required_skills_and_resources: string[];
+  potential_business_models: string[];
+  key_assumptions: string[];
+  risks_and_uncertainties: string[];
+  missing_information: string[];
+  suggested_follow_up_questions: string[];
+  provenance: Record<string, ProvenanceCategory>;
+  ai_metadata: Record<string, any>;
+}
+
+export interface OpportunityAnalyzeResponse {
+  submission_type: OpportunityType;
+  original_description: string;
+  analysis: OpportunityAnalysisData;
+  mode: "LIVE_AI" | "DETERMINISTIC_FALLBACK";
+  provider?: string;
+  model?: string;
+  confidence: number;
+  message: string;
+}
+
+export interface OpportunityCreatePayload {
+  submission_type: OpportunityType;
+  title: string;
+  original_description: string;
+  problem_statement?: string;
+  proposed_solution?: string;
+  industry?: string;
+  value_proposition?: string;
+  target_customer_segments?: string[];
+  customer_pain_points?: string[];
+  required_skills_and_resources?: string[];
+  potential_business_models?: string[];
+  key_assumptions?: string[];
+  risks_and_uncertainties?: string[];
+  missing_information?: string[];
+  suggested_follow_up_questions?: string[];
+  provenance?: Record<string, any>;
+  ai_metadata?: Record<string, any>;
+  business_id?: number;
+  status?: OpportunityStatus;
+  visibility?: OpportunityVisibility;
+}
+
+export interface OpportunityUpdatePayload {
+  title?: string;
+  original_description?: string;
+  problem_statement?: string;
+  proposed_solution?: string;
+  industry?: string;
+  value_proposition?: string;
+  target_customer_segments?: string[];
+  customer_pain_points?: string[];
+  required_skills_and_resources?: string[];
+  potential_business_models?: string[];
+  key_assumptions?: string[];
+  risks_and_uncertainties?: string[];
+  missing_information?: string[];
+  suggested_follow_up_questions?: string[];
+  provenance?: Record<string, any>;
+  ai_metadata?: Record<string, any>;
+  status?: OpportunityStatus;
+  visibility?: OpportunityVisibility;
+  business_id?: number;
+}
+
+export interface Opportunity {
+  id: string;
+  user_id: string;
+  business_id?: number | null;
+  submission_type: OpportunityType;
+  status: OpportunityStatus;
+  visibility: OpportunityVisibility;
+  title: string;
+  original_description: string;
+  problem_statement?: string | null;
+  proposed_solution?: string | null;
+  industry?: string | null;
+  value_proposition?: string | null;
+  target_customer_segments: string[];
+  customer_pain_points: string[];
+  required_skills_and_resources: string[];
+  potential_business_models: string[];
+  key_assumptions: string[];
+  risks_and_uncertainties: string[];
+  missing_information: string[];
+  suggested_follow_up_questions: string[];
+  provenance: Record<string, any>;
+  ai_metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OpportunityListResponse {
+  items: Opportunity[];
+  total: number;
+}

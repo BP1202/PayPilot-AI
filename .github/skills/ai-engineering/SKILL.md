@@ -1,180 +1,139 @@
 ---
 name: ai-engineering
-description: Design, implement, integrate, and evaluate reliable AI-powered application features, including LLM APIs, prompt engineering, structured outputs, tool calling, retrieval, and AI evaluation.
+description: Design, implement, integrate, and evaluate reliable AI features for PayPilot AI, including opportunity extraction, anti-hallucination validation, prompt engineering, structured outputs, matchmaking, and financial AI safeguards.
 ---
 
 # AI Engineering Skill
 
 ## 1. Purpose
 
-Build AI features that are reliable, secure, useful, and aligned with real application requirements.
+Build AI features for PayPilot AI — the AI-powered Idea-to-Business Opportunity Network — that are reliable, secure, factual, transparent, and aligned with the 9-stage opportunity lifecycle:
+**Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
-AI should solve meaningful problems, support decisions, and improve user workflows—not simply generate impressive-looking text.
+AI in PayPilot transforms raw ideas into structured opportunities, identifies commercial assumptions, generates publication drafts, and recommends compatible partners. It must solve real business problems without hallucinating data or overstepping human authority.
 
 ## 2. When to Use
 
 Use this skill when:
 
-- Integrating LLM providers or AI APIs.
-- Designing AI assistants and business copilots.
-- Creating system prompts and reusable prompt templates.
-- Implementing structured outputs or function calling.
-- Connecting AI models to application tools and data.
-- Building retrieval-augmented generation (RAG).
-- Evaluating model quality, reliability, and performance.
-- Debugging inconsistent or incorrect AI responses.
+- Implementing or updating AI extraction in the **Idea Capture Studio**.
+- Developing opportunity structuring, assumption analysis, and risk scoring in **AI Business Analyst**.
+- Generating publication previews in **Opportunity Press**.
+- Designing matching algorithms and rationale badges in **Intelligent Matchmaking**.
+- Building proposal assistance and milestone breakdown tools in the **AI Deal Room**.
+- Designing and versioning system prompts and Pydantic output schemas.
+- Testing for prompt injection, hallucinations, and extraction edge cases.
+- Implementing fallbacks when external AI providers are unavailable.
 
-## 3. AI Architecture Principles
+For overall lifecycle and module guidance, consult the `opportunity-lifecycle` skill.
 
-- Keep AI responsibilities clearly separated from application business logic.
-- Use provider-independent interfaces where they offer practical value.
-- Avoid unnecessary abstractions or premature multi-provider architectures.
-- Keep prompts, schemas, tools, and model configuration organized.
-- Make model selection configurable when appropriate.
-- Handle provider failures without breaking the entire application.
-- Keep sensitive operations under deterministic application control.
+## 3. Anti-Hallucination & Factuality Principles
 
-## 4. Prompt Engineering
+- **Zero Invention Rule:** If a user description or opportunity text does not specify an attribute (e.g. website, country, budget, target market), that field MUST remain empty (`""`). Never invent realistic-sounding placeholders, fake company names, or default figures.
+- **Evidence Categorization:** Always distinguish:
+  - *User-Provided Facts:* Explicitly stated in the prompt or document.
+  - *Verified Data:* Grounded in database records or validated external APIs.
+  - *Deterministic Calculations:* Backend formula/ledger results.
+  - *AI Hypotheses:* Inferences or suggested business models (clearly labeled).
+  - *Recommendations:* Suggested next steps subject to human approval.
+  - *Missing Context:* Gaps explicitly highlighted for the user to fill.
+- Never fabricate revenue, customer traction, market validation, or investor commitments.
 
-Create prompts that are specific, consistent, and testable.
+## 4. Human-in-the-Loop Safeguards
+
+- AI-generated opportunity drafts, business profiles, and proposals must NEVER be auto-saved or auto-published without explicit user confirmation.
+- The UI and backend must present AI suggestions in editable form so the human creator maintains full agency.
+- Requiring explicit creator authorization before:
+  - Publishing an opportunity to the network.
+  - Sharing private notes or confidential attachments.
+  - Accepting commercial proposals or milestone terms.
+  - Initiating payments or financial transactions.
+
+## 5. Prompt Engineering
+
+Create prompts that are specific, consistent, and testable:
 
 - Define the AI's role and objective clearly.
 - Provide only relevant context.
-- Specify expected response structure and constraints.
-- Include important business rules and limitations.
-- Explain how the AI should handle missing or insufficient information.
+- Specify expected response structure and Pydantic constraints.
+- Explicitly instruct the model to leave unmentioned fields blank (`""`).
+- Include instructions for missing or insufficient information.
 - Avoid contradictory instructions and unnecessary prompt length.
 - Keep reusable prompts version-controlled.
+- Defend against prompt injection by separating system instructions from untrusted user inputs.
 - Never rely on prompt instructions alone for security enforcement.
 
-For important workflows, include representative examples and test cases.
+## 6. Structured Outputs
 
-## 5. Structured Outputs
+Prefer structured responses when AI output is consumed by application logic:
 
-Prefer structured responses when AI output is consumed by application logic.
-
-- Define explicit schemas for expected outputs.
-- Validate model responses before processing them.
+- Define explicit Pydantic v2 schemas for all expected outputs.
+- Validate model responses before returning them to client or database.
 - Check required fields, types, ranges, and allowed values.
-- Handle malformed, incomplete, or unexpected responses.
+- Handle malformed, incomplete, or unexpected responses safely with fallback heuristics.
 - Reject invalid outputs safely.
-- Avoid fragile parsing of free-form text.
-- Keep user-facing explanations separate from machine-readable data where appropriate.
+- Keep user-facing explanations separate from machine-readable data.
 
 A response that looks correct to a person is not automatically valid application data.
 
-## 6. Tool Calling and AI Actions
+## 7. Tool Calling and AI Actions
 
-AI tools must operate within controlled application boundaries.
+AI tools must operate within controlled application boundaries:
 
 - Give each tool a clear purpose and limited permissions.
 - Validate tool arguments before execution.
-- Enforce authorization independently of model decisions.
+- Enforce authorization independently outside the model.
 - Validate tool results before returning them to the model.
-- Handle timeouts, failures, and repeated calls safely.
 - Prevent unrestricted shell, database, or privileged system access.
 - Require human approval for consequential actions.
-- Maintain traceability for important tool executions.
+- Maintain traceability for all tool executions.
 
 The model may recommend an action, but the application decides whether that action is permitted.
 
-## 7. Business Reasoning and Financial Intelligence
+## 8. Financial Intelligence Safeguards
 
-For AI-powered business applications:
+- **Deterministic Arithmetic:** All currency calculations, fees, milestone allocations, and balances must be computed by deterministic backend application logic (`Decimal`). Never rely on an LLM for monetary truth.
+- AI may recommend milestone pricing or break down project costs, but final totals must be deterministically calculated by backend code.
+- AI must never independently authorize, sign, or execute payments or commercial commitments.
 
-- Use verified business data as the source of truth.
-- Clearly distinguish actual figures, estimates, forecasts, and recommendations.
-- Never invent financial records or business metrics.
-- Use deterministic code for calculations and financial rules.
-- Explain the reasoning behind important recommendations.
-- Identify assumptions and missing information.
-- Avoid presenting uncertain predictions as guaranteed outcomes.
-- Keep recommendations consistent with the user's actual business context.
-
-For PayPilot AI, AI may interpret business performance and recommend strategies, but financial calculations and transaction decisions must remain independently validated.
-
-## 8. Context and Retrieval
+## 9. Context and Privacy
 
 When providing context to a model:
 
-- Retrieve relevant information rather than sending unnecessary data.
-- Preserve source information and useful references.
-- Respect user and organization access permissions.
-- Avoid exposing unrelated or confidential records.
+- Send only minimal necessary data; never send API keys, passwords, or unrelated tenant data.
+- Respect opportunity visibility settings: private creator notes must never be leaked into public prompt contexts.
 - Treat retrieved documents as untrusted content.
-- Address outdated, conflicting, and incomplete information.
-- Distinguish retrieved facts from model-generated interpretation.
 
-Use RAG only when it provides measurable value over simpler approaches.
+## 10. Reliability and Failure Handling
 
-## 9. Reliability and Failure Handling
+- Handle provider outages, rate limits, and network timeouts with exponential backoff and retries.
+- Provide clean, deterministic heuristic fallbacks when AI provider APIs are unavailable.
+- Never replace a failed AI call with fabricated data; return a helpful, non-technical error or allow the user to proceed manually.
 
-Design AI workflows for imperfect model behavior.
+## 11. Testing and Evaluation
 
-Handle:
+Test:
 
-- API timeouts and provider outages.
-- Rate limits and temporary failures.
-- Invalid or incomplete model responses.
-- Context-window limitations.
-- Tool execution errors.
-- Missing business information.
-- Conflicting or low-confidence results.
+- Normal, sparse, and ambiguous descriptions.
+- Missing field handling (confirming unprovided fields stay empty).
+- Invalid structured responses.
+- Prompt injection attempts.
+- Unauthorized tool requests.
+- Provider errors and timeouts.
 
-Use appropriate retries, timeouts, fallbacks, and user-facing error messages.
+## 12. Quality Checklist
 
-Never retry consequential actions blindly. Prevent duplicate execution.
+- [ ] Serves the opportunity lifecycle and defined module objectives.
+- [ ] Strictly follows the Zero Invention Rule (unmentioned fields are blank).
+- [ ] Structured outputs validate against Pydantic schemas.
+- [ ] Suggestions are editable and require explicit human confirmation.
+- [ ] Business-critical calculations use Python Decimal.
+- [ ] Secrets and API keys are stored only in environment variables.
+- [ ] Provider outages are handled gracefully with fallbacks.
+- [ ] Automated evaluation tests pass.
 
-## 10. AI Evaluation and Testing
+## 13. Completion Standard
 
-Evaluate AI features using representative scenarios.
-
-- Test normal, incomplete, ambiguous, and adversarial inputs.
-- Check structured-output validity.
-- Verify that recommendations use supplied data correctly.
-- Test tool permissions and approval requirements.
-- Measure consistency and task success.
-- Check failure handling and response quality.
-- Evaluate latency and token usage where relevant.
-- Maintain regression cases for previously identified failures.
-
-Do not rely only on a few successful demonstrations to claim AI quality.
-
-## 11. Privacy and Responsible AI
-
-- Send only the data necessary for the task.
-- Protect credentials, personal information, and confidential business data.
-- Avoid logging complete prompts or responses when they contain sensitive information.
-- Communicate uncertainty and relevant limitations.
-- Avoid fabricated evidence, misleading explanations, and unsupported claims.
-- Keep consequential decisions under appropriate human oversight.
-
-## 12. AI Engineering Workflow
-
-1. Define the user problem and expected AI behavior.
-2. Inspect the existing architecture and available data.
-3. Select an appropriate model and integration approach.
-4. Define prompts, schemas, and tool boundaries.
-5. Implement validation and failure handling.
-6. Test representative and adversarial scenarios.
-7. Evaluate quality, reliability, and performance.
-8. Document limitations and report verified results.
-
-## 13. Quality Checklist
-
-- [ ] AI solves a clearly defined user problem.
-- [ ] Prompts and expected outputs are clearly specified.
-- [ ] Structured responses are validated.
-- [ ] Tool access is restricted and authorized.
-- [ ] Business-critical logic is deterministic.
-- [ ] Missing information and uncertainty are handled.
-- [ ] Provider failures do not break critical workflows.
-- [ ] Sensitive data is appropriately protected.
-- [ ] Representative AI evaluation tests exist.
-- [ ] Limitations are documented honestly.
-
-## 14. Completion Standard
-
-An AI feature is complete when it produces useful, validated results under expected conditions and handles important failure scenarios safely.
+An AI feature is complete when it produces accurate, schema-validated results, adheres to anti-hallucination rules, preserves human agency, and handles provider failures safely.
 
 **Final principle:** Build AI that earns user trust through accuracy, transparency, controlled actions, and measurable usefulness.
