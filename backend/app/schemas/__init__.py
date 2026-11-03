@@ -1,4 +1,9 @@
-from app.schemas.business import BusinessCreate, BusinessRead
+from app.schemas.business import (
+    BusinessCreate,
+    BusinessProfileExtraction,
+    BusinessProfileExtractRequest,
+    BusinessRead,
+)
 from app.schemas.copilot import (
     CopilotChatRequest,
     CopilotChatResponse,
@@ -24,6 +29,8 @@ from app.schemas.transaction import (
 __all__ = [
     "ApprovePaymentRequest",
     "BusinessCreate",
+    "BusinessProfileExtractRequest",
+    "BusinessProfileExtraction",
     "BusinessRead",
     "CopilotChatRequest",
     "CopilotChatResponse",

@@ -3,9 +3,36 @@ export interface Business {
   name: string;
   currency: string;
   industry?: string;
+  business_type?: string;
+  country?: string;
+  website?: string;
   description?: string;
+  user_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface BusinessProfileExtraction {
+  name: string;
+  description: string;
+  industry: string;
+  business_type: string;
+  country: string;
+  website: string;
+  currency: string;
+  confidence: number;
+  extracted_fields: string[];
+}
+
+export interface BusinessCreatePayload {
+  name: string;
+  currency: string;
+  industry?: string;
+  business_type?: string;
+  country?: string;
+  website?: string;
+  description?: string;
+  user_id?: string;
 }
 
 export interface DashboardTotals {
@@ -87,4 +114,3 @@ export interface ApprovePaymentRequest {
   owner_approved: boolean;
   idempotency_key: string;
 }
-

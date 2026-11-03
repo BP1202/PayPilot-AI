@@ -1,5 +1,8 @@
 import {
   ApprovePaymentRequest,
+  Business,
+  BusinessCreatePayload,
+  BusinessProfileExtraction,
   CopilotChatResponse,
   CopilotRecommendation,
   DashboardOverview,
@@ -26,6 +29,14 @@ export function getApiBaseUrl(): string {
     return envUrl.trim().replace(/\/+$/, "");
   }
   return "http://127.0.0.1:8000/api/v1";
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const storedUser = typeof window !== "undefined" ? localStorage.getItem("paypilot_user_id") : null;
+  return {
+    "Content-Type": "application/json",
+    ...(storedUser ? { "X-User-ID": storedUser } : { "X-User-ID": "owner_default" }),
+  };
 }
 
 const FRIENDLY_CONNECTION_ERROR =
@@ -57,22 +68,28 @@ async function handleResponse<T>(res: Response, fallbackMessage: string): Promis
     try {
       data = await res.json();
       if (typeof data === "object" && data !== null) {
-        const rawDetail =
-          (data as { detail?: string }).detail ||
-          (data as { message?: string }).message ||
-          "";
-        if (rawDetail && !isTechnicalDetail(rawDetail)) {
+        const rawDetail = (data as { detail?: unknown }).detail;
+        if (typeof rawDetail === "string") {
           detail = rawDetail;
+        } else if (Array.isArray(rawDetail)) {
+          detail = rawDetail
+            .map((item) => (item && typeof item === "object" && "msg" in item ? String(item.msg) : ""))
+            .filter(Boolean)
+            .join("; ");
         }
       }
     } catch {
-      // Non-JSON response
+      // response body was not JSON
     }
 
-    const message = detail || fallbackMessage;
-    throw new ApiError(message, res.status, data);
+    if (detail && !isTechnicalDetail(detail)) {
+      throw new ApiError(detail, res.status, data);
+    }
+
+    throw new ApiError(fallbackMessage, res.status, data);
   }
-  return res.json();
+
+  return res.json() as Promise<T>;
 }
 
 function handleFetchError(err: unknown, userFriendlyFallback: string): never {
@@ -86,6 +103,7 @@ export async function fetchDashboardOverview(): Promise<DashboardOverview> {
   try {
     const res = await fetch(`${getApiBaseUrl()}/dashboard/overview`, {
       cache: "no-store",
+      headers: getAuthHeaders(),
     });
     return await handleResponse<DashboardOverview>(res, FRIENDLY_GENERIC_ERROR);
   } catch (err) {
@@ -100,6 +118,7 @@ export async function fetchLedgerTransactions(
     const query = status ? `?status=${encodeURIComponent(status)}` : "";
     const res = await fetch(`${getApiBaseUrl()}/ledger${query}`, {
       cache: "no-store",
+      headers: getAuthHeaders(),
     });
     return await handleResponse<LedgerListResponse>(
       res,
@@ -117,6 +136,7 @@ export async function fetchCopilotRecommendation(): Promise<CopilotRecommendatio
   try {
     const res = await fetch(`${getApiBaseUrl()}/copilot/recommendation`, {
       cache: "no-store",
+      headers: getAuthHeaders(),
     });
     return await handleResponse<CopilotRecommendation>(
       res,
@@ -134,9 +154,7 @@ export async function sendCopilotChat(prompt: string): Promise<CopilotChatRespon
   try {
     const res = await fetch(`${getApiBaseUrl()}/copilot/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ prompt }),
     });
     return await handleResponse<CopilotChatResponse>(
@@ -157,9 +175,7 @@ export async function approvePayment(
   try {
     const res = await fetch(`${getApiBaseUrl()}/payments/approve`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
     return await handleResponse<Transaction>(
@@ -170,6 +186,67 @@ export async function approvePayment(
     handleFetchError(
       err,
       "Unable to complete payment authorization right now. Please try again."
+    );
+  }
+}
+
+export async function extractBusinessProfile(
+  description: string
+): Promise<BusinessProfileExtraction> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/business/extract`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ description }),
+    });
+    return await handleResponse<BusinessProfileExtraction>(
+      res,
+      "We couldn't analyze the business description right now. Please enter the details manually."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "We couldn't analyze the business description right now. Please enter the details manually."
+    );
+  }
+}
+
+export async function createBusinessProfile(
+  payload: BusinessCreatePayload
+): Promise<Business> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/business`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return await handleResponse<Business>(
+      res,
+      "Unable to save your business profile right now. Please check your information and try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to save your business profile right now. Please check your information and try again."
+    );
+  }
+}
+
+export async function fetchMyBusiness(): Promise<Business> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/business/me`, {
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<Business>(
+      res,
+      "We couldn't retrieve your business profile right now. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "We couldn't retrieve your business profile right now. Please try again."
     );
   }
 }

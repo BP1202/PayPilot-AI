@@ -6,7 +6,9 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { CommerceLedger } from "@/components/CommerceLedger";
 import { CopilotChat } from "@/components/CopilotChat";
+import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import {
+  Business,
   DashboardOverview,
   CopilotRecommendation,
   Transaction,
@@ -17,7 +19,7 @@ import {
   fetchCopilotRecommendation,
   fetchLedgerTransactions,
 } from "@/lib/api";
-import { RefreshCw, AlertCircle } from "lucide-react";
+import { RefreshCw, AlertCircle, CheckCircle2, X } from "lucide-react";
 
 function sanitizeErrorMessage(rawMessage?: string): string {
   if (!rawMessage) {
@@ -54,6 +56,8 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState<TransactionStatus | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const loadData = useCallback(async (statusFilter?: TransactionStatus) => {
     try {
@@ -90,11 +94,41 @@ export default function Home() {
     loadData(selectedStatus);
   };
 
+  const handleProfileCreated = (newBiz: Business) => {
+    setSuccessToast(`Business profile for "${newBiz.name}" saved successfully.`);
+    loadData(selectedStatus);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Header business={overview?.business} />
+      <Header
+        business={overview?.business}
+        onCreateProfile={() => setIsOnboardingOpen(true)}
+      />
 
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+        {/* Success toast after saving business profile */}
+        {successToast && (
+          <div
+            role="status"
+            className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 text-xs text-emerald-900 shadow-xs"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <p className="font-semibold">{successToast}</p>
+            </div>
+            <button
+              onClick={() => setSuccessToast(null)}
+              className="p-1 text-emerald-700 hover:text-emerald-900 transition"
+              aria-label="Dismiss message"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Friendly notification if connection has an issue */}
         {error && (
           <div
@@ -151,6 +185,12 @@ export default function Home() {
           </section>
         </div>
       </main>
+
+      <BusinessOnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onSuccess={handleProfileCreated}
+      />
 
       <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">

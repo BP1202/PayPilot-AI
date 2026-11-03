@@ -6,6 +6,9 @@ import {
   fetchCopilotRecommendation,
   sendCopilotChat,
   approvePayment,
+  extractBusinessProfile,
+  createBusinessProfile,
+  fetchMyBusiness,
   ApiError,
 } from "@/lib/api";
 
@@ -154,8 +157,98 @@ describe("API Client & Connectivity", () => {
         "http://127.0.0.1:8000/api/v1/copilot/chat",
         expect.objectContaining({
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: expect.objectContaining({ "Content-Type": "application/json" }),
           body: JSON.stringify({ prompt: "What is our revenue?" }),
+        })
+      );
+    });
+
+    it("extracts business profile suggestions from description", async () => {
+      const mockExtraction = {
+        name: "ABC Company",
+        description: "Electronics wholesaler",
+        industry: "Electronics",
+        business_type: "Wholesaler",
+        country: "India",
+        website: "",
+        currency: "INR",
+        confidence: 0.9,
+        extracted_fields: ["name", "industry", "business_type", "country", "currency"],
+      };
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockExtraction,
+      } as Response);
+
+      const result = await extractBusinessProfile("ABC Company description");
+      expect(result).toEqual(mockExtraction);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://127.0.0.1:8000/api/v1/business/extract",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description: "ABC Company description" }),
+        })
+      );
+    });
+
+    it("creates a new business profile and persists to database", async () => {
+      const payload = {
+        name: "ABC Company",
+        currency: "INR",
+        industry: "Electronics",
+        business_type: "Wholesaler",
+        country: "India",
+        website: "",
+      };
+
+      const mockCreated = {
+        id: 10,
+        ...payload,
+        user_id: "owner_default",
+        created_at: "2026-11-03T12:00:00Z",
+        updated_at: "2026-11-03T12:00:00Z",
+      };
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockCreated,
+      } as Response);
+
+      const result = await createBusinessProfile(payload);
+      expect(result).toEqual(mockCreated);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://127.0.0.1:8000/api/v1/business",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({ "Content-Type": "application/json" }),
+          body: JSON.stringify(payload),
+        })
+      );
+    });
+
+    it("fetches active business profile for authenticated user", async () => {
+      const mockBiz = {
+        id: 10,
+        name: "ABC Company",
+        currency: "INR",
+        user_id: "owner_default",
+        created_at: "2026-11-03T12:00:00Z",
+        updated_at: "2026-11-03T12:00:00Z",
+      };
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBiz,
+      } as Response);
+
+      const result = await fetchMyBusiness();
+      expect(result).toEqual(mockBiz);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://127.0.0.1:8000/api/v1/business/me",
+        expect.objectContaining({
+          headers: expect.objectContaining({ "X-User-ID": "owner_default" }),
         })
       );
     });
