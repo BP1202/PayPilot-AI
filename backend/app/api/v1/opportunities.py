@@ -1,7 +1,8 @@
 from typing import Annotated
 
-from app.core.auth import get_current_user_id
+from app.core.auth import get_current_user_id, get_optional_user
 from app.core.database import get_db
+from app.models.user import User
 from app.schemas.opportunity import (
     OpportunityAnalyzeRequest,
     OpportunityAnalyzeResponse,
@@ -28,11 +29,12 @@ def get_opportunity_service(
     "/analyze",
     response_model=OpportunityAnalyzeResponse,
     status_code=status.HTTP_200_OK,
-    summary="Analyze an idea or problem submission using AI Business Analyst",
+    summary="Analyze an idea or problem submission using AI Business Analyst (Public exploratory policy)",
 )
 async def analyze_opportunity(
     payload: OpportunityAnalyzeRequest,
     service: Annotated[OpportunityService, Depends(get_opportunity_service)],
+    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
 ) -> OpportunityAnalyzeResponse:
     return await service.analyze(payload)
 

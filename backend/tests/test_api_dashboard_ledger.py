@@ -1,5 +1,6 @@
 import pytest
 from app.core.database import Base, get_db
+from app.core.security import create_access_token
 from app.core.seed import seed_demo_data
 from app.main import app
 from fastapi.testclient import TestClient
@@ -38,7 +39,11 @@ def client_with_db():
 
 
 def test_get_dashboard_overview_endpoint(client_with_db):
-    response = client_with_db.get("/api/v1/dashboard/overview")
+    token = create_access_token(
+        user_id="owner_default", email="owner@apexgearworks.demo"
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client_with_db.get("/api/v1/dashboard/overview", headers=headers)
     assert response.status_code == 200
     data = response.json()
 

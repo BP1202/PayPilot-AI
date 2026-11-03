@@ -206,7 +206,16 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
         err instanceof Error
           ? err.message
           : "We couldn't analyze your submission right now. Please try again.";
-      setErrorMessage(msg);
+      if (
+        msg.toLowerCase().includes("credentials") ||
+        msg.toLowerCase().includes("authentication") ||
+        msg.toLowerCase().includes("log in") ||
+        msg.toLowerCase().includes("unauthorized")
+      ) {
+        setErrorMessage("Please sign in or create an account to save your opportunity draft.");
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -251,7 +260,16 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
         err instanceof Error
           ? err.message
           : "We couldn't reanalyze your opportunity right now. Please try again.";
-      setErrorMessage(msg);
+      if (
+        msg.toLowerCase().includes("credentials") ||
+        msg.toLowerCase().includes("authentication") ||
+        msg.toLowerCase().includes("log in") ||
+        msg.toLowerCase().includes("unauthorized")
+      ) {
+        setErrorMessage("Please sign in or create an account to save your opportunity draft.");
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -327,7 +345,16 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
         err instanceof Error
           ? err.message
           : "We couldn't save your opportunity draft right now. Please try again.";
-      setErrorMessage(msg);
+      if (
+        msg.toLowerCase().includes("credentials") ||
+        msg.toLowerCase().includes("authentication") ||
+        msg.toLowerCase().includes("log in") ||
+        msg.toLowerCase().includes("unauthorized")
+      ) {
+        setErrorMessage("Please sign in or create an account to save your opportunity draft.");
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setIsSaving(false);
     }

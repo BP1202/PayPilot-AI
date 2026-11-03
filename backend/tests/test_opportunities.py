@@ -193,9 +193,19 @@ def test_api_analyze_endpoint(client_with_db):
 # ---------------------------------------------------------------------------
 
 
+def make_auth_user(
+    client: TestClient, email: str, name: str
+) -> tuple[str, dict[str, str]]:
+    res = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "Password123!", "full_name": name},
+    )
+    data = res.json()
+    return data["user"]["id"], {"Authorization": f"Bearer {data['access_token']}"}
+
+
 def test_create_and_retrieve_opportunity_draft(client_with_db):
-    user_a = "creator_user_101"
-    headers_a = {"X-User-ID": user_a}
+    user_a, headers_a = make_auth_user(client_with_db, "user_a@windtech.demo", "User A")
 
     payload = {
         "submission_type": "IDEA",
@@ -262,10 +272,12 @@ def test_create_and_retrieve_opportunity_draft(client_with_db):
 
 
 def test_tenant_isolation_prevents_unauthorized_access(client_with_db):
-    user_a = "creator_user_101"
-    user_b = "attacker_user_999"
-    headers_a = {"X-User-ID": user_a}
-    headers_b = {"X-User-ID": user_b}
+    _user_a, headers_a = make_auth_user(
+        client_with_db, "user_a@windtech.demo", "User A"
+    )
+    _user_b, headers_b = make_auth_user(
+        client_with_db, "user_b@chiptech.demo", "User B"
+    )
 
     payload = {
         "submission_type": "PROBLEM",
@@ -311,8 +323,9 @@ def test_tenant_isolation_prevents_unauthorized_access(client_with_db):
 
 
 def test_user_can_edit_and_reanalyze_opportunity(client_with_db):
-    user_id = "creator_user_202"
-    headers = {"X-User-ID": user_id}
+    _user_id, headers = make_auth_user(
+        client_with_db, "creator202@factoring.demo", "Creator 202"
+    )
 
     payload = {
         "submission_type": "IDEA",

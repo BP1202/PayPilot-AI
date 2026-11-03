@@ -7,6 +7,7 @@ import {
   CopilotRecommendation,
   DashboardOverview,
   LedgerListResponse,
+  LoginPayload,
   Opportunity,
   OpportunityAnalyzeResponse,
   OpportunityCreatePayload,
@@ -14,8 +15,11 @@ import {
   OpportunityStatus,
   OpportunityType,
   OpportunityUpdatePayload,
+  RegisterPayload,
+  TokenResponse,
   Transaction,
   TransactionStatus,
+  User,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -38,11 +42,57 @@ export function getApiBaseUrl(): string {
   return "http://127.0.0.1:8000/api/v1";
 }
 
+// ---------------------------------------------------------------------------
+// Cryptographic Token and Verified Session Management
+// ---------------------------------------------------------------------------
+
+export const AUTH_STORAGE_KEY = "paypilot_access_token";
+export const USER_STORAGE_KEY = "paypilot_user_profile";
+
+export function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(AUTH_STORAGE_KEY);
+}
+
+export function setAccessToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(AUTH_STORAGE_KEY, token);
+  window.dispatchEvent(new Event("paypilot:auth_changed"));
+}
+
+export function clearAccessToken(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  localStorage.removeItem(USER_STORAGE_KEY);
+  window.dispatchEvent(new Event("paypilot:auth_changed"));
+}
+
+export function getStoredUser(): User | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(USER_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredUser(user: User): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event("paypilot:auth_changed"));
+}
+
+/**
+ * Builds standard HTTP headers for API requests.
+ * Uses cryptographically verified Bearer token; never sends unverified client headers.
+ */
 export function getAuthHeaders(): Record<string, string> {
-  const storedUser = typeof window !== "undefined" ? localStorage.getItem("paypilot_user_id") : null;
+  const token = getAccessToken();
   return {
     "Content-Type": "application/json",
-    ...(storedUser ? { "X-User-ID": storedUser } : { "X-User-ID": "owner_default" }),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
@@ -70,6 +120,10 @@ function isTechnicalDetail(text: string): boolean {
 
 async function handleResponse<T>(res: Response, fallbackMessage: string): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) {
+      clearAccessToken();
+    }
+
     let detail = "";
     let data: unknown = null;
     try {
@@ -105,6 +159,69 @@ function handleFetchError(err: unknown, userFriendlyFallback: string): never {
   }
   throw new ApiError(userFriendlyFallback || FRIENDLY_CONNECTION_ERROR, 0);
 }
+
+// ---------------------------------------------------------------------------
+// Authentication API Methods
+// ---------------------------------------------------------------------------
+
+export async function registerUser(payload: RegisterPayload): Promise<TokenResponse> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await handleResponse<TokenResponse>(
+      res,
+      "Registration failed. Please check your information and try again."
+    );
+    setAccessToken(data.access_token);
+    setStoredUser(data.user);
+    return data;
+  } catch (err) {
+    return handleFetchError(err, "Registration service is temporarily unreachable.");
+  }
+}
+
+export async function loginUser(payload: LoginPayload): Promise<TokenResponse> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await handleResponse<TokenResponse>(
+      res,
+      "Login failed. Please check your credentials and try again."
+    );
+    setAccessToken(data.access_token);
+    setStoredUser(data.user);
+    return data;
+  } catch (err) {
+    return handleFetchError(err, "Login service is temporarily unreachable.");
+  }
+}
+
+export async function fetchCurrentUser(): Promise<User> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/auth/me`, {
+      headers: getAuthHeaders(),
+    });
+    const user = await handleResponse<User>(res, "Unable to load user profile.");
+    setStoredUser(user);
+    return user;
+  } catch (err) {
+    return handleFetchError(err, "Unable to verify current session.");
+  }
+}
+
+export function logoutUser(): void {
+  clearAccessToken();
+}
+
+// ---------------------------------------------------------------------------
+// Business and Ledger Methods
+// ---------------------------------------------------------------------------
 
 export async function fetchDashboardOverview(): Promise<DashboardOverview> {
   try {

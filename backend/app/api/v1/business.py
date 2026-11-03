@@ -41,9 +41,8 @@ def create_business_profile(
     user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> BusinessRead:
     repo = BusinessRepository(db)
-    # Associate profile with the authenticated user
-    if not business_in.user_id:
-        business_in.user_id = user_id
+    # Strictly associate profile with verified authenticated user; prevent body overrides
+    business_in.user_id = user_id
 
     created = repo.create(business_in)
     return BusinessRead.model_validate(created)
@@ -64,7 +63,7 @@ def get_my_business_profile(
     if user_biz:
         return BusinessRead.model_validate(user_biz)
 
-    default_biz = repo.get_or_create_default_business()
+    default_biz = repo.get_or_create_default_business(user_id=user_id)
     return BusinessRead.model_validate(default_biz)
 
 
@@ -81,6 +80,6 @@ def list_business_profiles(
     repo = BusinessRepository(db)
     businesses = repo.list_by_user_id(user_id)
     if not businesses:
-        default_biz = repo.get_or_create_default_business()
+        default_biz = repo.get_or_create_default_business(user_id=user_id)
         return [BusinessRead.model_validate(default_biz)]
     return [BusinessRead.model_validate(b) for b in businesses]

@@ -9,6 +9,7 @@ import { CopilotChat } from "@/components/CopilotChat";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
 import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
+import { AuthModal } from "@/components/AuthModal";
 import {
   Business,
   DashboardOverview,
@@ -17,12 +18,17 @@ import {
   TransactionStatus,
   Opportunity,
   OpportunityStatus,
+  User,
 } from "@/types";
 import {
   fetchDashboardOverview,
   fetchCopilotRecommendation,
   fetchLedgerTransactions,
   fetchUserOpportunities,
+  getStoredUser,
+  fetchCurrentUser,
+  logoutUser,
+  getAccessToken,
 } from "@/lib/api";
 import { RefreshCw, AlertCircle, CheckCircle2, X } from "lucide-react";
 
@@ -72,6 +78,8 @@ export default function Home() {
   // Modals & alerts
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   const loadData = useCallback(async (statusFilter?: TransactionStatus) => {
     try {
@@ -116,6 +124,32 @@ export default function Home() {
     loadOpportunities(selectedOppStatus);
   }, [loadOpportunities, selectedOppStatus]);
 
+  useEffect(() => {
+    const syncAuth = () => {
+      setCurrentUser(getStoredUser());
+    };
+    syncAuth();
+    if (getAccessToken()) {
+      fetchCurrentUser().then(setCurrentUser).catch(() => setCurrentUser(null));
+    }
+    window.addEventListener("paypilot:auth_changed", syncAuth);
+    return () => window.removeEventListener("paypilot:auth_changed", syncAuth);
+  }, []);
+
+  const handleAuthSuccess = (user: User) => {
+    setCurrentUser(user);
+    setSuccessToast(`Welcome, ${user.full_name || user.email}!`);
+    loadData(selectedStatus);
+    loadOpportunities(selectedOppStatus);
+  };
+
+  const handleSignOut = () => {
+    logoutUser();
+    setCurrentUser(null);
+    setOpportunities([]);
+    setSuccessToast("Signed out successfully.");
+  };
+
   const handleFilterChange = (newStatus?: TransactionStatus) => {
     setSelectedStatus(newStatus);
   };
@@ -152,6 +186,9 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header
         business={overview?.business}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onSignOut={handleSignOut}
         onCreateProfile={() => setIsOnboardingOpen(true)}
         onCreateOpportunity={handleOpenNewStudio}
       />
@@ -266,6 +303,12 @@ export default function Home() {
         onSuccess={handleOpportunitySuccess}
         existingOpportunity={activeOpportunity}
         businessId={overview?.business?.id}
+      />
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={handleAuthSuccess}
       />
 
       <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
