@@ -53,4 +53,18 @@ describe("CommerceLedger Component", () => {
     fireEvent.click(completedBtn);
     expect(onFilterChange).toHaveBeenCalledWith("COMPLETED");
   });
+
+  it("renders user-friendly non-technical error state when error is passed", () => {
+    render(
+      <CommerceLedger
+        transactions={[]}
+        error="Connection issue"
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText(/We couldn't load your transaction history right now/i)
+    ).toBeInTheDocument();
+  });
 });
