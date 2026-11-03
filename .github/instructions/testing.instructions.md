@@ -1,106 +1,74 @@
 ---
 name: Testing and QA Standards
-description: Project-specific instructions for automated testing, quality assurance, regression testing, and application verification.
+description: Project-specific instructions for automated testing, opportunity lifecycle QA, anti-hallucination verification, PayPal sandbox tests, and regression suites.
 applyTo: "**/*test*.*,**/*spec*.*,backend/tests/**/*.py,frontend/tests/**/*"
 ---
 
 # Testing and QA Instructions
 
-## 1. Testing Principles
+## 1. Product Context & Opportunity Lifecycle Testing
 
-- Test actual behavior against requirements.
-- Cover success, failure, and boundary conditions.
-- Prefer deterministic and repeatable tests.
-- Keep tests isolated and maintainable.
-- Avoid unnecessary duplication.
-- Never claim tests passed unless they actually ran successfully.
+PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
 
-## 2. Backend Testing
+Testing must validate real user journeys across the opportunity lifecycle:
+**Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
-- Use pytest for Python backend tests.
-- Test API endpoints, schemas, and business logic.
-- Validate input errors and response behavior.
-- Test database operations and transaction rollbacks.
-- Test authentication and authorization.
-- Cover external integration failures.
-- Use fixtures and isolated test data.
+QA verification covers each lifecycle stage:
+1. **Capture:** Raw text/problem inputs correctly parsed into structured drafts.
+2. **Understand:** AI Business Analyst outputs conform to Pydantic schemas without fabricating missing information.
+3. **Develop:** Opportunities can be enriched with milestone requirements and commercial goals.
+4. **Publish:** Opportunity Press transitions from Draft to Published only upon explicit human approval.
+5. **Discover:** Opportunity Network search and filtering return relevant opportunities respecting visibility permissions.
+6. **Match:** Intelligent matchmaking delivers explainable match rationale badges without asserting guaranteed commercial success.
+7. **Negotiate:** Deal Room proposals require mutual approval from both participating parties.
+8. **Transact:** Milestone settlements execute via verified PayPal orders with deterministic Decimal accounting and webhook validation.
+9. **Grow:** Evolution milestones and transaction histories update the Commerce Ledger accurately.
 
-## 3. Frontend Testing
+## 2. Anti-Hallucination & AI Verification
 
-- Test component rendering and interactions.
-- Validate form behavior and input handling.
-- Test API success and failure states.
-- Check loading, empty, and error states.
-- Verify responsive behavior.
-- Use Playwright for important end-to-end workflows.
+- **Zero Invention Test:** Test extraction with sparse descriptions (e.g. only business name and description). Assert that unprovided attributes (website, country, budget) remain strictly blank (`""`), never filled with hallucinated defaults.
+- **Evidence Labeling Test:** Verify that AI responses cleanly separate user-provided facts, AI hypotheses, verified external data, and suggested actions.
+- **Prompt Injection Resilience:** Test extraction and advisory endpoints with malicious prompt payloads; verify that system boundaries and private instructions are not breached.
+- **Deterministic Financial Fallback:** Assert that all pricing, milestone additions, and balance calculations are performed by Python `Decimal` application code, not LLM completions.
 
-## 4. AI Testing
+## 3. Backend & API Testing (pytest)
 
-- Test normal, incomplete, and ambiguous inputs.
-- Validate structured model responses.
-- Check unsupported claims and hallucinations.
-- Test missing or conflicting business data.
-- Test prompt injection attempts.
-- Verify tool permissions and restrictions.
-- Test provider timeouts and failures.
-- Maintain regression cases for important AI behavior.
+- Test API endpoints under `/api/v1/...` for:
+  - Correct HTTP status codes (200, 201, 400, 401, 403, 404, 422).
+  - Schema validation on requests and responses.
+  - Strict tenant isolation: user A cannot read, modify, or delete user B's private opportunities or proposals.
+  - Transaction rollbacks: verify database rollback on failed multi-step operations.
+- **Clean Error Responses:** Assert that API error responses contain empathetic, human-readable error messages and never leak Python stack traces, internal database details, or raw server addresses.
 
-## 5. Financial and Payment Testing
+## 4. Financial & Payment Testing (PayPal)
 
-- Test monetary calculations and rounding.
-- Validate payment authorization.
-- Test successful and failed payment operations.
-- Check duplicate requests and idempotency.
-- Test webhook verification and duplicate events.
-- Verify transaction and ledger consistency.
-- Test refunds and failure recovery.
-- Never initiate live payments during routine testing.
+- Test payment workflows using mock responses conforming to official PayPal REST API v2 schemas.
+- Test monetary arithmetic with edge-case Decimal values (fractional cents, high-precision rounding).
+- Test idempotency: sending the same payment capture request or webhook payload multiple times must produce exactly one ledger record.
+- Test webhook verification: valid cryptographic signatures succeed; corrupted, forged, or expired signatures are rejected with HTTP 400/401.
+- Strictly prohibit executing live payment transactions during routine testing.
 
-## 6. Test Data Safety
+## 5. Frontend & UX Testing
 
-- Use synthetic or isolated test data.
-- Never expose secrets in test output.
-- Do not use production financial data for routine testing.
-- Avoid destructive operations against shared databases.
-- Do not reset database volumes without explicit authorization.
-- Use mocks or sandbox environments for external services where practical.
+- Test forms for:
+  - Editable fields for all AI-suggested attributes.
+  - Explicit user confirmation before submission (no auto-saving without approval).
+  - Clean error states without technical jargon (e.g. no `"Unable to connect to PayPilot backend at http://127.0.0.1:8000/api/v1"`).
+  - Empty states, loading skeletons, and interactive feedback.
+- Test responsive layouts and WCAG accessibility standards across desktop and mobile viewports.
 
-## 7. Failure Analysis
+## 6. Test Data Safety & Environment Isolation
 
-When a test fails:
+- Run automated tests against dedicated test databases or SQLite in-memory fixtures.
+- Never drop, wipe, or overwrite development or production databases.
+- Never hardcode or log credentials, API keys, or private user data in test fixtures or assertions.
+- Keep test executions isolated, deterministic, and repeatable.
 
-1. Read the complete error output.
-2. Identify the failing test and affected component.
-3. Reproduce the failure where practical.
-4. Determine whether the cause is code, configuration, environment, or test data.
-5. Recommend or implement a focused fix.
-6. Rerun the failed test.
-7. Run relevant regression tests.
+## 7. Failure Analysis & Honest Reporting
 
-Do not hide failures by weakening assertions or skipping tests without explanation.
-
-## 8. Verification and Reporting
-
-Report:
-
-- Tests executed.
-- Commands and relevant environments.
-- Passed, failed, and skipped counts.
-- Important failures and their causes.
-- Tests that could not run and why.
-- Remaining unverified scenarios.
-
-Distinguish automated test results from manual inspection.
-
-## 9. Change Management
-
-- Add or update tests when behavior changes.
-- Preserve meaningful existing assertions.
-- Avoid unrelated test modifications.
-- Verify fixes before reporting completion.
-- Never fabricate test output or coverage.
-- Never commit or push without authorization.
-
-## 10. Completion Standard
-
-A testing task is complete when relevant acceptance criteria have been verified, failures have been investigated, and actual test results and limitations have been documented.
+- When tests fail, diagnose the root cause (code bug, schema mismatch, environment configuration) rather than weakening assertions or skipping tests.
+- Always report:
+  - Exact command lines executed (e.g., `pytest backend/tests/test_opportunities.py -v`).
+  - Total tests passed, failed, and skipped.
+  - Clear explanation of any unrun tests and the specific reasons.
+- Never claim tests passed unless they were actually executed and returned exit code 0.

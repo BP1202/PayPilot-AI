@@ -1,90 +1,104 @@
-# GitHub Copilot Instructions
+# GitHub Copilot Instructions — PayPilot AI
 
-## 1. Project Context
+## 1. Source of Truth
 
-This repository contains PayPilot AI, an AI-powered business copilot connecting business intelligence, strategic decisions, and PayPal payment workflows.
+Before making changes, read the repository-root `AGENTS.md`.
 
-Follow the product objectives and technical standards defined in the root `AGENTS.md`.
+`AGENTS.md` is the authoritative source for PayPilot's product vision, architecture principles, security requirements, payment rules, engineering standards and definition of done.
 
-## 2. Instruction Priority
+If instructions conflict, follow `AGENTS.md` and flag the conflict rather than silently choosing a different direction.
 
-- Read and follow the root `AGENTS.md` before making changes.
-- Follow applicable instructions in `.github/instructions/`.
-- Consult relevant reusable skills in `.github/skills/`.
-- Use specialist agents in `.github/agents/` when their expertise is needed.
-- Respect the user's explicit task scope and authorization.
+## 2. Product Context
 
-Do not assume that every coding agent automatically discovers every instruction or skill file. Read relevant files when needed.
+PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
 
-## 3. Skill Usage
+It helps people transform ideas and real-world business problems into structured opportunities, publish them, discover relevant participants, form collaborations, prepare commercial agreements and progress toward real businesses.
 
-Select skills based on the task:
+The core journey is:
 
-- Research and fact verification: `research-verification`
-- Security: `secure-coding`
-- AI features: `ai-engineering`
-- Backend: `backend-engineering`
-- Frontend: `frontend-engineering`
-- Payments: `fintech-payments`
-- Testing: `testing-qa`
-- Code review: `code-review`
+**Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
-Read the relevant `SKILL.md` before specialized work.
+Every feature and technical decision should support this journey. Do not turn PayPilot into a generic business dashboard, freelance marketplace, social network or unrestricted payment platform.
 
-## 4. Specialist Agent Usage
+## 3. Agent and Skill Selection
 
-Use the appropriate custom agent for specialized responsibilities:
+Use the most relevant specialist agent and skill for the task. Read their instructions before starting substantial work.
 
-- `architect`
-- `ai-engineer`
-- `backend-engineer`
-- `frontend-engineer`
-- `fintech-engineer`
-- `security-reviewer`
-- `qa-engineer`
-- `code-reviewer`
+Available specialist agents:
 
-For complex tasks, coordinate specialists while maintaining one consistent architecture and implementation plan.
+- `architect.agent.md` — architecture, system boundaries and technical decisions.
+- `frontend-engineer.agent.md` — UI, UX and frontend implementation.
+- `backend-engineer.agent.md` — APIs, services, database and backend logic.
+- `ai-engineer.agent.md` — AI capabilities, orchestration and model integration.
+- `fintech-engineer.agent.md` — PayPal, payments and financial workflows.
+- `security-reviewer.agent.md` — security, privacy, permissions and threat analysis.
+- `qa-engineer.agent.md` — testing and quality assurance.
+- `code-reviewer.agent.md` — implementation review and maintainability.
 
-## 5. Engineering Standards
+Available skills are under `.github/skills/`. Select the relevant skills for the task; do not load every skill unnecessarily.
 
-- Inspect existing code before modifying it.
-- Reuse established project patterns.
-- Prefer small, focused changes.
-- Verify unfamiliar APIs and dependencies.
-- Do not invent files, functions, configuration, or test results.
-- Keep financial calculations deterministic.
-- Validate AI outputs before application use.
-- Require explicit authorization for consequential financial operations.
-- Protect credentials and private business data.
+Use a small number of specialists with clear responsibilities. Do not create an agent swarm for ordinary tasks.
 
-## 6. Development and Verification
+## 4. Product and AI Requirements
 
-Before completing a task:
+- Keep the opportunity as the central product entity and maintain consistent context across its lifecycle.
+- Distinguish user-provided facts, AI-generated suggestions, assumptions and independently verified information.
+- Do not invent customers, market demand, financial results, investors or validation.
+- Keep creators in control of publication and confidential information sharing.
+- Require human approval for consequential commercial actions.
+- Use deterministic backend services for financial calculations, permissions and transaction state.
+- Treat AI recommendations as assistance, not authoritative financial or legal decisions.
 
-1. Identify the relevant files and requirements.
-2. Make only the necessary changes.
-3. Add or update relevant tests.
-4. Run appropriate verification commands.
-5. Report actual results and unresolved issues.
+## 5. PayPal and Payment Requirements
 
-Never claim a feature works without verification.
+- Use official PayPal APIs and supported SDKs.
+- Keep credentials and payment operations on the backend.
+- Verify webhooks and never trust client-submitted payment status.
+- Use explicit user approval before payment execution.
+- Record verified transaction outcomes and handle retries safely.
+- Clearly identify Sandbox versus live behavior.
+- Verify country, currency, product and account eligibility before implementing or claiming support.
 
-## 7. Git and Change Safety
+Never simulate a successful payment while presenting it as a real PayPal transaction.
 
-- Follow the repository's branch and pull-request workflow.
-- Do not commit, push, merge, or deploy without authorization.
-- Do not overwrite unrelated user changes.
-- Do not perform destructive database or infrastructure operations without explicit approval.
+## 6. Engineering Workflow
 
-## 8. Communication
+Before implementation:
 
-Keep explanations practical and concise.
+1. Read `AGENTS.md` and relevant specialist instructions.
+2. Inspect the existing implementation and repository structure.
+3. Understand the task, dependencies and potential impact.
+4. Identify the smallest appropriate change.
+5. Preserve existing working behavior and unrelated user changes.
 
-For implementation tasks, report:
+During implementation:
 
-- What changed.
-- Which files were affected.
-- What tests or checks were executed.
-- Actual results.
-- Remaining limitations or next steps.
+- Follow the existing stack and architectural conventions.
+- Prefer modular, typed and testable code.
+- Validate data at system boundaries.
+- Keep secrets out of source control.
+- Use migrations for database schema changes.
+- Add or update relevant tests.
+- Avoid unnecessary dependencies and unrelated refactoring.
+
+After implementation:
+
+1. Run relevant tests, linting and type checks.
+2. Verify the affected workflow.
+3. Review the final diff for unintended changes.
+4. Update documentation where needed.
+5. Report what changed, what was tested and what remains incomplete.
+
+## 7. Repository and Git Safety
+
+- Never discard, overwrite, reset or revert unrelated user changes.
+- Inspect `git status` before modifying files or performing Git operations.
+- Do not commit, push, merge, rebase or amend commits unless explicitly requested.
+- Do not expose credentials, tokens or private business information in logs or documentation.
+- Do not claim that an integration or test works unless it has actually been verified.
+
+## 8. Completion Standard
+
+A task is complete only when it satisfies the relevant requirements in `AGENTS.md`, preserves existing functionality, has appropriate tests and validation, and reports limitations honestly.
+
+**Guiding principle:** Build PayPilot as a trustworthy path from ideas to real commercial outcomes—not merely as a collection of AI features.

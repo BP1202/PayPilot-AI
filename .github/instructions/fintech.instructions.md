@@ -1,106 +1,77 @@
 ---
 name: Fintech and Payment Standards
-description: Project-specific instructions for PayPal integration, payment processing, transaction verification, and financial data integrity.
-applyTo: "backend/**/*payment*.py,backend/**/*paypal*.py,backend/**/*transaction*.py,backend/**/*ledger*.py,backend/**/*webhook*.py"
+description: Project-specific instructions for PayPal integration, Deal Room milestone settlements, payment processing, transaction verification, and financial data integrity.
+applyTo: "backend/**/*payment*.py,backend/**/*paypal*.py,backend/**/*transaction*.py,backend/**/*ledger*.py,backend/**/*webhook*.py,backend/**/*milestone*.py,backend/**/*proposal*.py"
 ---
 
 # Fintech and Payment Instructions
 
-## 1. Payment Architecture
+## 1. Product Context & Opportunity Commercial Settlements
 
-- Follow the existing payment service architecture.
-- Keep payment operations in trusted backend services.
-- Use official PayPal documentation as the source of truth.
-- Separate sandbox and live environments.
-- Keep provider credentials on the backend.
-- Avoid introducing unnecessary payment abstractions.
+PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
 
-## 2. Financial Accuracy
+Within the opportunity lifecycle (**Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**), payments represent the commercial execution stage:
+- Transactions settle approved commercial proposals and deliverables agreed upon in the **AI Deal Room**.
+- Every transaction maps to a verifiable opportunity milestone, service agreement, or commercial contract.
+- The **Payments and Transaction Intelligence** module ensures transparent, auditable, and dispute-resilient milestone payouts.
 
-- Use Python Decimal for monetary calculations.
-- Never use floating-point arithmetic as the source of truth for money.
-- Validate amounts, currencies, and transaction references.
-- Preserve currency precision and rounding rules.
-- Never invent financial values or transaction states.
-- Keep financial calculations deterministic and testable.
+Payments are not a detached checkout counter; they represent the tangible commercial realization of business opportunities.
 
-## 3. Payment Authorization
+## 2. Financial Accuracy & Deterministic Arithmetic
 
-- Require explicit owner approval before consequential payment operations.
-- Enforce authorization on the backend.
-- Validate the approved amount, currency, recipient, and operation.
-- Reject payment requests that differ from approved details.
-- Never allow AI-generated recommendations to authorize payments.
-- Never treat a frontend interaction as proof of authorization.
+- **Mandatory Decimal Usage:** All currency calculations, fees, milestone allocations, escrow deposits, and refunds must strictly use Python `Decimal`. Floating-point arithmetic (`float`) is strictly prohibited for monetary values.
+- **Explicit Currency Codes:** Always specify standard ISO 4217 currency codes (e.g., `USD`, `INR`, `EUR`). Multi-currency exchanges must use deterministic conversion rates recorded at the moment of agreement.
+- **Zero Hallucination Policy:** Transaction amounts, balances, fee schedules, and milestone states must be derived deterministically from database records. Never rely on an LLM for monetary truth.
 
-## 4. Payment Lifecycle
+## 3. Human Authorization & Dual-Party Consent
 
-- Validate payment requests before creating provider operations.
-- Track payment states explicitly.
-- Distinguish created, approved, captured, failed, and refunded states.
-- Verify provider results before updating application records.
-- Handle interrupted and partially completed operations safely.
-- Do not mark a payment completed without verification.
+- Explicit user confirmation is strictly mandatory prior to initiating any payment or milestone escrow release.
+- For milestone payouts in the AI Deal Room, backend services must verify dual-party authorization:
+  - Deliverable marked complete by the provider.
+  - Deliverable accepted and release approved by the buyer/funder.
+- AI agents may recommend milestone payouts or draft invoices, but have zero authority to initiate or authorize real financial transactions.
+- Never trust frontend interactions or client-provided status flags as proof of authorization.
 
-## 5. PayPal Integration
+## 4. Official PayPal Integration Standards
 
-- Follow documented PayPal API behavior.
-- Validate API responses before using them.
-- Handle access-token expiration and provider errors.
-- Apply request timeouts.
-- Protect credentials and access tokens.
-- Use sandbox transactions for development and automated testing.
-- Never expose private provider credentials to frontend code.
+- Integrate strictly using official PayPal REST API v2 endpoints (`/v2/checkout/orders`).
+- Keep all PayPal credentials (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`) securely loaded in backend environment variables. Never expose them to client bundles or browser storage.
+- Manage PayPal OAuth2 access tokens on the backend with appropriate caching and refresh before expiration.
+- Enforce idempotency on order creation and capture using unique transaction reference IDs (`PayPilot-tx-<id>`).
+- Always verify order details (amount, currency, status) via server-to-server calls to PayPal before updating application database records.
+- Strictly distinguish Sandbox environments (`api-m.sandbox.paypal.com`) from Live production (`api-m.paypal.com`). Never perform real live transactions during automated tests or local development.
 
-## 6. Webhooks
+## 5. Webhook Signature Verification & Idempotency
 
-- Verify webhook authenticity using PayPal's documented process.
-- Validate event types and transaction references.
-- Handle duplicate and out-of-order events.
-- Make webhook processing idempotent.
-- Record processed event identifiers where appropriate.
-- Never trust an unverified webhook payload.
+- Cryptographically verify incoming PayPal webhook notifications using PayPal's certificate and signature headers (`paypal-auth-algo`, `paypal-cert-url`, `paypal-transmission-id`, `paypal-transmission-sig`, `paypal-transmission-time`).
+- Never trust unauthenticated or self-asserted webhook payloads.
+- Ensure all webhook event handlers are strictly idempotent by recording and checking unique event IDs (`event_id` or `transmission_id`).
+- Handle out-of-order, delayed, or duplicated webhook events safely without creating duplicate ledger records or double-charging users.
 
-## 7. Ledger and Transaction Integrity
+## 6. Commerce Ledger & Transaction Traceability
 
-- Preserve transaction history.
-- Use database transactions for related financial updates.
-- Prevent duplicate ledger entries.
-- Record refunds and reversals as traceable operations.
-- Base ledger updates on verified payment events.
-- Preserve relevant provider references and audit information.
-- Never silently overwrite financial history.
+- Maintain an immutable, append-only Commerce Ledger for all commercial events (commitments, escrow holds, milestone releases, refunds, platform fees).
+- Every ledger record must link to:
+  - Associated Opportunity ID and Milestone/Proposal ID.
+  - Participating User/Entity IDs.
+  - Deterministic Amount and ISO Currency Code.
+  - Internal PayPilot Transaction Reference ID.
+  - External Provider Reference ID (PayPal Order ID / Capture ID).
+  - Verifiable Status (`PROPOSED`, `AUTHORIZED`, `CAPTURED`, `RELEASED`, `REFUNDED`, `FAILED`).
+- Wrap multi-table ledger and milestone updates in explicit database transactions (`async with session.begin()` / `with session.begin()`).
 
-## 8. Security
+## 7. Security and Compliance
 
-- Protect credentials and sensitive payment information.
-- Follow least-privilege access.
-- Validate all payment inputs.
-- Prevent replay and duplicate-operation risks.
-- Avoid logging sensitive payment data.
-- Never store prohibited cardholder information.
-- Do not run live transactions without explicit authorization.
+- Never store prohibited cardholder data (PAN, CVV, PIN) in PayPilot databases.
+- Prevent replay attacks and race conditions on checkout flows through database row locks or optimistic concurrency controls.
+- Redact sensitive financial account details from server logs and exception traces.
 
-## 9. Testing
+## 8. Testing & Simulation
 
-Test:
-
-- Successful and failed payment operations.
-- Invalid amounts and currencies.
-- Unauthorized payment attempts.
-- Duplicate requests and webhook events.
-- Invalid webhook verification.
-- Provider timeouts and failures.
-- Refund and reversal workflows.
-- Transaction and ledger consistency.
-
-Prefer sandbox, mocks, and isolated test data.
-
-## 10. Change Management
-
-- Inspect existing payment workflows before modifications.
-- Avoid unrelated financial logic changes.
-- Never delete or rewrite transaction history.
-- Document important payment state changes.
-- Report actual verification and test results.
-- Never commit, push, or merge without authorization.
+- Maintain comprehensive unit and integration tests covering:
+  - Milestone settlement calculations with exact Decimal precision.
+  - Successful PayPal order creation and capture flows using mocked responses.
+  - Webhook signature verification and invalid signature rejection.
+  - Duplicate event deduplication and idempotency.
+  - Refund and dispute state transitions.
+- Label all local mock implementations clearly as simulated.
