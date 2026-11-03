@@ -9,10 +9,20 @@ from app.services.payment_service import (
     PaymentService,
     TransactionNotFoundError,
 )
+from app.services.paypal_auth import (
+    PayPalAuthConfigError,
+    PayPalAuthError,
+    PayPalAuthRequestError,
+    PayPalAuthService,
+)
 
 __all__ = [
     "CopilotService",
     "MockPaymentProvider",
+    "PayPalAuthConfigError",
+    "PayPalAuthError",
+    "PayPalAuthRequestError",
+    "PayPalAuthService",
     "PaymentApprovalRequiredError",
     "PaymentProviderError",
     "PaymentProviderInterface",
