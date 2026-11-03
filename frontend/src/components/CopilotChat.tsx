@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, Send, Bot, User, Loader2, MessageSquare } from "lucide-react";
+import { Sparkles, Send, Bot, User, Loader2 } from "lucide-react";
 import { CopilotChatResponse } from "@/types";
 import { sendCopilotChat } from "@/lib/api";
 
@@ -40,12 +40,12 @@ export const CopilotChat: React.FC = () => {
           mode: response.mode,
         },
       ]);
-    } catch (err: any) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
-          text: "Sorry, I encountered an error connecting to the copilot service.",
+          text: "I'm having trouble analyzing your ledger right now. Please try asking again in a moment.",
         },
       ]);
     } finally {
@@ -153,4 +153,3 @@ export const CopilotChat: React.FC = () => {
     </div>
   );
 };
-

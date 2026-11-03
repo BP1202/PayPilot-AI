@@ -22,7 +22,9 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ totals, loading 
   }
 
   const formatCurrency = (val?: string) => {
-    const num = parseFloat(val || "0");
+    if (!val) return "—";
+    const num = parseFloat(val);
+    if (isNaN(num)) return "—";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: totals?.currency || "USD",
@@ -32,32 +34,32 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ totals, loading 
   const cards = [
     {
       title: "Settled Revenue",
-      value: formatCurrency(totals?.total_revenue),
-      subtext: "Verified captured funds",
+      value: totals ? formatCurrency(totals.total_revenue) : "—",
+      subtext: totals ? "Verified captured funds" : "Data unavailable",
       icon: DollarSign,
       color: "text-emerald-600",
       bg: "bg-emerald-50 border-emerald-100",
     },
     {
       title: "Completed Orders",
-      value: totals?.completed_count?.toString() || "0",
-      subtext: "Captured transactions",
+      value: totals ? (totals.completed_count?.toString() ?? "0") : "—",
+      subtext: totals ? "Captured transactions" : "Data unavailable",
       icon: CheckCircle2,
       color: "text-indigo-600",
       bg: "bg-indigo-50 border-indigo-100",
     },
     {
       title: "Pending Balance",
-      value: formatCurrency(totals?.pending_total),
-      subtext: `${totals?.pending_count || 0} order awaiting review`,
+      value: totals ? formatCurrency(totals.pending_total) : "—",
+      subtext: totals ? `${totals.pending_count || 0} order awaiting review` : "Data unavailable",
       icon: Clock,
       color: "text-amber-600",
       bg: "bg-amber-50 border-amber-100",
     },
     {
       title: "Total Transactions",
-      value: totals?.transaction_count?.toString() || "0",
-      subtext: "Commerce ledger entries",
+      value: totals ? (totals.transaction_count?.toString() ?? "0") : "—",
+      subtext: totals ? "Commerce ledger entries" : "Data unavailable",
       icon: FileText,
       color: "text-slate-600",
       bg: "bg-slate-50 border-slate-100",
@@ -91,4 +93,3 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ totals, loading 
     </div>
   );
 };
-

@@ -19,6 +19,34 @@ import {
 } from "@/lib/api";
 import { RefreshCw, AlertCircle } from "lucide-react";
 
+function sanitizeErrorMessage(rawMessage?: string): string {
+  if (!rawMessage) {
+    return "We're having trouble connecting to your financial records right now. Please check your internet connection or try again.";
+  }
+  const lower = rawMessage.toLowerCase();
+  const containsTechnicalTerms =
+    lower.includes("backend") ||
+    lower.includes("http") ||
+    lower.includes("failed to fetch") ||
+    lower.includes("fetch failed") ||
+    lower.includes("networkerror") ||
+    lower.includes("service") ||
+    lower.includes("status") ||
+    lower.includes("500") ||
+    lower.includes("404") ||
+    lower.includes("api") ||
+    lower.includes("exception") ||
+    lower.includes("traceback") ||
+    lower.includes("sql") ||
+    lower.includes("undefinedtable");
+
+  if (containsTechnicalTerms) {
+    return "We're having trouble connecting to your financial records right now. Please check your internet connection or try again.";
+  }
+
+  return rawMessage;
+}
+
 export default function Home() {
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [recommendation, setRecommendation] = useState<CopilotRecommendation | null>(null);
@@ -41,8 +69,9 @@ export default function Home() {
       setOverview(ovData);
       setRecommendation(recData);
       setTransactions(ledgerData.items);
-    } catch (err: any) {
-      setError(err.message || "Failed to connect to PayPilot backend APIs.");
+    } catch (err: unknown) {
+      const rawMsg = err instanceof Error ? err.message : "";
+      setError(sanitizeErrorMessage(rawMsg));
     } finally {
       setLoading(false);
     }
@@ -56,7 +85,7 @@ export default function Home() {
     setSelectedStatus(newStatus);
   };
 
-  const handlePaymentSuccess = (captured: Transaction) => {
+  const handlePaymentSuccess = () => {
     // Reload data to reflect captured payment and refreshed dashboard totals
     loadData(selectedStatus);
   };
@@ -66,19 +95,27 @@ export default function Home() {
       <Header business={overview?.business} />
 
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-        {/* Error notice if backend is down */}
+        {/* Friendly notification if connection has an issue */}
         {error && (
-          <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-700">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
-              <span>{error}</span>
+          <div
+            role="alert"
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 text-xs text-amber-900 shadow-xs"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-semibold text-amber-950">Connection issue</p>
+                <p className="text-amber-800/90 mt-0.5">{error}</p>
+              </div>
             </div>
             <button
               onClick={() => loadData(selectedStatus)}
-              className="flex items-center space-x-1 font-semibold text-red-800 hover:underline"
+              className="inline-flex items-center justify-center space-x-1.5 rounded-xl bg-amber-800 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-900 transition-colors cursor-pointer self-start sm:self-auto"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              <span>Retry</span>
+              <span>Try again</span>
             </button>
           </div>
         )}
@@ -103,6 +140,7 @@ export default function Home() {
             <CommerceLedger
               transactions={transactions}
               loading={loading}
+              error={error}
               selectedStatus={selectedStatus}
               onFilterChange={handleFilterChange}
             />
@@ -125,4 +163,3 @@ export default function Home() {
     </div>
   );
 }
-

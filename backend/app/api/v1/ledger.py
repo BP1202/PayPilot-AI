@@ -13,6 +13,7 @@ router = APIRouter(prefix="/ledger", tags=["Commerce Ledger"])
 
 
 @router.get("", response_model=LedgerListResponse)
+@router.get("/", response_model=LedgerListResponse, include_in_schema=False)
 def get_ledger_transactions(
     db: Annotated[Session, Depends(get_db)],
     status: Annotated[

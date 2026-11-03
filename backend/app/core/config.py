@@ -1,7 +1,9 @@
+import json
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote_plus
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Base directory for the backend (where .env is located)
@@ -16,6 +18,14 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
+
+    # CORS Configuration - accepts list[str] or comma-separated string from env
+    CORS_ORIGINS: list[str] | str = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
 
     # PostgreSQL Database Configuration
     POSTGRES_USER: str = "postgres"
@@ -40,6 +50,21 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    @field_validator("CORS_ORIGINS", mode="after")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> list[str]:
+        if isinstance(v, str):
+            trimmed = v.strip()
+            if trimmed.startswith("[") and trimmed.endswith("]"):
+                try:
+                    parsed = json.loads(trimmed)
+                    if isinstance(parsed, list):
+                        return [str(i).strip() for i in parsed if str(i).strip()]
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    return [i.strip() for i in trimmed.split(",") if i.strip()]
+            return [i.strip() for i in trimmed.split(",") if i.strip()]
+        return v
 
     @model_validator(mode="after")
     def resolve_database_url(self) -> "Settings":

@@ -11,6 +11,15 @@ def test_default_settings():
     assert settings.API_V1_PREFIX == "/api/v1"
     assert settings.DEBUG is True
     assert "postgresql" in settings.DATABASE_URL
+    assert "http://localhost:3000" in settings.CORS_ORIGINS
+
+
+def test_cors_origins_comma_separated_parsing():
+    settings = Settings(
+        DATABASE_URL="postgresql+psycopg://user:pass@localhost:5433/paypilot_ai",
+        CORS_ORIGINS="http://localhost:3000, http://example.com",
+    )
+    assert settings.CORS_ORIGINS == ["http://localhost:3000", "http://example.com"]
 
 
 def test_database_url_from_components():

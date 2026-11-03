@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import { Filter, ArrowUpDown, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import React from "react";
+import { Filter, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { Transaction, TransactionStatus } from "@/types";
 
 interface CommerceLedgerProps {
   transactions: Transaction[];
   loading?: boolean;
+  error?: string | null;
   selectedStatus?: TransactionStatus | undefined;
   onFilterChange: (status?: TransactionStatus) => void;
 }
@@ -14,6 +15,7 @@ interface CommerceLedgerProps {
 export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
   transactions,
   loading,
+  error,
   selectedStatus,
   onFilterChange,
 }) => {
@@ -52,7 +54,7 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
           <div className="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-medium">
             <button
               onClick={() => onFilterChange(undefined)}
-              className={`rounded-lg px-3 py-1.5 transition-colors ${
+              className={`rounded-lg px-3 py-1.5 transition-colors cursor-pointer ${
                 selectedStatus === undefined
                   ? "bg-white text-slate-900 shadow-xs font-semibold"
                   : "text-slate-600 hover:text-slate-900"
@@ -62,7 +64,7 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
             </button>
             <button
               onClick={() => onFilterChange("COMPLETED")}
-              className={`rounded-lg px-3 py-1.5 transition-colors ${
+              className={`rounded-lg px-3 py-1.5 transition-colors cursor-pointer ${
                 selectedStatus === "COMPLETED"
                   ? "bg-white text-emerald-800 shadow-xs font-semibold"
                   : "text-slate-600 hover:text-slate-900"
@@ -72,7 +74,7 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
             </button>
             <button
               onClick={() => onFilterChange("PENDING")}
-              className={`rounded-lg px-3 py-1.5 transition-colors ${
+              className={`rounded-lg px-3 py-1.5 transition-colors cursor-pointer ${
                 selectedStatus === "PENDING"
                   ? "bg-white text-amber-800 shadow-xs font-semibold"
                   : "text-slate-600 hover:text-slate-900"
@@ -109,6 +111,12 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
                   <td className="py-4 pr-1 text-right"><div className="h-4 w-20 bg-slate-200 rounded ml-auto"></div></td>
                 </tr>
               ))
+            ) : error ? (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-slate-500">
+                  We couldn&apos;t load your transaction history right now. Please check your connection and try again.
+                </td>
+              </tr>
             ) : transactions.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-slate-400">
@@ -161,4 +169,3 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
     </div>
   );
 };
-

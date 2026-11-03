@@ -21,5 +21,11 @@ describe("DashboardStats Component", () => {
     expect(screen.getByText("4")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
   });
-});
 
+  it("renders placeholder dashes without fabricating $0.00 when totals are null", () => {
+    render(<DashboardStats totals={null} />);
+    expect(screen.queryByText("$0.00")).not.toBeInTheDocument();
+    const dashes = screen.getAllByText("—");
+    expect(dashes.length).toBe(4);
+  });
+});
