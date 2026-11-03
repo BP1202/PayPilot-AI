@@ -1,4 +1,6 @@
 from app.services.copilot_service import CopilotService
+from app.services.opportunity_analyst import OpportunityAnalystService
+from app.services.opportunity_service import OpportunityService
 from app.services.payment_provider import (
     MockPaymentProvider,
     PaymentProviderError,
@@ -19,6 +21,8 @@ from app.services.paypal_auth import (
 __all__ = [
     "CopilotService",
     "MockPaymentProvider",
+    "OpportunityAnalystService",
+    "OpportunityService",
     "PayPalAuthConfigError",
     "PayPalAuthError",
     "PayPalAuthRequestError",

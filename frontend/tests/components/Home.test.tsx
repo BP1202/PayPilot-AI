@@ -2,16 +2,23 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Home from "@/app/page";
 import * as api from "@/lib/api";
+import {
+  DashboardOverview,
+  CopilotRecommendation,
+  LedgerListResponse,
+} from "@/types";
 
 vi.mock("@/lib/api");
 
-const mockOverview: api.DashboardOverview = {
+const mockOverview: DashboardOverview = {
   business: {
     id: 1,
     name: "Apex Precision Gearworks",
     currency: "USD",
     industry: "Manufacturing",
     description: "CNC gears",
+    created_at: "2026-11-01T10:00:00Z",
+    updated_at: "2026-11-01T10:00:00Z",
   },
   totals: {
     business_id: 1,
@@ -24,7 +31,7 @@ const mockOverview: api.DashboardOverview = {
   },
 };
 
-const mockRecommendation: api.CopilotRecommendation = {
+const mockRecommendation: CopilotRecommendation = {
   title: "Working Capital Acceleration: Capture Order from Stratos Dynamics",
   mode: "DETERMINISTIC_DEMO",
   reasoning: "Ledger analysis confirms $10,135.75 in completed revenue.",
@@ -45,7 +52,7 @@ const mockRecommendation: api.CopilotRecommendation = {
   generated_at: "2026-11-03T10:00:00Z",
 };
 
-const mockLedger: api.LedgerListResponse = {
+const mockLedger: LedgerListResponse = {
   items: [
     {
       id: 1,
@@ -173,7 +180,7 @@ describe("Home Page Dashboard & Connectivity", () => {
   });
 
   it("distinguishes empty ledger state from error state", async () => {
-    const emptyLedger: api.LedgerListResponse = { items: [], total: 0 };
+    const emptyLedger: LedgerListResponse = { items: [], total: 0 };
 
     vi.mocked(api.fetchDashboardOverview).mockResolvedValue(mockOverview);
     vi.mocked(api.fetchCopilotRecommendation).mockResolvedValue(mockRecommendation);

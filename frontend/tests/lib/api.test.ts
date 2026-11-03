@@ -71,7 +71,7 @@ describe("API Client & Connectivity", () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockOverview,
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchDashboardOverview();
       expect(result).toEqual(mockOverview);
@@ -86,7 +86,7 @@ describe("API Client & Connectivity", () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockLedger,
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchLedgerTransactions();
       expect(result).toEqual(mockLedger);
@@ -101,7 +101,7 @@ describe("API Client & Connectivity", () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockLedger,
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchLedgerTransactions("COMPLETED");
       expect(result).toEqual(mockLedger);
@@ -129,7 +129,7 @@ describe("API Client & Connectivity", () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockRec,
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchCopilotRecommendation();
       expect(result).toEqual(mockRec);
@@ -149,7 +149,7 @@ describe("API Client & Connectivity", () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockChat,
-      } as Response);
+      } as unknown as Response);
 
       const result = await sendCopilotChat("What is our revenue?");
       expect(result).toEqual(mockChat);
@@ -179,7 +179,7 @@ describe("API Client & Connectivity", () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockExtraction,
-      } as Response);
+      } as unknown as Response);
 
       const result = await extractBusinessProfile("ABC Company description");
       expect(result).toEqual(mockExtraction);
@@ -214,7 +214,7 @@ describe("API Client & Connectivity", () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockCreated,
-      } as Response);
+      } as unknown as Response);
 
       const result = await createBusinessProfile(payload);
       expect(result).toEqual(mockCreated);
@@ -241,7 +241,7 @@ describe("API Client & Connectivity", () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockBiz,
-      } as Response);
+      } as unknown as Response);
 
       const result = await fetchMyBusiness();
       expect(result).toEqual(mockBiz);
@@ -269,7 +269,7 @@ describe("API Client & Connectivity", () => {
         status: 500,
         statusText: "Internal Server Error",
         json: async () => ({ detail: "Database connection failed at psycopg2.connect()" }),
-      } as Response);
+      } as unknown as Response);
 
       await expect(fetchDashboardOverview()).rejects.toThrow(
         /couldn't retrieve your financial information/i
@@ -284,7 +284,7 @@ describe("API Client & Connectivity", () => {
         json: async () => {
           throw new Error("Not json");
         },
-      } as Response);
+      } as unknown as Response);
 
       await expect(fetchDashboardOverview()).rejects.toThrow(
         /couldn't retrieve your financial information/i

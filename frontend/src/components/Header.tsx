@@ -1,13 +1,18 @@
 import React from "react";
-import { ShieldCheck, Sparkles, Building2, PlusCircle } from "lucide-react";
+import { ShieldCheck, Sparkles, Building2, PlusCircle, Lightbulb } from "lucide-react";
 import { Business } from "@/types";
 
 interface HeaderProps {
   business?: Business | null;
   onCreateProfile?: () => void;
+  onCreateOpportunity?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ business, onCreateProfile }) => {
+export const Header: React.FC<HeaderProps> = ({
+  business,
+  onCreateProfile,
+  onCreateOpportunity,
+}) => {
   return (
     <header className="border-b border-slate-200 bg-white shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -23,13 +28,13 @@ export const Header: React.FC<HeaderProps> = ({ business, onCreateProfile }) => 
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              Turning business decisions into verified payments
+              Idea-to-Business Opportunity Network
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 sm:space-x-4">
-          <div className="hidden sm:flex items-center space-x-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="hidden lg:flex items-center space-x-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
             <Building2 className="h-4 w-4 text-slate-400" />
             <span className="font-medium text-slate-900">
               {business ? business.name : "Apex Precision Gearworks"}
@@ -40,14 +45,25 @@ export const Header: React.FC<HeaderProps> = ({ business, onCreateProfile }) => 
             </span>
           </div>
 
+          {onCreateOpportunity && (
+            <button
+              onClick={onCreateOpportunity}
+              className="flex items-center space-x-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
+              aria-label="Capture opportunity"
+            >
+              <Lightbulb className="h-3.5 w-3.5" />
+              <span>Capture Opportunity</span>
+            </button>
+          )}
+
           {onCreateProfile && (
             <button
               onClick={onCreateProfile}
-              className="flex items-center space-x-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shadow-sm"
+              className="hidden sm:flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
               aria-label="Create business profile"
             >
-              <PlusCircle className="h-3.5 w-3.5 text-indigo-600" />
-              <span>Create Business Profile</span>
+              <PlusCircle className="h-3.5 w-3.5 text-slate-500" />
+              <span>Business Profile</span>
             </button>
           )}
 

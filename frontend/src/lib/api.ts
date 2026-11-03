@@ -7,6 +7,13 @@ import {
   CopilotRecommendation,
   DashboardOverview,
   LedgerListResponse,
+  Opportunity,
+  OpportunityAnalyzeResponse,
+  OpportunityCreatePayload,
+  OpportunityListResponse,
+  OpportunityStatus,
+  OpportunityType,
+  OpportunityUpdatePayload,
   Transaction,
   TransactionStatus,
 } from "@/types";
@@ -247,6 +254,149 @@ export async function fetchMyBusiness(): Promise<Business> {
     handleFetchError(
       err,
       "We couldn't retrieve your business profile right now. Please try again."
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Opportunity Lifecycle Stage 1 & 2 API Methods
+// ---------------------------------------------------------------------------
+
+export async function analyzeOpportunity(
+  submissionType: OpportunityType,
+  description: string,
+  businessId?: number
+): Promise<OpportunityAnalyzeResponse> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/opportunities/analyze`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        submission_type: submissionType,
+        description,
+        business_id: businessId,
+      }),
+    });
+    return await handleResponse<OpportunityAnalyzeResponse>(
+      res,
+      "We couldn't analyze your opportunity submission right now. Please try again in a moment."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "We couldn't analyze your opportunity submission right now. Please try again in a moment."
+    );
+  }
+}
+
+export async function createOpportunity(
+  payload: OpportunityCreatePayload
+): Promise<Opportunity> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/opportunities`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return await handleResponse<Opportunity>(
+      res,
+      "Unable to save your opportunity draft right now. Please check your information and try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to save your opportunity draft right now. Please check your information and try again."
+    );
+  }
+}
+
+export async function fetchUserOpportunities(
+  statusFilter?: OpportunityStatus
+): Promise<OpportunityListResponse> {
+  try {
+    const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
+    const res = await fetch(`${getApiBaseUrl()}/opportunities${query}`, {
+      cache: "no-store",
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<OpportunityListResponse>(
+      res,
+      "We couldn't load your opportunities right now. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "We couldn't load your opportunities right now. Please try again."
+    );
+  }
+}
+
+export async function fetchOpportunityById(
+  opportunityId: string
+): Promise<Opportunity> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/opportunities/${encodeURIComponent(opportunityId)}`, {
+      cache: "no-store",
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<Opportunity>(
+      res,
+      "We couldn't retrieve this opportunity draft. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "We couldn't retrieve this opportunity draft. Please try again."
+    );
+  }
+}
+
+export async function updateOpportunity(
+  opportunityId: string,
+  payload: OpportunityUpdatePayload
+): Promise<Opportunity> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/opportunities/${encodeURIComponent(opportunityId)}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return await handleResponse<Opportunity>(
+      res,
+      "Unable to update your opportunity draft right now. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to update your opportunity draft right now. Please try again."
+    );
+  }
+}
+
+export async function reanalyzeOpportunity(
+  opportunityId: string,
+  description?: string,
+  submissionType?: OpportunityType,
+  preserveUserEdits: boolean = true
+): Promise<Opportunity> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/opportunities/${encodeURIComponent(opportunityId)}/reanalyze`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        description,
+        submission_type: submissionType,
+        preserve_user_edits: preserveUserEdits,
+      }),
+    });
+    return await handleResponse<Opportunity>(
+      res,
+      "We couldn't reanalyze your opportunity draft right now. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "We couldn't reanalyze your opportunity draft right now. Please try again."
     );
   }
 }

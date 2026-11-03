@@ -12,6 +12,16 @@ from app.schemas.copilot import (
     FinancialImpact,
     RecommendedAction,
 )
+from app.schemas.opportunity import (
+    OpportunityAnalysisData,
+    OpportunityAnalyzeRequest,
+    OpportunityAnalyzeResponse,
+    OpportunityCreate,
+    OpportunityListResponse,
+    OpportunityReanalyzeRequest,
+    OpportunityResponse,
+    OpportunityUpdate,
+)
 from app.schemas.payment import (
     ApprovePaymentRequest,
     CreateOrderRequest,
@@ -41,6 +51,14 @@ __all__ = [
     "DashboardTotals",
     "FinancialImpact",
     "LedgerListResponse",
+    "OpportunityAnalysisData",
+    "OpportunityAnalyzeRequest",
+    "OpportunityAnalyzeResponse",
+    "OpportunityCreate",
+    "OpportunityListResponse",
+    "OpportunityReanalyzeRequest",
+    "OpportunityResponse",
+    "OpportunityUpdate",
     "RecommendedAction",
     "TransactionCreate",
     "TransactionRead",
