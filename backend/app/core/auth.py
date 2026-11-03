@@ -19,4 +19,3 @@ def get_current_user_id(
             return token
 
     return "owner_default"
-

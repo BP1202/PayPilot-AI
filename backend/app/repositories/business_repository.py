@@ -20,11 +20,15 @@ class BusinessRepository:
         ).scalar_one_or_none()
 
     def get_by_user_id(self, user_id: str) -> Business | None:
-        return self.db.execute(
-            select(Business)
-            .where(Business.user_id == user_id)
-            .order_by(Business.created_at.desc())
-        ).scalars().first()
+        return (
+            self.db.execute(
+                select(Business)
+                .where(Business.user_id == user_id)
+                .order_by(Business.created_at.desc())
+            )
+            .scalars()
+            .first()
+        )
 
     def list_by_user_id(self, user_id: str) -> list[Business]:
         return list(
@@ -32,7 +36,9 @@ class BusinessRepository:
                 select(Business)
                 .where(Business.user_id == user_id)
                 .order_by(Business.created_at.desc())
-            ).scalars().all()
+            )
+            .scalars()
+            .all()
         )
 
     def create(self, business_in: BusinessCreate) -> Business:

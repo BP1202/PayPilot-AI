@@ -119,4 +119,3 @@ class Opportunity(Base):
 
     # Relationship to optional Business
     business = relationship("Business", backref="opportunities")
-

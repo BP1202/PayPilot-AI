@@ -62,9 +62,7 @@ def list_opportunities(
     user_id: Annotated[str, Depends(get_current_user_id)],
     status_filter: Annotated[
         str | None,
-        Query(
-            alias="status", description="Filter by status (e.g. DRAFT, ANALYSED)"
-        ),
+        Query(alias="status", description="Filter by status (e.g. DRAFT, ANALYSED)"),
     ] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -91,9 +89,7 @@ def get_opportunity(
     service: Annotated[OpportunityService, Depends(get_opportunity_service)],
     user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> OpportunityResponse:
-    opp = service.get_opportunity(
-        opportunity_id=opportunity_id, user_id=user_id
-    )
+    opp = service.get_opportunity(opportunity_id=opportunity_id, user_id=user_id)
     return OpportunityResponse.model_validate(opp)
 
 

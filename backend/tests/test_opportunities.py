@@ -127,7 +127,9 @@ async def test_analyst_service_live_provider_mock_success():
         suggested_follow_up_questions=["Which helpdesk software do you currently use?"],
     )
 
-    with patch.object(GeminiProvider, "analyze", new_callable=AsyncMock) as mock_analyze:
+    with patch.object(
+        GeminiProvider, "analyze", new_callable=AsyncMock
+    ) as mock_analyze:
         mock_analyze.return_value = mock_analysis
         res = await service.analyze(
             OpportunityType.IDEA,
@@ -138,7 +140,10 @@ async def test_analyst_service_live_provider_mock_success():
         assert res.provider == "Google Gemini"
         assert res.model == "gemini-1.5-flash"
         assert res.analysis.suggested_title == "Shopify AI Customer Support Agent"
-        assert res.analysis.provenance["proposed_solution"] == ProvenanceCategory.USER_PROVIDED
+        assert (
+            res.analysis.provenance["proposed_solution"]
+            == ProvenanceCategory.USER_PROVIDED
+        )
 
 
 @pytest.mark.anyio
@@ -200,20 +205,36 @@ def test_create_and_retrieve_opportunity_draft(client_with_db):
         "proposed_solution": "Edge IoT vibration sensors predict failure 6 weeks in advance.",
         "industry": "Manufacturing & Hardware",
         "value_proposition": "Reduces unplanned downtime by 85%.",
-        "target_customer_segments": ["Wind turbine operators", "Renewable asset managers"],
-        "customer_pain_points": ["Extreme downtime repair costs", "Hazardous inspection climbing"],
+        "target_customer_segments": [
+            "Wind turbine operators",
+            "Renewable asset managers",
+        ],
+        "customer_pain_points": [
+            "Extreme downtime repair costs",
+            "Hazardous inspection climbing",
+        ],
         "required_skills_and_resources": ["Signal processing", "Hardware engineering"],
         "potential_business_models": ["Annual hardware-plus-SaaS subscription"],
-        "key_assumptions": ["Operators can install sensors without taking turbines offline"],
-        "risks_and_uncertainties": ["Harsh weather conditions damaging external sensor casing"],
-        "missing_information": ["Number of operational turbines per typical client farm"],
-        "suggested_follow_up_questions": ["What is the typical turbine maintenance schedule?"],
+        "key_assumptions": [
+            "Operators can install sensors without taking turbines offline"
+        ],
+        "risks_and_uncertainties": [
+            "Harsh weather conditions damaging external sensor casing"
+        ],
+        "missing_information": [
+            "Number of operational turbines per typical client farm"
+        ],
+        "suggested_follow_up_questions": [
+            "What is the typical turbine maintenance schedule?"
+        ],
         "status": "ANALYSED",
         "visibility": "PRIVATE",
     }
 
     # 1. User A creates opportunity
-    create_res = client_with_db.post("/api/v1/opportunities", json=payload, headers=headers_a)
+    create_res = client_with_db.post(
+        "/api/v1/opportunities", json=payload, headers=headers_a
+    )
     assert create_res.status_code == 201
     created = create_res.json()
     opp_id = created["id"]
@@ -227,7 +248,10 @@ def test_create_and_retrieve_opportunity_draft(client_with_db):
     assert get_res.status_code == 200
     retrieved = get_res.json()
     assert retrieved["title"] == "Autonomous Gearbox Diagnostics"
-    assert retrieved["target_customer_segments"] == ["Wind turbine operators", "Renewable asset managers"]
+    assert retrieved["target_customer_segments"] == [
+        "Wind turbine operators",
+        "Renewable asset managers",
+    ]
 
     # 3. User A lists own opportunities
     list_res = client_with_db.get("/api/v1/opportunities", headers=headers_a)
@@ -252,7 +276,9 @@ def test_tenant_isolation_prevents_unauthorized_access(client_with_db):
     }
 
     # User A creates a private draft
-    create_res = client_with_db.post("/api/v1/opportunities", json=payload, headers=headers_a)
+    create_res = client_with_db.post(
+        "/api/v1/opportunities", json=payload, headers=headers_a
+    )
     assert create_res.status_code == 201
     opp_id = create_res.json()["id"]
 
@@ -297,7 +323,9 @@ def test_user_can_edit_and_reanalyze_opportunity(client_with_db):
     }
 
     # 1. Create draft
-    create_res = client_with_db.post("/api/v1/opportunities", json=payload, headers=headers)
+    create_res = client_with_db.post(
+        "/api/v1/opportunities", json=payload, headers=headers
+    )
     assert create_res.status_code == 201
     opp_id = create_res.json()["id"]
 
@@ -313,7 +341,10 @@ def test_user_can_edit_and_reanalyze_opportunity(client_with_db):
     assert update_res.status_code == 200
     updated = update_res.json()
     assert updated["title"] == "Approved FactorPilot Pro"
-    assert updated["value_proposition"] == "Advances 85% of verified invoices in under 4 hours."
+    assert (
+        updated["value_proposition"]
+        == "Advances 85% of verified invoices in under 4 hours."
+    )
     assert updated["status"] == "ANALYSED"
 
     # 3. Reanalyze while preserving custom title
@@ -327,7 +358,10 @@ def test_user_can_edit_and_reanalyze_opportunity(client_with_db):
     # Preserved user title
     assert reanalyzed["title"] == "Approved FactorPilot Pro"
     # Preserved user value proposition
-    assert reanalyzed["value_proposition"] == "Advances 85% of verified invoices in under 4 hours."
+    assert (
+        reanalyzed["value_proposition"]
+        == "Advances 85% of verified invoices in under 4 hours."
+    )
     # Refreshed analytical arrays
     assert len(reanalyzed["key_assumptions"]) > 0
     assert len(reanalyzed["potential_business_models"]) > 0

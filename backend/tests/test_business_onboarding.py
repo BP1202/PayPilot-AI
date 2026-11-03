@@ -46,7 +46,9 @@ def test_extractor_sample_description():
     assert res.business_type == "Wholesaler"
     assert res.country == "India"
     assert res.currency == "INR"
-    assert res.website == ""  # Anti-hallucination: No website supplied, must remain blank!
+    assert (
+        res.website == ""
+    )  # Anti-hallucination: No website supplied, must remain blank!
     assert "ABC Company" in res.description
     assert "name" in res.extracted_fields
     assert "website" not in res.extracted_fields

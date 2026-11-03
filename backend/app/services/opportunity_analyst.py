@@ -124,8 +124,7 @@ class OpenAIProvider(BaseAIProvider):
     ) -> OpportunityAnalysisData:
         url = "https://api.openai.com/v1/chat/completions"
         user_prompt = (
-            f"Submission Type: {submission_type.value}\n\n"
-            f"User Description:\n{text}"
+            f"Submission Type: {submission_type.value}\n\nUser Description:\n{text}"
         )
 
         headers = {
@@ -161,16 +160,103 @@ class DeterministicOpportunityAnalyst:
     """
 
     INDUSTRY_PATTERNS: ClassVar[list[tuple[str, list[str]]]] = [
-        ("Logistics & Freight", ["logistics", "freight", "shipping", "trucking", "delivery", "warehouse", "cargo"]),
-        ("FinTech & Payments", ["payment", "invoice", "banking", "billing", "credit", "escrow", "crypto", "tax"]),
-        ("Healthcare & MedTech", ["health", "clinic", "patient", "medical", "doctor", "telemedicine", "hospital"]),
-        ("Education & EdTech", ["learning", "course", "student", "teacher", "education", "training", "tutoring"]),
-        ("Retail & E-Commerce", ["store", "ecommerce", "e-commerce", "retail", "shop", "marketplace", "goods"]),
-        ("Food & Beverage", ["food", "restaurant", "bakery", "beverage", "meal", "coffee", "catering", "dining"]),
-        ("Manufacturing & Hardware", ["manufacturing", "factory", "machinery", "industrial", "fabrication", "assembly"]),
-        ("CleanTech & Energy", ["solar", "energy", "clean", "sustainable", "carbon", "recycling", "waste"]),
-        ("Real Estate & PropTech", ["property", "real estate", "rental", "tenant", "housing", "landlord"]),
-        ("Software & Developer Tools", ["software", "developer", "api", "platform", "app", "cloud", "saas"]),
+        (
+            "Logistics & Freight",
+            [
+                "logistics",
+                "freight",
+                "shipping",
+                "trucking",
+                "delivery",
+                "warehouse",
+                "cargo",
+            ],
+        ),
+        (
+            "FinTech & Payments",
+            [
+                "payment",
+                "invoice",
+                "banking",
+                "billing",
+                "credit",
+                "escrow",
+                "crypto",
+                "tax",
+            ],
+        ),
+        (
+            "Healthcare & MedTech",
+            [
+                "health",
+                "clinic",
+                "patient",
+                "medical",
+                "doctor",
+                "telemedicine",
+                "hospital",
+            ],
+        ),
+        (
+            "Education & EdTech",
+            [
+                "learning",
+                "course",
+                "student",
+                "teacher",
+                "education",
+                "training",
+                "tutoring",
+            ],
+        ),
+        (
+            "Retail & E-Commerce",
+            [
+                "store",
+                "ecommerce",
+                "e-commerce",
+                "retail",
+                "shop",
+                "marketplace",
+                "goods",
+            ],
+        ),
+        (
+            "Food & Beverage",
+            [
+                "food",
+                "restaurant",
+                "bakery",
+                "beverage",
+                "meal",
+                "coffee",
+                "catering",
+                "dining",
+            ],
+        ),
+        (
+            "Manufacturing & Hardware",
+            [
+                "manufacturing",
+                "factory",
+                "machinery",
+                "industrial",
+                "fabrication",
+                "assembly",
+            ],
+        ),
+        (
+            "CleanTech & Energy",
+            ["solar", "energy", "clean", "sustainable", "carbon", "recycling", "waste"],
+        ),
+        (
+            "Real Estate & PropTech",
+            ["property", "real estate", "rental", "tenant", "housing", "landlord"],
+        ),
+        (
+            "Software & Developer Tools",
+            ["software", "developer", "api", "platform", "app", "cloud", "saas"],
+        ),
     ]
 
     def analyze(
@@ -199,9 +285,7 @@ class DeterministicOpportunityAnalyst:
         # 3. Problem statement & Proposed solution based on submission type
         if submission_type == OpportunityType.PROBLEM:
             problem_statement = cleaned
-            proposed_solution = (
-                f"Develop an automated or standardized solution addressing: {first_sentence}"
-            )
+            proposed_solution = f"Develop an automated or standardized solution addressing: {first_sentence}"
         else:
             proposed_solution = cleaned
             problem_statement = (
@@ -211,14 +295,34 @@ class DeterministicOpportunityAnalyst:
 
         # 4. Target customer segments
         target_customer_segments: list[str] = []
-        if any(w in text_lower for w in ["wholesaler", "dealer", "manufacturer", "supplier", "b2b", "enterprise", "business"]):
-            target_customer_segments.append(f"Small and mid-market {industry} businesses")
+        if any(
+            w in text_lower
+            for w in [
+                "wholesaler",
+                "dealer",
+                "manufacturer",
+                "supplier",
+                "b2b",
+                "enterprise",
+                "business",
+            ]
+        ):
+            target_customer_segments.append(
+                f"Small and mid-market {industry} businesses"
+            )
             target_customer_segments.append("Operations and procurement managers")
-        elif any(w in text_lower for w in ["freelancer", "builder", "creator", "developer", "engineer"]):
-            target_customer_segments.append("Independent specialists and technical creators")
+        elif any(
+            w in text_lower
+            for w in ["freelancer", "builder", "creator", "developer", "engineer"]
+        ):
+            target_customer_segments.append(
+                "Independent specialists and technical creators"
+            )
             target_customer_segments.append("Boutique service agencies")
         else:
-            target_customer_segments.append(f"Primary stakeholders facing {industry.lower()} bottlenecks")
+            target_customer_segments.append(
+                f"Primary stakeholders facing {industry.lower()} bottlenecks"
+            )
             target_customer_segments.append("Early adopter individuals and teams")
 
         # 5. Customer pain points
@@ -365,7 +469,9 @@ class OpportunityAnalystService:
             try:
                 analysis_data = await provider.analyze(submission_type, cleaned_text)
                 # Compute and attach provenance categories
-                analysis_data.provenance = self.deterministic_analyst._compute_provenance(submission_type)
+                analysis_data.provenance = (
+                    self.deterministic_analyst._compute_provenance(submission_type)
+                )
                 analysis_data.ai_metadata = {
                     "provider": provider_name,
                     "model": model_name,
@@ -383,7 +489,13 @@ class OpportunityAnalystService:
                     confidence=0.92,
                     message=f"Opportunity analyzed using live AI ({provider_name} {model_name}). Review and refine hypotheses before saving.",
                 )
-            except (httpx.HTTPError, json.JSONDecodeError, ValueError, KeyError, ValidationError) as e:
+            except (
+                httpx.HTTPError,
+                json.JSONDecodeError,
+                ValueError,
+                KeyError,
+                ValidationError,
+            ) as e:
                 logger.warning(
                     "Live AI provider call failed. Falling back to deterministic analysis: %s",
                     str(e),
@@ -391,7 +503,9 @@ class OpportunityAnalystService:
                 # Fall through to deterministic fallback
 
         # Deterministic Heuristic Fallback
-        fallback_data = self.deterministic_analyst.analyze(submission_type, cleaned_text)
+        fallback_data = self.deterministic_analyst.analyze(
+            submission_type, cleaned_text
+        )
         mode = "DETERMINISTIC_FALLBACK"
         message = (
             "Opportunity structured using PayPilot deterministic heuristic analysis (offline mode). "

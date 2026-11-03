@@ -15,7 +15,9 @@ class BusinessBase(BaseModel):
     )
     industry: str | None = Field(default=None, max_length=100)
     business_type: str | None = Field(
-        default=None, max_length=100, description="e.g., Wholesaler, Retailer, Manufacturer"
+        default=None,
+        max_length=100,
+        description="e.g., Wholesaler, Retailer, Manufacturer",
     )
     country: str | None = Field(default=None, max_length=100)
     website: str | None = Field(default=None, max_length=255)
@@ -49,7 +51,8 @@ class BusinessProfileExtraction(BaseModel):
     description: str = Field(default="", description="Suggested business summary")
     industry: str = Field(default="", description="Suggested industry sector")
     business_type: str = Field(
-        default="", description="Suggested business classification (e.g., Wholesaler, Retailer)"
+        default="",
+        description="Suggested business classification (e.g., Wholesaler, Retailer)",
     )
     country: str = Field(default="", description="Suggested home country")
     website: str = Field(

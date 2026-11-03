@@ -30,9 +30,7 @@ class OpportunityService:
             text=request.description,
         )
 
-    def create_draft(
-        self, payload: OpportunityCreate, user_id: str
-    ) -> Opportunity:
+    def create_draft(self, payload: OpportunityCreate, user_id: str) -> Opportunity:
         if not user_id or not user_id.strip():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -65,9 +63,7 @@ class OpportunityService:
         )
         return self.repo.create(opportunity)
 
-    def get_opportunity(
-        self, opportunity_id: str, user_id: str
-    ) -> Opportunity:
+    def get_opportunity(self, opportunity_id: str, user_id: str) -> Opportunity:
         opp = self.repo.get_by_id(opportunity_id)
         if not opp:
             raise HTTPException(
@@ -184,4 +180,3 @@ class OpportunityService:
         opp.updated_at = datetime.now(UTC)
 
         return self.repo.update(opp)
-

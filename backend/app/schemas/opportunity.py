@@ -200,4 +200,3 @@ class OpportunityReanalyzeRequest(BaseModel):
         default=True,
         description="If True, keeps custom user-edited fields and merges new analytical suggestions.",
     )
-
