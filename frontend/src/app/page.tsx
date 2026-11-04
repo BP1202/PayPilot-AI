@@ -1,15 +1,23 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Header } from "@/components/Header";
+import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
+import { OpportunityHeroBanner } from "@/components/dashboard/OpportunityHeroBanner";
+import { OpportunityStatsBar } from "@/components/dashboard/OpportunityStatsBar";
+import { OpportunityQuickActions } from "@/components/dashboard/OpportunityQuickActions";
+import { RecommendedOpportunitiesSection } from "@/components/dashboard/RecommendedOpportunitiesSection";
+import { PendingActionsSection } from "@/components/dashboard/PendingActionsSection";
+import { ActiveCollaborationsSection } from "@/components/dashboard/ActiveCollaborationsSection";
+import { RecentActivitySection } from "@/components/dashboard/RecentActivitySection";
+import { NetworkImpactBanner } from "@/components/dashboard/NetworkImpactBanner";
+import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
+import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
+import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
+import { AuthModal } from "@/components/AuthModal";
 import { DashboardStats } from "@/components/DashboardStats";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { CommerceLedger } from "@/components/CommerceLedger";
 import { CopilotChat } from "@/components/CopilotChat";
-import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
-import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
-import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
-import { AuthModal } from "@/components/AuthModal";
 import {
   Business,
   DashboardOverview,
@@ -18,6 +26,8 @@ import {
   TransactionStatus,
   Opportunity,
   OpportunityStatus,
+  OpportunityIntent,
+  OpportunityCategory,
   User,
 } from "@/types";
 import {
@@ -33,7 +43,15 @@ import {
   clearAccessToken,
   ApiError,
 } from "@/lib/api";
-import { RefreshCw, AlertCircle, CheckCircle2, X } from "lucide-react";
+import {
+  Bell,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+  X,
+  Building2,
+  Menu,
+} from "lucide-react";
 
 function sanitizeErrorMessage(rawMessage?: string): string {
   if (!rawMessage) {
@@ -64,6 +82,10 @@ function sanitizeErrorMessage(rawMessage?: string): string {
 }
 
 export default function Home() {
+  const [currentView, setCurrentView] = useState<DashboardView>("home");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Business & Commerce Ledger state
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [recommendation, setRecommendation] = useState<CopilotRecommendation | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -71,13 +93,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Opportunities state (Stage 1 & 2)
+  // Opportunities state (Two-Sided Opportunity Network)
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [oppLoading, setOppLoading] = useState(true);
   const [oppError, setOppError] = useState<string | null>(null);
   const [selectedOppStatus, setSelectedOppStatus] = useState<OpportunityStatus | undefined>(undefined);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [activeOpportunity, setActiveOpportunity] = useState<Opportunity | null>(null);
+  const [studioInitialIntent, setStudioInitialIntent] = useState<OpportunityIntent | undefined>(undefined);
+  const [studioInitialCategory, setStudioInitialCategory] = useState<OpportunityCategory | undefined>(undefined);
 
   // Modals & alerts
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -236,8 +260,10 @@ export default function Home() {
     loadOpportunities(selectedOppStatus);
   };
 
-  const handleOpenNewStudio = () => {
+  const handleOpenNewStudio = (intent?: OpportunityIntent, category?: OpportunityCategory) => {
     setActiveOpportunity(null);
+    setStudioInitialIntent(intent || "SEEKING_SOLUTION");
+    setStudioInitialCategory(category || "BUSINESS");
     setIsStudioOpen(true);
   };
 
@@ -246,6 +272,8 @@ export default function Home() {
       setOppError(null);
       const freshOpp = await fetchOpportunityById(opp.id);
       setActiveOpportunity(freshOpp);
+      setStudioInitialIntent(freshOpp.intent);
+      setStudioInitialCategory(freshOpp.category);
       setIsStudioOpen(true);
     } catch (err: unknown) {
       const rawMsg = err instanceof Error ? err.message : "";
@@ -265,121 +293,390 @@ export default function Home() {
       } else {
         // Fallback: if network glitch, open with cached opportunity
         setActiveOpportunity(opp);
+        setStudioInitialIntent(opp.intent);
+        setStudioInitialCategory(opp.category);
         setIsStudioOpen(true);
       }
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Header
-        business={overview?.business}
-        currentUser={currentUser}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        onSignOut={handleSignOut}
-        onCreateProfile={() => setIsOnboardingOpen(true)}
-        onCreateOpportunity={handleOpenNewStudio}
-      />
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
+        <AppSidebar
+          currentView={currentView}
+          onNavigate={(view) => setCurrentView(view)}
+          currentUser={currentUser}
+          business={overview?.business}
+          onOpenProfile={() => setIsOnboardingOpen(true)}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onSignOut={handleSignOut}
+          onCreateOpportunity={() => handleOpenNewStudio()}
+        />
+      </div>
 
-      <main className="flex-1 mx-auto max-w-7xl w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-        {/* Success toast after saving */}
-        {successToast && (
-          <div
-            role="status"
-            className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 text-xs text-emerald-900 shadow-xs"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <p className="font-semibold">{successToast}</p>
+      {/* Mobile Drawer */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden bg-slate-900/50 backdrop-blur-xs">
+          <div className="w-64 bg-white h-full shadow-2xl flex flex-col">
+            <div className="flex justify-end p-2">
+              <button
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="p-1.5 text-slate-500 hover:text-slate-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <button
-              onClick={() => setSuccessToast(null)}
-              className="p-1 text-emerald-700 hover:text-emerald-900 transition"
-              aria-label="Dismiss message"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Friendly notification if connection has an issue */}
-        {error && (
-          <div
-            role="alert"
-            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 text-xs text-amber-900 shadow-xs"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-                <AlertCircle className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="font-semibold text-amber-950">Connection issue</p>
-                <p className="text-amber-800/90 mt-0.5">{error}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                loadData(selectedStatus);
-                loadOpportunities(selectedOppStatus);
+            <AppSidebar
+              currentView={currentView}
+              onNavigate={(view) => {
+                setCurrentView(view);
+                setIsMobileSidebarOpen(false);
               }}
-              className="inline-flex items-center justify-center space-x-1.5 rounded-xl bg-amber-800 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-900 transition-colors cursor-pointer self-start sm:self-auto"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Try again</span>
-            </button>
-          </div>
-        )}
-
-        {/* Stage 1 & 2 Opportunity Workspace */}
-        <section aria-label="Opportunity Workspace">
-          <OpportunityDraftsList
-            opportunities={opportunities}
-            isLoading={oppLoading}
-            error={oppError}
-            onRetry={() => loadOpportunities(selectedOppStatus)}
-            onSelectOpportunity={handleOpenExistingStudio}
-            onCreateNew={handleOpenNewStudio}
-            selectedStatus={selectedOppStatus}
-            onFilterChange={handleOppFilterChange}
-            isAuthenticated={!!currentUser}
-            onSignIn={() => setIsAuthOpen(true)}
-          />
-        </section>
-
-        {/* Top: 4 Dashboard Overview Cards */}
-        <section aria-label="Business Metrics">
-          <DashboardStats totals={overview?.totals} loading={loading} />
-        </section>
-
-        {/* Middle: Decision-to-Payment AI Recommendation */}
-        <section aria-label="Copilot Recommendation">
-          <RecommendationCard
-            recommendation={recommendation}
-            loading={loading}
-            onPaymentSuccess={handlePaymentSuccess}
-          />
-        </section>
-
-        {/* Bottom Split: Commerce Ledger + Copilot Assistant */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <section className="lg:col-span-2" aria-label="Commerce Ledger">
-            <CommerceLedger
-              transactions={transactions}
-              loading={loading}
-              error={error}
-              selectedStatus={selectedStatus}
-              onFilterChange={handleFilterChange}
+              currentUser={currentUser}
+              business={overview?.business}
+              onOpenProfile={() => {
+                setIsOnboardingOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              onOpenAuth={() => {
+                setIsAuthOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              onSignOut={() => {
+                handleSignOut();
+                setIsMobileSidebarOpen(false);
+              }}
+              onCreateOpportunity={() => {
+                handleOpenNewStudio();
+                setIsMobileSidebarOpen(false);
+              }}
             />
-          </section>
-
-          <section aria-label="Copilot Assistant">
-            <CopilotChat />
-          </section>
+          </div>
         </div>
-      </main>
+      )}
 
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Header Bar */}
+        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden p-1.5 text-slate-600 hover:text-slate-900"
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-400">PayPilot AI</span>
+              <span className="text-xs text-slate-300">/</span>
+              <span className="text-xs font-bold text-slate-800 capitalize">
+                {currentView === "home"
+                  ? "Home Dashboard"
+                  : currentView === "opportunities"
+                  ? "Opportunity Workspace"
+                  : currentView === "browse"
+                  ? "Explore Network"
+                  : "Commerce Ledger"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {overview?.business && (
+              <div className="hidden lg:flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
+                <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                <span className="font-semibold text-slate-900">{overview.business.name}</span>
+                <span className="text-slate-400">|</span>
+                <span className="font-bold text-indigo-600">{overview.business.currency}</span>
+              </div>
+            )}
+
+            {/* Notification Bell */}
+            <button
+              onClick={() => setCurrentView("browse")}
+              className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
+                2
+              </span>
+            </button>
+
+            {/* Authentication Button */}
+            {currentUser ? (
+              <button
+                onClick={handleSignOut}
+                className="rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAuthOpen(true)}
+                className="rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Page Main Content */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 space-y-6 max-w-7xl w-full mx-auto">
+          {/* Success toast after saving */}
+          {successToast && (
+            <div
+              role="status"
+              className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 text-xs text-emerald-900 shadow-xs"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <p className="font-semibold">{successToast}</p>
+              </div>
+              <button
+                onClick={() => setSuccessToast(null)}
+                className="p-1 text-emerald-700 hover:text-emerald-900 transition"
+                aria-label="Dismiss message"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Friendly notification if connection has an issue */}
+          {error && (
+            <div
+              role="alert"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 text-xs text-amber-900 shadow-xs"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                  <AlertCircle className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-950">Connection issue</p>
+                  <p className="text-amber-800/90 mt-0.5">{error}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  loadData(selectedStatus);
+                  loadOpportunities(selectedOppStatus);
+                }}
+                className="inline-flex items-center justify-center space-x-1.5 rounded-xl bg-amber-800 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-900 transition-colors cursor-pointer self-start sm:self-auto"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Try again</span>
+              </button>
+            </div>
+          )}
+
+          {/* VIEW ROUTING */}
+          {currentView === "home" ? (
+            /* ========================================================================= */
+            /* REDESIGNED OPPORTUNITY-FIRST HOME EXPERIENCE                               */
+            /* ========================================================================= */
+            <div className="space-y-6">
+              {/* 1. Opportunity Hero Banner */}
+              <section aria-label="Welcome and Vision">
+                <OpportunityHeroBanner
+                  onQuickAction={(intent) => handleOpenNewStudio(intent)}
+                />
+              </section>
+
+              {/* 2. Opportunity Overview Stats Bar */}
+              <section aria-label="Opportunity Overview">
+                <OpportunityStatsBar
+                  opportunities={opportunities}
+                  loading={oppLoading}
+                  onViewAll={() => setCurrentView("opportunities")}
+                  onFilterIntent={(intent) => {
+                    handleOpenNewStudio(intent);
+                  }}
+                />
+              </section>
+
+              {/* 3. Three Column Main Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                {/* Left: Quick Actions (Choose what you want to do) */}
+                <section className="lg:col-span-4" aria-label="Quick Actions">
+                  <OpportunityQuickActions
+                    onSelectAction={(intent) => handleOpenNewStudio(intent)}
+                  />
+                </section>
+
+                {/* Middle: Recommended Opportunities & Category Exploration */}
+                <section className="lg:col-span-5" aria-label="Recommended Opportunities">
+                  <RecommendedOpportunitiesSection
+                    onSelectCategory={(category) =>
+                      handleOpenNewStudio("SEEKING_SOLUTION", category)
+                    }
+                    onExploreAll={() => setCurrentView("opportunities")}
+                  />
+                </section>
+
+                {/* Right: Pending Actions & Active Collaborations */}
+                <section className="lg:col-span-3 space-y-4" aria-label="Pending and Collaborations">
+                  <PendingActionsSection onSeeAll={() => setCurrentView("opportunities")} />
+                  <ActiveCollaborationsSection
+                    onSeeAll={() => setCurrentView("opportunities")}
+                    onStartOpportunity={() => handleOpenNewStudio()}
+                  />
+                </section>
+              </div>
+
+              {/* 4. Bottom Row: Recent Activity & Network Impact Banner */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                <section className="lg:col-span-7" aria-label="Recent Activity">
+                  <RecentActivitySection
+                    opportunities={opportunities}
+                    onSelectOpportunity={handleOpenExistingStudio}
+                    onSeeAll={() => setCurrentView("opportunities")}
+                  />
+                </section>
+
+                <section className="lg:col-span-5" aria-label="Impact Network">
+                  <NetworkImpactBanner onExplore={() => handleOpenNewStudio("OFFERING_SOLUTION")} />
+                </section>
+              </div>
+
+              {/* 5. Opportunity Drafts Workspace */}
+              <section aria-label="Opportunity Drafts Workspace">
+                <OpportunityDraftsList
+                  opportunities={opportunities}
+                  isLoading={oppLoading}
+                  error={oppError}
+                  onRetry={() => loadOpportunities(selectedOppStatus)}
+                  onSelectOpportunity={handleOpenExistingStudio}
+                  onCreateNew={() => handleOpenNewStudio()}
+                  selectedStatus={selectedOppStatus}
+                  onFilterChange={handleOppFilterChange}
+                  isAuthenticated={!!currentUser}
+                  onSignIn={() => setIsAuthOpen(true)}
+                />
+              </section>
+
+              {/* 6. Commerce Ledger & Transaction Intelligence */}
+              <div className="pt-6 border-t border-slate-200/80 space-y-6">
+                <section aria-label="Business Metrics">
+                  <DashboardStats totals={overview?.totals} loading={loading} />
+                </section>
+
+                <section aria-label="Copilot Recommendation">
+                  <RecommendationCard
+                    recommendation={recommendation}
+                    loading={loading}
+                    onPaymentSuccess={handlePaymentSuccess}
+                  />
+                </section>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <section className="lg:col-span-2" aria-label="Commerce Ledger">
+                    <CommerceLedger
+                      transactions={transactions}
+                      loading={loading}
+                      error={error}
+                      selectedStatus={selectedStatus}
+                      onFilterChange={handleFilterChange}
+                    />
+                  </section>
+
+                  <section aria-label="Copilot Assistant">
+                    <CopilotChat />
+                  </section>
+                </div>
+              </div>
+            </div>
+          ) : currentView === "opportunities" ? (
+            /* ========================================================================= */
+            /* FULL OPPORTUNITY DRAFTS WORKSPACE VIEW                                    */
+            /* ========================================================================= */
+            <div className="space-y-6">
+              <section aria-label="Opportunity Drafts Workspace">
+                <OpportunityDraftsList
+                  opportunities={opportunities}
+                  isLoading={oppLoading}
+                  error={oppError}
+                  onRetry={() => loadOpportunities(selectedOppStatus)}
+                  onSelectOpportunity={handleOpenExistingStudio}
+                  onCreateNew={() => handleOpenNewStudio()}
+                  selectedStatus={selectedOppStatus}
+                  onFilterChange={handleOppFilterChange}
+                  isAuthenticated={!!currentUser}
+                  onSignIn={() => setIsAuthOpen(true)}
+                />
+              </section>
+            </div>
+          ) : currentView === "browse" ? (
+            /* ========================================================================= */
+            /* EXPLORE OPPORTUNITY NETWORK VIEW                                          */
+            /* ========================================================================= */
+            <div className="space-y-6">
+              <section aria-label="Browse Network">
+                <RecommendedOpportunitiesSection
+                  onSelectCategory={(category) =>
+                    handleOpenNewStudio("SEEKING_SOLUTION", category)
+                  }
+                  onExploreAll={() => setCurrentView("opportunities")}
+                />
+              </section>
+              <section aria-label="Impact Network">
+                <NetworkImpactBanner onExplore={() => handleOpenNewStudio("OFFERING_SOLUTION")} />
+              </section>
+            </div>
+          ) : (
+            /* ========================================================================= */
+            /* COMMERCE LEDGER & FINANCIAL TOOLS VIEW                                    */
+            /* ========================================================================= */
+            <div className="space-y-6">
+              <section aria-label="Business Metrics">
+                <DashboardStats totals={overview?.totals} loading={loading} />
+              </section>
+
+              <section aria-label="Copilot Recommendation">
+                <RecommendationCard
+                  recommendation={recommendation}
+                  loading={loading}
+                  onPaymentSuccess={handlePaymentSuccess}
+                />
+              </section>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <section className="lg:col-span-2" aria-label="Commerce Ledger">
+                  <CommerceLedger
+                    transactions={transactions}
+                    loading={loading}
+                    error={error}
+                    selectedStatus={selectedStatus}
+                    onFilterChange={handleFilterChange}
+                  />
+                </section>
+
+                <section aria-label="Copilot Assistant">
+                  <CopilotChat />
+                </section>
+              </div>
+            </div>
+          )}
+        </main>
+
+        <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
+          <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>© 2026 PayPilot AI — Two-Sided Idea-to-Business Opportunity Network.</p>
+            <p className="text-[11px] text-slate-400">
+              Simulated payment operations. No live PayPal accounts or real funds are used.
+            </p>
+          </div>
+        </footer>
+      </div>
+
+      {/* Modals */}
       <BusinessOnboardingModal
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
@@ -395,6 +692,8 @@ export default function Home() {
         onSuccess={handleOpportunitySuccess}
         existingOpportunity={activeOpportunity}
         businessId={overview?.business?.id}
+        initialIntent={studioInitialIntent}
+        initialCategory={studioInitialCategory}
       />
 
       <AuthModal
@@ -402,15 +701,6 @@ export default function Home() {
         onClose={() => setIsAuthOpen(false)}
         onSuccess={handleAuthSuccess}
       />
-
-      <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
-        <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 PayPilot AI — Idea-to-Business Opportunity Network.</p>
-          <p className="text-[11px] text-slate-400">
-            Simulated payment operations. No live PayPal accounts or real funds are used.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
