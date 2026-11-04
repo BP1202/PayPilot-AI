@@ -10,6 +10,8 @@ import {
   LoginPayload,
   Opportunity,
   OpportunityAnalyzeResponse,
+  OpportunityCategory,
+  OpportunityIntent,
   OpportunityCreatePayload,
   OpportunityListResponse,
   OpportunityStatus,
@@ -428,10 +430,16 @@ export async function createOpportunity(
 }
 
 export async function fetchUserOpportunities(
-  statusFilter?: OpportunityStatus
+  statusFilter?: OpportunityStatus,
+  intentFilter?: OpportunityIntent,
+  categoryFilter?: OpportunityCategory
 ): Promise<OpportunityListResponse> {
   try {
-    const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (intentFilter) params.set("intent", intentFilter);
+    if (categoryFilter) params.set("category", categoryFilter);
+    const query = params.toString() ? `?${params.toString()}` : "";
     const res = await fetch(`${getApiBaseUrl()}/opportunities${query}`, {
       cache: "no-store",
       headers: getAuthHeaders(),

@@ -121,6 +121,10 @@ export interface ApprovePaymentRequest {
 
 export type OpportunityType = "IDEA" | "PROBLEM";
 
+export type OpportunityIntent = "SEEKING_SOLUTION" | "OFFERING_SOLUTION";
+
+export type OpportunityCategory = "FINTECH" | "TECH" | "BUSINESS" | "LOCAL";
+
 export type OpportunityStatus =
   | "DRAFT"
   | "ANALYSED"
@@ -169,10 +173,14 @@ export interface OpportunityAnalyzeResponse {
   model?: string;
   confidence: number;
   message: string;
+  intent?: OpportunityIntent;
+  category?: OpportunityCategory;
 }
 
 export interface OpportunityCreatePayload {
   submission_type: OpportunityType;
+  intent?: OpportunityIntent;
+  category?: OpportunityCategory;
   title: string;
   original_description: string;
   problem_statement?: string;
@@ -197,6 +205,8 @@ export interface OpportunityCreatePayload {
 export interface OpportunityUpdatePayload {
   title?: string;
   original_description?: string;
+  intent?: OpportunityIntent;
+  category?: OpportunityCategory;
   problem_statement?: string;
   proposed_solution?: string;
   industry?: string;
@@ -221,6 +231,8 @@ export interface Opportunity {
   user_id: string;
   business_id?: number | null;
   submission_type: OpportunityType;
+  intent: OpportunityIntent;
+  category: OpportunityCategory;
   status: OpportunityStatus;
   visibility: OpportunityVisibility;
   title: string;
