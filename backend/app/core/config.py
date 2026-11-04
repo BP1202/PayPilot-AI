@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     # AI Intelligence Service
     AI_API_KEY: str = ""
 
+    # Authentication & Security
+    AUTH_SECRET_KEY: str = (
+        "paypilot-dev-insecure-secret-key-change-in-production-12345678"
+    )
+    AUTH_ALGORITHM: str = "HS256"
+    AUTH_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+
     model_config = SettingsConfigDict(
         env_file=(str(ENV_PATH), ".env"),
         env_file_encoding="utf-8",

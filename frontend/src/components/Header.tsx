@@ -1,15 +1,30 @@
 import React from "react";
-import { ShieldCheck, Sparkles, Building2, PlusCircle, Lightbulb } from "lucide-react";
-import { Business } from "@/types";
+import {
+  ShieldCheck,
+  Sparkles,
+  Building2,
+  PlusCircle,
+  Lightbulb,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+} from "lucide-react";
+import { Business, User } from "@/types";
 
 interface HeaderProps {
   business?: Business | null;
+  currentUser?: User | null;
+  onOpenAuth?: () => void;
+  onSignOut?: () => void;
   onCreateProfile?: () => void;
   onCreateOpportunity?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   business,
+  currentUser,
+  onOpenAuth,
+  onSignOut,
   onCreateProfile,
   onCreateOpportunity,
 }) => {
@@ -65,6 +80,40 @@ export const Header: React.FC<HeaderProps> = ({
               <PlusCircle className="h-3.5 w-3.5 text-slate-500" />
               <span>Business Profile</span>
             </button>
+          )}
+
+          {/* User Authentication State */}
+          {currentUser ? (
+            <div className="flex items-center space-x-2">
+              <div className="hidden sm:flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700">
+                <UserIcon className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="max-w-[120px] truncate">
+                  {currentUser.full_name || currentUser.email}
+                </span>
+              </div>
+              {onSignOut && (
+                <button
+                  onClick={onSignOut}
+                  className="flex items-center space-x-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition shadow-sm"
+                  aria-label="Sign out"
+                  title="Sign Out"
+                >
+                  <LogOut className="h-3.5 w-3.5 text-slate-500" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            onOpenAuth && (
+              <button
+                onClick={onOpenAuth}
+                className="flex items-center space-x-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition shadow-sm"
+                aria-label="Sign in"
+              >
+                <LogIn className="h-3.5 w-3.5 text-indigo-600" />
+                <span>Sign In</span>
+              </button>
+            )
           )}
 
           <div className="hidden md:flex items-center space-x-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">

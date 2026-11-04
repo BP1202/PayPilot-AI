@@ -102,8 +102,16 @@ def test_api_extract_endpoint(client_with_db):
 
 
 def test_create_and_retrieve_business_profile_for_authenticated_user(client_with_db):
-    user_id = "user_owner_987"
-    headers = {"X-User-ID": user_id}
+    reg_res = client_with_db.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "owner987@abccompany.example.com",
+            "password": "Password123!",
+            "full_name": "Owner 987",
+        },
+    )
+    user_id = reg_res.json()["user"]["id"]
+    headers = {"Authorization": f"Bearer {reg_res.json()['access_token']}"}
 
     payload = {
         "name": "ABC Company",
@@ -144,8 +152,16 @@ def test_create_and_retrieve_business_profile_for_authenticated_user(client_with
 
 
 def test_create_business_profile_manual_without_ai(client_with_db):
-    user_id = "user_manual_123"
-    headers = {"X-User-ID": user_id}
+    reg_res = client_with_db.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "manual123@example.com",
+            "password": "Password123!",
+            "full_name": "Manual User",
+        },
+    )
+    user_id = reg_res.json()["user"]["id"]
+    headers = {"Authorization": f"Bearer {reg_res.json()['access_token']}"}
 
     payload = {
         "name": "Manual Artisan Crafts",

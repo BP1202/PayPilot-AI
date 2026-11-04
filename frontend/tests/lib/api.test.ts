@@ -248,7 +248,7 @@ describe("API Client & Connectivity", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         "http://127.0.0.1:8000/api/v1/business/me",
         expect.objectContaining({
-          headers: expect.objectContaining({ "X-User-ID": "owner_default" }),
+          headers: expect.objectContaining({ "Content-Type": "application/json" }),
         })
       );
     });

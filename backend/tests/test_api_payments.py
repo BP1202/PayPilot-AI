@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 from app.core.database import Base, get_db
+from app.core.security import create_access_token
 from app.core.seed import seed_demo_data
 from app.main import app
 from fastapi.testclient import TestClient
@@ -76,7 +77,13 @@ def test_approve_payment_requires_explicit_owner_approval(client_with_db):
 
 def test_approve_payment_success_and_updates_ledger_and_totals(client_with_db):
     # Check initial totals
-    initial_ov = client_with_db.get("/api/v1/dashboard/overview").json()["totals"]
+    token = create_access_token(
+        user_id="owner_default", email="owner@apexgearworks.demo"
+    )
+    auth_headers = {"Authorization": f"Bearer {token}"}
+    initial_ov = client_with_db.get(
+        "/api/v1/dashboard/overview", headers=auth_headers
+    ).json()["totals"]
     initial_revenue = Decimal(initial_ov["total_revenue"])
     initial_completed = initial_ov["completed_count"]
     initial_pending = initial_ov["pending_count"]
@@ -100,7 +107,9 @@ def test_approve_payment_success_and_updates_ledger_and_totals(client_with_db):
     assert res_data["provider_reference"].startswith("SIM-PAYPAL-CAP-")
 
     # Verify updated dashboard totals
-    updated_ov = client_with_db.get("/api/v1/dashboard/overview").json()["totals"]
+    updated_ov = client_with_db.get(
+        "/api/v1/dashboard/overview", headers=auth_headers
+    ).json()["totals"]
     assert Decimal(updated_ov["total_revenue"]) == initial_revenue + txn_amount
     assert updated_ov["completed_count"] == initial_completed + 1
     assert updated_ov["pending_count"] == initial_pending - 1

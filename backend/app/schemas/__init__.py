@@ -35,6 +35,12 @@ from app.schemas.transaction import (
     TransactionStatusEnum,
     TransactionTypeEnum,
 )
+from app.schemas.user import (
+    TokenResponse,
+    UserLogin,
+    UserRead,
+    UserRegister,
+)
 
 __all__ = [
     "ApprovePaymentRequest",
@@ -60,8 +66,12 @@ __all__ = [
     "OpportunityResponse",
     "OpportunityUpdate",
     "RecommendedAction",
+    "TokenResponse",
     "TransactionCreate",
     "TransactionRead",
     "TransactionStatusEnum",
     "TransactionTypeEnum",
+    "UserLogin",
+    "UserRead",
+    "UserRegister",
 ]

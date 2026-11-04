@@ -5,16 +5,27 @@ from sqlalchemy.orm import Session
 from app.models.business import Business
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.repositories.business_repository import BusinessRepository
+from app.repositories.user_repository import UserRepository
 
 
 def seed_demo_data(db: Session) -> Business:
     """Seed the database with realistic demo data for Apex Precision Gearworks."""
+    # Ensure seed user exists for demo and testing environments
+    user_repo = UserRepository(db)
+    user_repo.get_or_create_seed_user(
+        user_id="owner_default",
+        email="owner@apexgearworks.demo",
+        password="Password123!",
+        full_name="Apex Gearworks Owner",
+    )
+
     biz_repo = BusinessRepository(db)
     business = biz_repo.get_or_create_default_business(
         name="Apex Precision Gearworks",
         currency="USD",
         industry="Precision Machining & Robotics Manufacturing",
         description="Demo manufacturer specialized in custom CNC components and robotic drivetrain assemblies.",
+        user_id="owner_default",
     )
 
     # Check if seed transactions already exist
@@ -48,7 +59,7 @@ def seed_demo_data(db: Session) -> Business:
             payment_method="PAYPAL_SIMULATED",
             description="Invoice #1043 - Planetary Gearbox Housing Prototyping",
             customer_name="Kinetic Motion Labs",
-            customer_email="accounts@kineticmotion.demo",
+            customer_email="engineering@kineticmotion.demo",
             provider_reference="SIM-PAYPAL-CAP-002",
         ),
         Transaction(
@@ -59,9 +70,9 @@ def seed_demo_data(db: Session) -> Business:
             status=TransactionStatus.COMPLETED,
             type=TransactionType.CUSTOMER_PAYMENT,
             payment_method="PAYPAL_SIMULATED",
-            description="Invoice #1044 - Precision Spline Shaft Batch #3",
-            customer_name="Nexus Robotics Corp",
-            customer_email="finance@nexusrobotics.demo",
+            description="Invoice #1044 - Hardened Steel Spur Gears Batch",
+            customer_name="Vanguard Automation",
+            customer_email="accounts@vanguardauto.demo",
             provider_reference="SIM-PAYPAL-CAP-003",
         ),
         Transaction(
@@ -72,9 +83,9 @@ def seed_demo_data(db: Session) -> Business:
             status=TransactionStatus.COMPLETED,
             type=TransactionType.CUSTOMER_PAYMENT,
             payment_method="PAYPAL_SIMULATED",
-            description="Invoice #1045 - Replacement Bevel Gears & Bearings",
-            customer_name="Vanguard Automation",
-            customer_email="ap@vanguardauto.demo",
+            description="Invoice #1045 - Precision Shaft Calibration Service",
+            customer_name="Apex Precision Lab Internal",
+            customer_email="qa@apexgearworks.demo",
             provider_reference="SIM-PAYPAL-CAP-004",
         ),
         Transaction(
@@ -85,13 +96,16 @@ def seed_demo_data(db: Session) -> Business:
             status=TransactionStatus.PENDING,
             type=TransactionType.CUSTOMER_PAYMENT,
             payment_method="PAYPAL_SIMULATED",
-            description="Order #1046 - Rush Production: High-Torque Cycloidal Reducer",
+            description="Invoice #1046 - Robotic Arm Drivetrain Assembly (Milestone 1)",
             customer_name="Stratos Dynamics",
-            customer_email="billing@stratosdynamics.demo",
-            provider_reference="SIM-PAYPAL-ORD-005",
+            customer_email="payments@stratosdyn.demo",
+            provider_reference=None,
         ),
     ]
 
-    db.add_all(demo_transactions)
+    for tx in demo_transactions:
+        db.add(tx)
+
     db.commit()
+    db.refresh(business)
     return business
