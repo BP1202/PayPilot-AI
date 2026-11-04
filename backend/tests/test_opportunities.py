@@ -378,3 +378,98 @@ def test_user_can_edit_and_reanalyze_opportunity(client_with_db):
     # Refreshed analytical arrays
     assert len(reanalyzed["key_assumptions"]) > 0
     assert len(reanalyzed["potential_business_models"]) > 0
+
+
+def test_unauthenticated_opportunity_endpoints_return_401(client_with_db):
+    # 1. Listing without auth
+    list_res = client_with_db.get("/api/v1/opportunities")
+    assert list_res.status_code == 401
+
+    # 2. Creating draft without auth
+    create_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={"title": "Unauthorized Idea", "original_description": "A description text for test"},
+    )
+    assert create_res.status_code == 401
+
+    # 3. Getting opportunity without auth
+    get_res = client_with_db.get("/api/v1/opportunities/opp_nonexistent")
+    assert get_res.status_code == 401
+
+    # 4. Updating opportunity without auth
+    put_res = client_with_db.put(
+        "/api/v1/opportunities/opp_nonexistent",
+        json={"title": "Updated Title"},
+    )
+    assert put_res.status_code == 401
+
+
+def test_expired_session_token_rejected_with_401(client_with_db):
+    from datetime import timedelta
+
+    from app.core.security import create_access_token
+
+    user_id, _ = make_auth_user(client_with_db, "expired_user@demo.test", "Expired User")
+    expired_token = create_access_token(
+        user_id=user_id,
+        email="expired_user@demo.test",
+        expires_delta=timedelta(minutes=-30),
+    )
+    expired_headers = {"Authorization": f"Bearer {expired_token}"}
+
+    res = client_with_db.get("/api/v1/opportunities", headers=expired_headers)
+    assert res.status_code == 401
+    assert "expired" in res.json()["detail"].lower()
+
+
+def test_multitenant_opportunities_isolation_and_reopen(client_with_db):
+    _user_a, headers_a = make_auth_user(client_with_db, "tenant_a@demo.test", "Tenant A")
+    _user_b, headers_b = make_auth_user(client_with_db, "tenant_b@demo.test", "Tenant B")
+
+    # User A creates opportunity
+    opp_a_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "IDEA",
+            "title": "Tenant A Secret Initiative",
+            "original_description": "Exclusive business opportunity for Tenant A only.",
+            "industry": "Aerospace",
+        },
+        headers=headers_a,
+    )
+    assert opp_a_res.status_code == 201
+    opp_a_id = opp_a_res.json()["id"]
+
+    # User B creates opportunity
+    opp_b_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "PROBLEM",
+            "title": "Tenant B Supply Bottleneck",
+            "original_description": "Exclusive operational challenge for Tenant B only.",
+            "industry": "Agriculture",
+        },
+        headers=headers_b,
+    )
+    assert opp_b_res.status_code == 201
+    opp_b_id = opp_b_res.json()["id"]
+
+    # User A lists opportunities: sees ONLY their own
+    list_a = client_with_db.get("/api/v1/opportunities", headers=headers_a).json()
+    assert any(item["id"] == opp_a_id for item in list_a["items"])
+    assert not any(item["id"] == opp_b_id for item in list_a["items"])
+
+    # User B lists opportunities: sees ONLY their own
+    list_b = client_with_db.get("/api/v1/opportunities", headers=headers_b).json()
+    assert any(item["id"] == opp_b_id for item in list_b["items"])
+    assert not any(item["id"] == opp_a_id for item in list_b["items"])
+
+    # User A reopens their opportunity using persisted backend data
+    reopened = client_with_db.get(f"/api/v1/opportunities/{opp_a_id}", headers=headers_a).json()
+    assert reopened["id"] == opp_a_id
+    assert reopened["title"] == "Tenant A Secret Initiative"
+    assert reopened["industry"] == "Aerospace"
+
+    # User B attempting to reopen User A's opportunity receives 403 Forbidden
+    unauthorized_reopen = client_with_db.get(f"/api/v1/opportunities/{opp_a_id}", headers=headers_b)
+    assert unauthorized_reopen.status_code == 403

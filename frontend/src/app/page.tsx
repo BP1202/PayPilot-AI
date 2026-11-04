@@ -25,10 +25,13 @@ import {
   fetchCopilotRecommendation,
   fetchLedgerTransactions,
   fetchUserOpportunities,
+  fetchOpportunityById,
   getStoredUser,
   fetchCurrentUser,
   logoutUser,
   getAccessToken,
+  clearAccessToken,
+  ApiError,
 } from "@/lib/api";
 import { RefreshCw, AlertCircle, CheckCircle2, X } from "lucide-react";
 
@@ -71,6 +74,7 @@ export default function Home() {
   // Opportunities state (Stage 1 & 2)
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [oppLoading, setOppLoading] = useState(true);
+  const [oppError, setOppError] = useState<string | null>(null);
   const [selectedOppStatus, setSelectedOppStatus] = useState<OpportunityStatus | undefined>(undefined);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [activeOpportunity, setActiveOpportunity] = useState<Opportunity | null>(null);
@@ -104,13 +108,39 @@ export default function Home() {
   }, []);
 
   const loadOpportunities = useCallback(async (statusFilter?: OpportunityStatus) => {
+    if (!getAccessToken()) {
+      setOpportunities([]);
+      setActiveOpportunity(null);
+      setOppLoading(false);
+      setOppError(null);
+      return;
+    }
+
     try {
       setOppLoading(true);
+      setOppError(null);
       const res = await fetchUserOpportunities(statusFilter);
       setOpportunities(res.items);
-    } catch {
-      // Graceful fallback for offline/disconnected states
-      setOpportunities([]);
+    } catch (err: unknown) {
+      const rawMsg = err instanceof Error ? err.message : "";
+      const lower = rawMsg.toLowerCase();
+      if (
+        lower.includes("expired") ||
+        lower.includes("credentials") ||
+        lower.includes("unauthorized") ||
+        (err instanceof ApiError && err.status === 401)
+      ) {
+        clearAccessToken();
+        setCurrentUser(null);
+        setOpportunities([]);
+        setActiveOpportunity(null);
+        setOppError(null);
+      } else {
+        setOpportunities([]);
+        setOppError(
+          "We couldn't load your opportunity drafts right now. Please check your connection or try again."
+        );
+      }
     } finally {
       setOppLoading(false);
     }
@@ -126,12 +156,35 @@ export default function Home() {
 
   useEffect(() => {
     const syncAuth = () => {
-      setCurrentUser(getStoredUser());
+      const stored = getStoredUser();
+      const token = getAccessToken();
+      setCurrentUser(stored);
+      if (!stored || !token) {
+        setOpportunities([]);
+        setActiveOpportunity(null);
+        setOppError(null);
+        setOppLoading(false);
+      }
     };
+
     syncAuth();
+
     if (getAccessToken()) {
-      fetchCurrentUser().then(setCurrentUser).catch(() => setCurrentUser(null));
+      fetchCurrentUser()
+        .then((user) => {
+          setCurrentUser(user);
+        })
+        .catch(() => {
+          clearAccessToken();
+          setCurrentUser(null);
+          setOpportunities([]);
+          setActiveOpportunity(null);
+          setOppLoading(false);
+        });
+    } else {
+      setOppLoading(false);
     }
+
     window.addEventListener("paypilot:auth_changed", syncAuth);
     return () => window.removeEventListener("paypilot:auth_changed", syncAuth);
   }, []);
@@ -147,6 +200,8 @@ export default function Home() {
     logoutUser();
     setCurrentUser(null);
     setOpportunities([]);
+    setActiveOpportunity(null);
+    setOppError(null);
     setSuccessToast("Signed out successfully.");
   };
 
@@ -169,6 +224,15 @@ export default function Home() {
 
   const handleOpportunitySuccess = (savedOpp: Opportunity, message: string) => {
     setSuccessToast(message);
+    setOpportunities((prev) => {
+      const existingIdx = prev.findIndex((o) => o.id === savedOpp.id);
+      if (existingIdx >= 0) {
+        const copy = [...prev];
+        copy[existingIdx] = savedOpp;
+        return copy;
+      }
+      return [savedOpp, ...prev];
+    });
     loadOpportunities(selectedOppStatus);
   };
 
@@ -177,9 +241,33 @@ export default function Home() {
     setIsStudioOpen(true);
   };
 
-  const handleOpenExistingStudio = (opp: Opportunity) => {
-    setActiveOpportunity(opp);
-    setIsStudioOpen(true);
+  const handleOpenExistingStudio = async (opp: Opportunity) => {
+    try {
+      setOppError(null);
+      const freshOpp = await fetchOpportunityById(opp.id);
+      setActiveOpportunity(freshOpp);
+      setIsStudioOpen(true);
+    } catch (err: unknown) {
+      const rawMsg = err instanceof Error ? err.message : "";
+      const lower = rawMsg.toLowerCase();
+      if (
+        lower.includes("expired") ||
+        lower.includes("credentials") ||
+        lower.includes("unauthorized") ||
+        (err instanceof ApiError && err.status === 401)
+      ) {
+        clearAccessToken();
+        setCurrentUser(null);
+        setOpportunities([]);
+        setActiveOpportunity(null);
+        setIsStudioOpen(false);
+        setOppError(null);
+      } else {
+        // Fallback: if network glitch, open with cached opportunity
+        setActiveOpportunity(opp);
+        setIsStudioOpen(true);
+      }
+    }
   };
 
   return (
@@ -249,10 +337,14 @@ export default function Home() {
           <OpportunityDraftsList
             opportunities={opportunities}
             isLoading={oppLoading}
+            error={oppError}
+            onRetry={() => loadOpportunities(selectedOppStatus)}
             onSelectOpportunity={handleOpenExistingStudio}
             onCreateNew={handleOpenNewStudio}
             selectedStatus={selectedOppStatus}
             onFilterChange={handleOppFilterChange}
+            isAuthenticated={!!currentUser}
+            onSignIn={() => setIsAuthOpen(true)}
           />
         </section>
 

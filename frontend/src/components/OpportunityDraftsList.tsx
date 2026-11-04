@@ -9,25 +9,34 @@ import {
   ArrowRight,
   PlusCircle,
   FileText,
+  RotateCw,
 } from "lucide-react";
 import { Opportunity, OpportunityStatus } from "@/types";
 
 interface OpportunityDraftsListProps {
   opportunities: Opportunity[];
   isLoading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   onSelectOpportunity: (opportunity: Opportunity) => void;
   onCreateNew: () => void;
   selectedStatus?: OpportunityStatus;
   onFilterChange: (status?: OpportunityStatus) => void;
+  isAuthenticated?: boolean;
+  onSignIn?: () => void;
 }
 
 export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
   opportunities,
   isLoading,
+  error,
+  onRetry,
   onSelectOpportunity,
   onCreateNew,
   selectedStatus,
   onFilterChange,
+  isAuthenticated = true,
+  onSignIn,
 }) => {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -95,6 +104,52 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
                 <div className="h-3 w-2/3 bg-slate-200 rounded" />
               </div>
             ))}
+          </div>
+        ) : error ? (
+          <div role="alert" className="rounded-xl border border-amber-200/80 bg-amber-50/90 p-6 text-center shadow-xs">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 mb-3">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-bold text-amber-950">Unable to load opportunities</h3>
+            <p className="text-xs text-amber-800/90 max-w-sm mx-auto mt-1 mb-4">
+              {error}
+            </p>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-800 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-amber-900 transition cursor-pointer"
+              >
+                <RotateCw className="h-3.5 w-3.5" />
+                <span>Try again</span>
+              </button>
+            )}
+          </div>
+        ) : !isAuthenticated ? (
+          <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center bg-slate-50/50">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 mb-3">
+              <Lightbulb className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">Sign in to view your opportunity drafts</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-4">
+              Sign in or create an account to access your saved opportunity drafts and structure them into commercial opportunities across your sessions.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              {onSignIn && (
+                <button
+                  onClick={onSignIn}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-100 hover:bg-indigo-700 transition cursor-pointer"
+                >
+                  <span>Sign In / Register</span>
+                </button>
+              )}
+              <button
+                onClick={onCreateNew}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span>Capture an Opportunity</span>
+              </button>
+            </div>
           </div>
         ) : opportunities.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center bg-slate-50/50">
@@ -174,4 +229,3 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
     </div>
   );
 };
-

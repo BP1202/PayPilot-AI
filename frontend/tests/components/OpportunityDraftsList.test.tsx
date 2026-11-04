@@ -62,6 +62,7 @@ describe("OpportunityDraftsList Component", () => {
         onSelectOpportunity={vi.fn()}
         onCreateNew={onCreateNew}
         onFilterChange={vi.fn()}
+        isAuthenticated={true}
       />
     );
 
@@ -69,6 +70,71 @@ describe("OpportunityDraftsList Component", () => {
     const btn = screen.getByRole("button", { name: /Capture an Opportunity/i });
     fireEvent.click(btn);
     expect(onCreateNew).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders unauthenticated prompt when user is not signed in", () => {
+    const onSignIn = vi.fn();
+    const onCreateNew = vi.fn();
+    render(
+      <OpportunityDraftsList
+        opportunities={[]}
+        isLoading={false}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={onCreateNew}
+        onFilterChange={vi.fn()}
+        isAuthenticated={false}
+        onSignIn={onSignIn}
+      />
+    );
+
+    expect(
+      screen.getByText("Sign in to view your opportunity drafts")
+    ).toBeInTheDocument();
+    const signInBtn = screen.getByRole("button", { name: /Sign In \/ Register/i });
+    fireEvent.click(signInBtn);
+    expect(onSignIn).toHaveBeenCalledTimes(1);
+
+    const captureBtn = screen.getByRole("button", { name: /Capture an Opportunity/i });
+    fireEvent.click(captureBtn);
+    expect(onCreateNew).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders error state and handles retry button click", () => {
+    const onRetry = vi.fn();
+    render(
+      <OpportunityDraftsList
+        opportunities={[]}
+        isLoading={false}
+        error="We couldn't load your opportunity drafts right now."
+        onRetry={onRetry}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Unable to load opportunities")).toBeInTheDocument();
+    expect(
+      screen.getByText("We couldn't load your opportunity drafts right now.")
+    ).toBeInTheDocument();
+    const retryBtn = screen.getByRole("button", { name: /Try again/i });
+    fireEvent.click(retryBtn);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders loading skeleton state when isLoading is true", () => {
+    const { container } = render(
+      <OpportunityDraftsList
+        opportunities={[]}
+        isLoading={true}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    const pulses = container.querySelectorAll(".animate-pulse");
+    expect(pulses.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders opportunities list and handles card clicks", () => {
@@ -92,4 +158,3 @@ describe("OpportunityDraftsList Component", () => {
     expect(onSelect).toHaveBeenCalledWith(mockOpportunities[0]);
   });
 });
-

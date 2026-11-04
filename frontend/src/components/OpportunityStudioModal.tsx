@@ -106,6 +106,8 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
       setAiMode(existingOpportunity.ai_metadata?.mode || "DETERMINISTIC_FALLBACK");
       setAiProvider(existingOpportunity.ai_metadata?.provider || null);
       setAiModel(existingOpportunity.ai_metadata?.model || null);
+      setAiConfidence(existingOpportunity.ai_metadata?.confidence ?? 0.85);
+      setAiBannerMessage(existingOpportunity.ai_metadata?.message || "");
       setStep("review");
     } else {
       setStep("capture");

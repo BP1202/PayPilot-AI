@@ -56,3 +56,4 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(seed_user)
         return seed_user
+
