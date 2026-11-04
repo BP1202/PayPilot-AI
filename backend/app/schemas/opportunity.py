@@ -4,6 +4,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.opportunity import (
+    OpportunityCategory,
+    OpportunityIntent,
     OpportunityStatus,
     OpportunityType,
     OpportunityVisibility,
@@ -22,6 +24,8 @@ class OpportunityAnalyzeRequest(BaseModel):
     business_id: int | None = Field(
         default=None, description="Optional linked business profile ID."
     )
+    intent: OpportunityIntent = OpportunityIntent.SEEKING_SOLUTION
+    category: OpportunityCategory = OpportunityCategory.BUSINESS
 
 
 class OpportunityAnalysisData(BaseModel):
@@ -101,10 +105,14 @@ class OpportunityAnalyzeResponse(BaseModel):
         default="",
         description="Transparent summary of analysis provenance and human review advice.",
     )
+    intent: OpportunityIntent = OpportunityIntent.SEEKING_SOLUTION
+    category: OpportunityCategory = OpportunityCategory.BUSINESS
 
 
 class OpportunityCreate(BaseModel):
     submission_type: OpportunityType = OpportunityType.IDEA
+    intent: OpportunityIntent = OpportunityIntent.SEEKING_SOLUTION
+    category: OpportunityCategory = OpportunityCategory.BUSINESS
     title: str = Field(..., min_length=2, max_length=255)
     original_description: str = Field(..., min_length=10)
 
@@ -132,6 +140,8 @@ class OpportunityCreate(BaseModel):
 class OpportunityUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=2, max_length=255)
     original_description: str | None = Field(default=None, min_length=10)
+    intent: OpportunityIntent | None = None
+    category: OpportunityCategory | None = None
     problem_statement: str | None = None
     proposed_solution: str | None = None
     industry: str | None = None
@@ -158,6 +168,8 @@ class OpportunityResponse(BaseModel):
     user_id: str
     business_id: int | None = None
     submission_type: str
+    intent: str = OpportunityIntent.SEEKING_SOLUTION.value
+    category: str = OpportunityCategory.BUSINESS.value
     status: str
     visibility: str
     title: str
@@ -196,6 +208,8 @@ class OpportunityReanalyzeRequest(BaseModel):
         description="Optional updated description. If omitted, uses stored original_description.",
     )
     submission_type: OpportunityType | None = None
+    intent: OpportunityIntent | None = None
+    category: OpportunityCategory | None = None
     preserve_user_edits: bool = Field(
         default=True,
         description="If True, keeps custom user-edited fields and merges new analytical suggestions.",

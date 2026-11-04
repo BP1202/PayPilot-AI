@@ -25,9 +25,21 @@ class OpportunityService:
     async def analyze(
         self, request: OpportunityAnalyzeRequest
     ) -> OpportunityAnalyzeResponse:
-        return await self.analyst.analyze(
+        result = await self.analyst.analyze(
             submission_type=request.submission_type,
             text=request.description,
+        )
+        return OpportunityAnalyzeResponse(
+            submission_type=result.submission_type,
+            original_description=result.original_description,
+            analysis=result.analysis,
+            mode=result.mode,
+            provider=result.provider,
+            model=result.model,
+            confidence=result.confidence,
+            message=result.message,
+            intent=request.intent,
+            category=request.category,
         )
 
     def create_draft(self, payload: OpportunityCreate, user_id: str) -> Opportunity:
@@ -37,11 +49,24 @@ class OpportunityService:
                 detail="Authentication required to save opportunity draft.",
             )
 
+        intent_val = (
+            payload.intent.value
+            if hasattr(payload.intent, "value")
+            else str(payload.intent)
+        )
+        category_val = (
+            payload.category.value
+            if hasattr(payload.category, "value")
+            else str(payload.category)
+        )
+
         opportunity = Opportunity(
             id=self.repo.generate_id(),
             user_id=user_id.strip(),
             business_id=payload.business_id,
             submission_type=payload.submission_type.value,
+            intent=intent_val,
+            category=category_val,
             status=payload.status.value,
             visibility=payload.visibility.value,
             title=payload.title.strip(),
@@ -84,12 +109,16 @@ class OpportunityService:
         self,
         user_id: str,
         status_filter: str | None = None,
+        intent_filter: str | None = None,
+        category_filter: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[Opportunity], int]:
         return self.repo.list_by_user(
             user_id=user_id,
             status=status_filter,
+            intent=intent_filter,
+            category=category_filter,
             limit=limit,
             offset=offset,
         )
@@ -132,11 +161,23 @@ class OpportunityService:
         )
         new_data = analysis_res.analysis
 
-        # Update original description and submission type if updated
+        # Update original description, submission type, intent, category if provided
         if payload.description:
             opp.original_description = payload.description.strip()
         if payload.submission_type:
             opp.submission_type = payload.submission_type.value
+        if payload.intent:
+            opp.intent = (
+                payload.intent.value
+                if hasattr(payload.intent, "value")
+                else str(payload.intent)
+            )
+        if payload.category:
+            opp.category = (
+                payload.category.value
+                if hasattr(payload.category, "value")
+                else str(payload.category)
+            )
 
         # Preserve user edits if requested: only overwrite if current field is empty
         if not payload.preserve_user_edits:

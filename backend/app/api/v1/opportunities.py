@@ -2,6 +2,7 @@ from typing import Annotated
 
 from app.core.auth import get_current_user_id, get_optional_user
 from app.core.database import get_db
+from app.models.opportunity import OpportunityCategory, OpportunityIntent
 from app.models.user import User
 from app.schemas.opportunity import (
     OpportunityAnalyzeRequest,
@@ -66,12 +67,28 @@ def list_opportunities(
         str | None,
         Query(alias="status", description="Filter by status (e.g. DRAFT, ANALYSED)"),
     ] = None,
+    intent_filter: Annotated[
+        OpportunityIntent | None,
+        Query(
+            alias="intent",
+            description="Filter by intent (e.g. SEEKING_SOLUTION, OFFERING_SOLUTION)",
+        ),
+    ] = None,
+    category_filter: Annotated[
+        OpportunityCategory | None,
+        Query(
+            alias="category",
+            description="Filter by category (e.g. FINTECH, TECH, BUSINESS, LOCAL)",
+        ),
+    ] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> OpportunityListResponse:
     items, total = service.list_user_opportunities(
         user_id=user_id,
         status_filter=status_filter,
+        intent_filter=intent_filter.value if intent_filter else None,
+        category_filter=category_filter.value if category_filter else None,
         limit=limit,
         offset=offset,
     )

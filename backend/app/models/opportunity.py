@@ -14,6 +14,18 @@ class OpportunityType(str, enum.Enum):
     PROBLEM = "PROBLEM"
 
 
+class OpportunityIntent(str, enum.Enum):
+    SEEKING_SOLUTION = "SEEKING_SOLUTION"
+    OFFERING_SOLUTION = "OFFERING_SOLUTION"
+
+
+class OpportunityCategory(str, enum.Enum):
+    FINTECH = "FINTECH"
+    TECH = "TECH"
+    BUSINESS = "BUSINESS"
+    LOCAL = "LOCAL"
+
+
 class OpportunityStatus(str, enum.Enum):
     DRAFT = "DRAFT"
     ANALYSED = "ANALYSED"
@@ -52,6 +64,18 @@ class Opportunity(Base):
 
     submission_type: Mapped[str] = mapped_column(
         String(20), nullable=False, default=OpportunityType.IDEA.value
+    )
+    intent: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default=OpportunityIntent.SEEKING_SOLUTION.value,
+        index=True,
+    )
+    category: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default=OpportunityCategory.BUSINESS.value,
+        index=True,
     )
     status: Mapped[str] = mapped_column(
         String(30), nullable=False, default=OpportunityStatus.DRAFT.value, index=True

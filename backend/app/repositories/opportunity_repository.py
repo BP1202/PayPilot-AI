@@ -33,12 +33,18 @@ class OpportunityRepository:
         self,
         user_id: str,
         status: str | None = None,
+        intent: str | None = None,
+        category: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[Opportunity], int]:
         base_query = select(Opportunity).where(Opportunity.user_id == user_id)
         if status:
             base_query = base_query.where(Opportunity.status == status)
+        if intent:
+            base_query = base_query.where(Opportunity.intent == intent)
+        if category:
+            base_query = base_query.where(Opportunity.category == category)
 
         # Count total
         count_stmt = select(func.count()).select_from(base_query.subquery())
