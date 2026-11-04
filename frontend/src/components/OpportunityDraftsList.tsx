@@ -10,8 +10,9 @@ import {
   RotateCw,
   Target,
   Rocket,
+  Building2,
 } from "lucide-react";
-import { Opportunity, OpportunityStatus } from "@/types";
+import { Opportunity, OpportunityStatus, Business } from "@/types";
 
 interface OpportunityDraftsListProps {
   opportunities: Opportunity[];
@@ -24,6 +25,7 @@ interface OpportunityDraftsListProps {
   onFilterChange: (status?: OpportunityStatus) => void;
   isAuthenticated?: boolean;
   onSignIn?: () => void;
+  businesses?: Business[];
 }
 
 export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
@@ -37,7 +39,15 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
   onFilterChange,
   isAuthenticated = true,
   onSignIn,
+  businesses = [],
 }) => {
+  const businessMap = React.useMemo(() => {
+    const map: Record<number, string> = {};
+    for (const b of businesses) {
+      map[b.id] = b.name;
+    }
+    return map;
+  }, [businesses]);
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -199,6 +209,17 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
                       <span className="inline-flex items-center rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700">
                         {opp.category || "BUSINESS"}
                       </span>
+
+                      {/* Linked Organization Badge */}
+                      {opp.business_id && (
+                        <span
+                          data-testid="linked-org-badge"
+                          className="inline-flex items-center gap-1 rounded-md bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700"
+                        >
+                          <Building2 className="h-3 w-3" />
+                          <span>{businessMap[opp.business_id] || `Org #${opp.business_id}`}</span>
+                        </span>
+                      )}
 
                       {/* Format Badge */}
                       <span

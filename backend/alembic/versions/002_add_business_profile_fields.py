@@ -60,4 +60,3 @@ def downgrade() -> None:
     op.drop_column("businesses", "website")
     op.drop_column("businesses", "country")
     op.drop_column("businesses", "business_type")
-

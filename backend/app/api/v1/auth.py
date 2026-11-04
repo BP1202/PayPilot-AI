@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
+from app.repositories.individual_profile_repository import IndividualProfileRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import TokenResponse, UserLogin, UserRead, UserRegister
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -40,6 +41,7 @@ def register(
         is_active=True,
     )
     created_user = repo.create(user)
+    IndividualProfileRepository(db).get_or_create(created_user.id)
 
     expires_delta = timedelta(minutes=settings.AUTH_TOKEN_EXPIRE_MINUTES)
     token = create_access_token(

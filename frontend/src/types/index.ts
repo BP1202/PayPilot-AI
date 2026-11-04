@@ -5,9 +5,18 @@ export interface Business {
   industry?: string;
   business_type?: string;
   country?: string;
+  location?: string | null;
   website?: string;
   description?: string;
   user_id?: string;
+  visibility?: ProfileVisibility;
+  skills?: string[];
+  experience?: string[];
+  services?: string[];
+  resources?: string[];
+  interests?: string[];
+  completeness_percent?: number;
+  missing_fields?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -285,4 +294,59 @@ export interface RegisterPayload {
 export interface OpportunityListResponse {
   items: Opportunity[];
   total: number;
+}
+
+export type ProfileVisibility = "PRIVATE" | "AUTHENTICATED" | "PUBLIC";
+
+export interface IndividualProfile {
+  user_id: string;
+  headline?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  industry?: string | null;
+  skills: string[];
+  experience: string[];
+  services: string[];
+  resources: string[];
+  interests: string[];
+  visibility: ProfileVisibility;
+  created_at: string;
+  updated_at?: string;
+  completeness_percent: number;
+  missing_fields: string[];
+}
+
+export interface ProfileMeResponse {
+  individual: IndividualProfile;
+  businesses: Business[];
+}
+
+export interface IndividualProfileUpdatePayload {
+  headline?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  industry?: string | null;
+  skills?: string[];
+  experience?: string[];
+  services?: string[];
+  resources?: string[];
+  interests?: string[];
+  visibility?: ProfileVisibility;
+}
+
+export interface BusinessProfileUpdatePayload {
+  name?: string;
+  currency?: string;
+  industry?: string | null;
+  business_type?: string | null;
+  country?: string | null;
+  location?: string | null;
+  website?: string | null;
+  description?: string | null;
+  visibility?: ProfileVisibility;
+  skills?: string[];
+  experience?: string[];
+  services?: string[];
+  resources?: string[];
+  interests?: string[];
 }

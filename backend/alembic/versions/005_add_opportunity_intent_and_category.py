@@ -56,4 +56,3 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_opportunities_intent"), table_name="opportunities")
     op.drop_column("opportunities", "category")
     op.drop_column("opportunities", "intent")
-

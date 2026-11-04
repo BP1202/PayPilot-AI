@@ -388,7 +388,10 @@ def test_unauthenticated_opportunity_endpoints_return_401(client_with_db):
     # 2. Creating draft without auth
     create_res = client_with_db.post(
         "/api/v1/opportunities",
-        json={"title": "Unauthorized Idea", "original_description": "A description text for test"},
+        json={
+            "title": "Unauthorized Idea",
+            "original_description": "A description text for test",
+        },
     )
     assert create_res.status_code == 401
 
@@ -409,7 +412,9 @@ def test_expired_session_token_rejected_with_401(client_with_db):
 
     from app.core.security import create_access_token
 
-    user_id, _ = make_auth_user(client_with_db, "expired_user@demo.test", "Expired User")
+    user_id, _ = make_auth_user(
+        client_with_db, "expired_user@demo.test", "Expired User"
+    )
     expired_token = create_access_token(
         user_id=user_id,
         email="expired_user@demo.test",
@@ -423,8 +428,12 @@ def test_expired_session_token_rejected_with_401(client_with_db):
 
 
 def test_multitenant_opportunities_isolation_and_reopen(client_with_db):
-    _user_a, headers_a = make_auth_user(client_with_db, "tenant_a@demo.test", "Tenant A")
-    _user_b, headers_b = make_auth_user(client_with_db, "tenant_b@demo.test", "Tenant B")
+    _user_a, headers_a = make_auth_user(
+        client_with_db, "tenant_a@demo.test", "Tenant A"
+    )
+    _user_b, headers_b = make_auth_user(
+        client_with_db, "tenant_b@demo.test", "Tenant B"
+    )
 
     # User A creates opportunity
     opp_a_res = client_with_db.post(
@@ -465,18 +474,24 @@ def test_multitenant_opportunities_isolation_and_reopen(client_with_db):
     assert not any(item["id"] == opp_a_id for item in list_b["items"])
 
     # User A reopens their opportunity using persisted backend data
-    reopened = client_with_db.get(f"/api/v1/opportunities/{opp_a_id}", headers=headers_a).json()
+    reopened = client_with_db.get(
+        f"/api/v1/opportunities/{opp_a_id}", headers=headers_a
+    ).json()
     assert reopened["id"] == opp_a_id
     assert reopened["title"] == "Tenant A Secret Initiative"
     assert reopened["industry"] == "Aerospace"
 
     # User B attempting to reopen User A's opportunity receives 403 Forbidden
-    unauthorized_reopen = client_with_db.get(f"/api/v1/opportunities/{opp_a_id}", headers=headers_b)
+    unauthorized_reopen = client_with_db.get(
+        f"/api/v1/opportunities/{opp_a_id}", headers=headers_b
+    )
     assert unauthorized_reopen.status_code == 403
 
 
 def test_two_sided_opportunity_creation_and_filtering(client_with_db):
-    _user, headers = make_auth_user(client_with_db, "twoside@demo.test", "Two Sided User")
+    _user, headers = make_auth_user(
+        client_with_db, "twoside@demo.test", "Two Sided User"
+    )
 
     # 1. User seeks a solution (Seeking Opportunity) in TECH
     seeking_res = client_with_db.post(
@@ -546,7 +561,9 @@ def test_two_sided_opportunity_creation_and_filtering(client_with_db):
 
 
 def test_opportunity_categories_and_validation(client_with_db):
-    _user, headers = make_auth_user(client_with_db, "categories@demo.test", "Categories User")
+    _user, headers = make_auth_user(
+        client_with_db, "categories@demo.test", "Categories User"
+    )
 
     # Verify all 4 categories can be created: FINTECH, TECH, BUSINESS, LOCAL
     for cat in ["FINTECH", "TECH", "BUSINESS", "LOCAL"]:

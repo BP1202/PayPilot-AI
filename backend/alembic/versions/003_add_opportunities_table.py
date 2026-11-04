@@ -24,9 +24,18 @@ def upgrade() -> None:
         sa.Column("id", sa.String(length=64), primary_key=True, nullable=False),
         sa.Column("user_id", sa.String(length=100), nullable=False),
         sa.Column("business_id", sa.Integer(), nullable=True),
-        sa.Column("submission_type", sa.String(length=20), nullable=False, server_default="IDEA"),
-        sa.Column("status", sa.String(length=30), nullable=False, server_default="DRAFT"),
-        sa.Column("visibility", sa.String(length=20), nullable=False, server_default="PRIVATE"),
+        sa.Column(
+            "submission_type",
+            sa.String(length=20),
+            nullable=False,
+            server_default="IDEA",
+        ),
+        sa.Column(
+            "status", sa.String(length=30), nullable=False, server_default="DRAFT"
+        ),
+        sa.Column(
+            "visibility", sa.String(length=20), nullable=False, server_default="PRIVATE"
+        ),
         sa.Column("title", sa.String(length=255), nullable=False),
         sa.Column("original_description", sa.Text(), nullable=False),
         sa.Column("problem_statement", sa.Text(), nullable=True),
@@ -45,12 +54,23 @@ def upgrade() -> None:
         sa.Column("ai_metadata", sa.JSON(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["business_id"], ["businesses.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(
+            ["business_id"], ["businesses.id"], ondelete="SET NULL"
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_opportunities_user_id"), "opportunities", ["user_id"], unique=False)
-    op.create_index(op.f("ix_opportunities_business_id"), "opportunities", ["business_id"], unique=False)
-    op.create_index(op.f("ix_opportunities_status"), "opportunities", ["status"], unique=False)
+    op.create_index(
+        op.f("ix_opportunities_user_id"), "opportunities", ["user_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_opportunities_business_id"),
+        "opportunities",
+        ["business_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_opportunities_status"), "opportunities", ["status"], unique=False
+    )
 
 
 def downgrade() -> None:
@@ -58,4 +78,3 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_opportunities_business_id"), table_name="opportunities")
     op.drop_index(op.f("ix_opportunities_user_id"), table_name="opportunities")
     op.drop_table("opportunities")
-

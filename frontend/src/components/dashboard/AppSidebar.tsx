@@ -21,7 +21,8 @@ export type DashboardView =
   | "home"
   | "opportunities"
   | "browse"
-  | "ledger";
+  | "ledger"
+  | "profile";
 
 interface AppSidebarProps {
   currentView: DashboardView;
@@ -67,6 +68,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { id: "home", label: "Home", icon: HomeIcon },
     { id: "opportunities", label: "My Opportunities", icon: Lightbulb },
     { id: "browse", label: "Browse Opportunities", icon: Compass },
+    { id: "profile", label: "Profiles", icon: Building2 },
     { id: "ledger", label: "Commerce Ledger", icon: Receipt },
   ];
 

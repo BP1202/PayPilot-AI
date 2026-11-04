@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.opportunity import Opportunity, OpportunityStatus, OpportunityType
+from app.repositories.business_repository import BusinessRepository
 from app.repositories.opportunity_repository import OpportunityRepository
 from app.schemas.opportunity import (
     OpportunityAnalyzeRequest,
@@ -48,6 +49,14 @@ class OpportunityService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication required to save opportunity draft.",
             )
+
+        if payload.business_id is not None:
+            biz = BusinessRepository(self.db).get_by_id(payload.business_id)
+            if not biz or biz.user_id != user_id.strip():
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied: Linked business does not belong to the authenticated user.",
+                )
 
         intent_val = (
             payload.intent.value
@@ -129,6 +138,14 @@ class OpportunityService:
         opp = self.get_opportunity(opportunity_id, user_id)
 
         update_data = payload.model_dump(exclude_unset=True)
+        if "business_id" in update_data and update_data["business_id"] is not None:
+            biz = BusinessRepository(self.db).get_by_id(update_data["business_id"])
+            if not biz or biz.user_id != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied: Linked business does not belong to the authenticated user.",
+                )
+
         for key, val in update_data.items():
             if hasattr(opp, key):
                 if hasattr(val, "value"):  # Handle enum values

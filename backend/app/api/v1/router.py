@@ -5,6 +5,7 @@ from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.ledger import router as ledger_router
 from app.api.v1.opportunities import router as opportunities_router
 from app.api.v1.payments import router as payments_router
+from app.api.v1.profiles import router as profiles_router
 from fastapi import APIRouter
 
 api_v1_router = APIRouter()
@@ -16,3 +17,4 @@ api_v1_router.include_router(payments_router)
 api_v1_router.include_router(copilot_router)
 api_v1_router.include_router(business_router)
 api_v1_router.include_router(opportunities_router)
+api_v1_router.include_router(profiles_router)

@@ -3,6 +3,10 @@ import {
   Business,
   BusinessCreatePayload,
   BusinessProfileExtraction,
+  BusinessProfileUpdatePayload,
+  IndividualProfile,
+  IndividualProfileUpdatePayload,
+  ProfileMeResponse,
   CopilotChatResponse,
   CopilotRecommendation,
   DashboardOverview,
@@ -522,6 +526,131 @@ export async function reanalyzeOpportunity(
     handleFetchError(
       err,
       "We couldn't reanalyze your opportunity draft right now. Please try again."
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Profile System (Individual + Organization)
+// ---------------------------------------------------------------------------
+
+export async function fetchMyProfiles(): Promise<ProfileMeResponse> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/profiles/me`, {
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<ProfileMeResponse>(
+      res,
+      "Unable to load your profile information. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to load your profile information. Please try again."
+    );
+  }
+}
+
+export async function fetchMyIndividualProfile(): Promise<IndividualProfile> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/profiles/me/individual`, {
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<IndividualProfile>(
+      res,
+      "Unable to load your individual profile. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to load your individual profile. Please try again."
+    );
+  }
+}
+
+export async function updateMyIndividualProfile(
+  payload: IndividualProfileUpdatePayload
+): Promise<IndividualProfile> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/profiles/me/individual`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return await handleResponse<IndividualProfile>(
+      res,
+      "Unable to update your individual profile. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to update your individual profile. Please try again."
+    );
+  }
+}
+
+export async function updateMyBusinessProfile(
+  businessId: number,
+  payload: BusinessProfileUpdatePayload
+): Promise<Business> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/profiles/me/businesses/${businessId}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return await handleResponse<Business>(
+      res,
+      "Unable to update organization profile. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to update organization profile. Please try again."
+    );
+  }
+}
+
+export async function fetchPublicIndividualProfile(
+  userId: string
+): Promise<IndividualProfile> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/profiles/individuals/${encodeURIComponent(userId)}`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<IndividualProfile>(
+      res,
+      "Unable to load public profile. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to load public profile. Please try again."
+    );
+  }
+}
+
+export async function fetchPublicBusinessProfile(
+  businessId: number
+): Promise<Business> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/profiles/organizations/${businessId}`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<Business>(
+      res,
+      "Unable to load organization profile. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to load organization profile. Please try again."
     );
   }
 }

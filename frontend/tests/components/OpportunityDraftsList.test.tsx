@@ -157,4 +157,34 @@ describe("OpportunityDraftsList Component", () => {
     fireEvent.click(screen.getByText("FreightPilot Pro"));
     expect(onSelect).toHaveBeenCalledWith(mockOpportunities[0]);
   });
+
+  it("displays linked organization name when business_id is present", () => {
+    const oppWithOrg = {
+      ...mockOpportunities[0],
+      business_id: 101,
+    };
+    const mockBusinesses = [
+      {
+        id: 101,
+        name: "Apex Precision Gearworks",
+        currency: "USD",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ];
+
+    render(
+      <OpportunityDraftsList
+        opportunities={[oppWithOrg]}
+        businesses={mockBusinesses}
+        isLoading={false}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("linked-org-badge")).toBeInTheDocument();
+    expect(screen.getByText("Apex Precision Gearworks")).toBeInTheDocument();
+  });
 });

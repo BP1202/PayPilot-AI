@@ -20,12 +20,36 @@ class BusinessBase(BaseModel):
         description="e.g., Wholesaler, Retailer, Manufacturer",
     )
     country: str | None = Field(default=None, max_length=100)
+    location: str | None = Field(default=None, max_length=255)
     website: str | None = Field(default=None, max_length=255)
     description: str | None = Field(default=None, max_length=1000)
+    visibility: str = Field(default="PRIVATE", max_length=30)
+    skills: list[str] = Field(default_factory=list)
+    experience: list[str] = Field(default_factory=list)
+    services: list[str] = Field(default_factory=list)
+    resources: list[str] = Field(default_factory=list)
+    interests: list[str] = Field(default_factory=list)
 
 
 class BusinessCreate(BusinessBase):
     user_id: str | None = Field(default=None, max_length=100)
+
+
+class BusinessUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+    industry: str | None = Field(default=None, max_length=100)
+    business_type: str | None = Field(default=None, max_length=100)
+    country: str | None = Field(default=None, max_length=100)
+    location: str | None = Field(default=None, max_length=255)
+    website: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
+    visibility: str | None = Field(default=None, max_length=30)
+    skills: list[str] | None = None
+    experience: list[str] | None = None
+    services: list[str] | None = None
+    resources: list[str] | None = None
+    interests: list[str] | None = None
 
 
 class BusinessRead(BusinessBase):
@@ -35,6 +59,29 @@ class BusinessRead(BusinessBase):
     user_id: str | None = None
     created_at: datetime
     updated_at: datetime
+    completeness_percent: int | None = None
+    missing_fields: list[str] = Field(default_factory=list)
+
+
+class BusinessPublicRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    currency: str = "USD"
+    industry: str | None = None
+    business_type: str | None = None
+    country: str | None = None
+    location: str | None = None
+    website: str | None = None
+    description: str | None = None
+    visibility: str = "PRIVATE"
+    skills: list[str] = Field(default_factory=list)
+    experience: list[str] = Field(default_factory=list)
+    services: list[str] = Field(default_factory=list)
+    resources: list[str] = Field(default_factory=list)
+    interests: list[str] = Field(default_factory=list)
+    created_at: datetime
 
 
 class BusinessProfileExtractRequest(BaseModel):

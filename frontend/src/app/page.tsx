@@ -11,6 +11,7 @@ import { ActiveCollaborationsSection } from "@/components/dashboard/ActiveCollab
 import { RecentActivitySection } from "@/components/dashboard/RecentActivitySection";
 import { NetworkImpactBanner } from "@/components/dashboard/NetworkImpactBanner";
 import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
+import { ProfileWorkspace } from "@/components/profile/ProfileWorkspace";
 import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
@@ -309,7 +310,7 @@ export default function Home() {
           onNavigate={(view) => setCurrentView(view)}
           currentUser={currentUser}
           business={overview?.business}
-          onOpenProfile={() => setIsOnboardingOpen(true)}
+          onOpenProfile={() => setCurrentView("profile")}
           onOpenAuth={() => setIsAuthOpen(true)}
           onSignOut={handleSignOut}
           onCreateOpportunity={() => handleOpenNewStudio()}
@@ -559,6 +560,7 @@ export default function Home() {
                   onFilterChange={handleOppFilterChange}
                   isAuthenticated={!!currentUser}
                   onSignIn={() => setIsAuthOpen(true)}
+                  businesses={overview?.business ? [overview.business] : []}
                 />
               </section>
 
@@ -629,6 +631,16 @@ export default function Home() {
               <section aria-label="Impact Network">
                 <NetworkImpactBanner onExplore={() => handleOpenNewStudio("OFFERING_SOLUTION")} />
               </section>
+            </div>
+          ) : currentView === "profile" ? (
+            /* ========================================================================= */
+            /* PROFILE SYSTEM (INDIVIDUAL + ORGANIZATION)                                */
+            /* ========================================================================= */
+            <div className="space-y-6">
+              <ProfileWorkspace
+                currentUser={currentUser}
+                onOpenAuth={() => setIsAuthOpen(true)}
+              />
             </div>
           ) : (
             /* ========================================================================= */
