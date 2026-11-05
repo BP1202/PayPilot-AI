@@ -4,6 +4,14 @@ from app.schemas.business import (
     BusinessProfileExtractRequest,
     BusinessRead,
 )
+from app.schemas.matching import (
+    MatchExplanation,
+    MatchTier,
+    OpportunityCandidate,
+    OpportunityMatchesResponse,
+    ParticipantCandidate,
+    ParticipantMatchesResponse,
+)
 from app.schemas.copilot import (
     CopilotChatRequest,
     CopilotChatResponse,
@@ -11,6 +19,14 @@ from app.schemas.copilot import (
     CopilotRecommendation,
     FinancialImpact,
     RecommendedAction,
+)
+from app.schemas.matching import (
+    MatchExplanation,
+    MatchTier,
+    OpportunityCandidate,
+    OpportunityMatchesResponse,
+    ParticipantCandidate,
+    ParticipantMatchesResponse,
 )
 from app.schemas.opportunity import (
     OpportunityAnalysisData,
@@ -57,14 +73,20 @@ __all__ = [
     "DashboardTotals",
     "FinancialImpact",
     "LedgerListResponse",
+    "MatchExplanation",
+    "MatchTier",
     "OpportunityAnalysisData",
     "OpportunityAnalyzeRequest",
     "OpportunityAnalyzeResponse",
+    "OpportunityCandidate",
     "OpportunityCreate",
     "OpportunityListResponse",
+    "OpportunityMatchesResponse",
     "OpportunityReanalyzeRequest",
     "OpportunityResponse",
     "OpportunityUpdate",
+    "ParticipantCandidate",
+    "ParticipantMatchesResponse",
     "RecommendedAction",
     "TokenResponse",
     "TransactionCreate",

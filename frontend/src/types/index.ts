@@ -411,3 +411,60 @@ export interface OpportunityDiscoveryResponse {
   limit: number;
   pages: number;
 }
+
+// ---------------------------------------------------------------------------
+// Matchmaking & Explainable Recommendations Types
+// ---------------------------------------------------------------------------
+
+export type MatchTier = "STRONG_MATCH" | "MODERATE_MATCH" | "EXPLORATORY";
+
+export interface MatchExplanation {
+  match_tier: MatchTier;
+  score: number;
+  strong_signals: string[];
+  partial_signals: string[];
+  missing_information: string[];
+  potential_gaps: string[];
+  explanation_summary: string;
+  mode: "LIVE_AI" | "DETERMINISTIC_FALLBACK";
+  provenance: "AI_INFERRED" | "DETERMINISTIC_CALCULATION";
+}
+
+export interface ParticipantCandidate {
+  participant_type: "INDIVIDUAL" | "BUSINESS";
+  id: string | number;
+  name: string;
+  headline?: string | null;
+  industry?: string | null;
+  location?: string | null;
+  skills: string[];
+  services: string[];
+  explanation: MatchExplanation;
+}
+
+export interface OpportunityCandidate {
+  id: string;
+  title: string;
+  submission_type: OpportunityType;
+  intent: OpportunityIntent;
+  category: OpportunityCategory;
+  industry?: string | null;
+  required_skills_and_resources: string[];
+  value_proposition?: string | null;
+  published_at?: string | null;
+  explanation: MatchExplanation;
+}
+
+export interface OpportunityMatchesResponse {
+  total: number;
+  items: OpportunityCandidate[];
+  mode: "LIVE_AI" | "DETERMINISTIC_FALLBACK";
+}
+
+export interface ParticipantMatchesResponse {
+  opportunity_id: string;
+  opportunity_title: string;
+  total: number;
+  items: ParticipantCandidate[];
+  mode: "LIVE_AI" | "DETERMINISTIC_FALLBACK";
+}

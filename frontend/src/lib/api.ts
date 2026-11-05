@@ -28,6 +28,8 @@ import {
   OpportunityPublic,
   OpportunityDiscoveryParams,
   OpportunityDiscoveryResponse,
+  OpportunityMatchesResponse,
+  ParticipantMatchesResponse,
   RegisterPayload,
   TokenResponse,
   Transaction,
@@ -803,6 +805,75 @@ export async function fetchPublishedOpportunities(
     handleFetchError(
       err,
       "Unable to load published opportunities right now. Please try again."
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Matchmaking & Recommendations Service
+// ---------------------------------------------------------------------------
+
+export async function fetchRecommendedOpportunities(
+  limit: number = 10
+): Promise<OpportunityMatchesResponse> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/matches/opportunities?limit=${limit}`, {
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<OpportunityMatchesResponse>(
+      res,
+      "Unable to load recommended opportunities right now. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to load recommended opportunities right now. Please try again."
+    );
+  }
+}
+
+export async function fetchOpportunityCandidates(
+  opportunityId: string,
+  limit: number = 10
+): Promise<ParticipantMatchesResponse> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/matches/participants/${encodeURIComponent(opportunityId)}?limit=${limit}`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<ParticipantMatchesResponse>(
+      res,
+      "Unable to load candidate recommendations for this opportunity. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to load candidate recommendations for this opportunity. Please try again."
+    );
+  }
+}
+
+export async function fetchComplementaryOpportunities(
+  opportunityId: string,
+  limit: number = 10
+): Promise<OpportunityMatchesResponse> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/matches/complementary/${encodeURIComponent(opportunityId)}?limit=${limit}`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<OpportunityMatchesResponse>(
+      res,
+      "Unable to load complementary opportunities right now. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to load complementary opportunities right now. Please try again."
     );
   }
 }

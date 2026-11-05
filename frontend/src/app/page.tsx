@@ -14,6 +14,7 @@ import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
 import { OpportunityDiscoveryFeed } from "@/components/discovery/OpportunityDiscoveryFeed";
 import { ProfileWorkspace } from "@/components/profile/ProfileWorkspace";
 import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
+import { CandidateRecommendationsModal } from "@/components/matching/CandidateRecommendationsModal";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
 import { DashboardStats } from "@/components/DashboardStats";
@@ -110,6 +111,7 @@ export default function Home() {
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [matchingOpportunity, setMatchingOpportunity] = useState<Opportunity | null>(null);
 
   const loadData = useCallback(async (statusFilter?: TransactionStatus) => {
     try {
@@ -516,10 +518,15 @@ export default function Home() {
                 {/* Middle: Recommended Opportunities & Category Exploration */}
                 <section className="lg:col-span-5" aria-label="Recommended Opportunities">
                   <RecommendedOpportunitiesSection
+                    currentUser={currentUser}
                     onSelectCategory={(category) =>
                       handleOpenNewStudio("SEEKING_SOLUTION", category)
                     }
                     onExploreAll={() => setCurrentView("opportunities")}
+                    onViewOpportunity={(oppId) => {
+                      const opp = opportunities.find((o) => o.id === oppId);
+                      if (opp) handleOpenExistingStudio(opp);
+                    }}
                   />
                 </section>
 
@@ -625,6 +632,8 @@ export default function Home() {
                 currentUser={currentUser}
                 initialIntent={studioInitialIntent}
                 initialCategory={studioInitialCategory}
+
+
                 onOpenInStudio={(opp) =>
                   handleOpenExistingStudio(opp as unknown as Opportunity)
                 }
@@ -705,8 +714,18 @@ export default function Home() {
         onSuccess={handleOpportunitySuccess}
         existingOpportunity={activeOpportunity}
         businessId={overview?.business?.id}
+        onFindCollaborators={(opp) => setMatchingOpportunity(opp)}
         initialIntent={studioInitialIntent}
         initialCategory={studioInitialCategory}
+
+
+      />
+
+      <CandidateRecommendationsModal
+        isOpen={Boolean(matchingOpportunity)}
+        opportunityId={matchingOpportunity?.id ?? null}
+        opportunityTitle={matchingOpportunity?.title}
+        onClose={() => setMatchingOpportunity(null)}
       />
 
       <AuthModal

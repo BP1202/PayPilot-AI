@@ -27,6 +27,7 @@ import {
   Eye,
   Archive,
   Ban,
+  Users,
 } from "lucide-react";
 import {
   Opportunity,
@@ -58,6 +59,7 @@ interface OpportunityStudioModalProps {
   businessId?: number | null;
   initialIntent?: OpportunityIntent;
   initialCategory?: OpportunityCategory;
+  onFindCollaborators?: (opp: Opportunity) => void;
 }
 
 export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
@@ -68,6 +70,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
   businessId,
   initialIntent,
   initialCategory,
+  onFindCollaborators,
 }) => {
   // Step 1: Capture (input & type), Step 2: Understand & Review
   const [step, setStep] = useState<"capture" | "review">("capture");
@@ -1550,6 +1553,19 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                     >
                       {isClosing ? "Closing..." : "Close Opportunity"}
                     </button>
+                    {onFindCollaborators && existingOpportunity && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onFindCollaborators(existingOpportunity);
+                        }}
+                        className="flex items-center space-x-1.5 rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-purple-200 hover:bg-purple-700 transition cursor-pointer"
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Find Collaborators</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={handleSaveDraft}
