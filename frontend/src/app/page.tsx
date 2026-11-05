@@ -17,6 +17,8 @@ import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
 import { CandidateRecommendationsModal } from "@/components/matching/CandidateRecommendationsModal";
 import { ConnectionsProposalsView } from "@/components/connections/ConnectionsProposalsView";
 import { ConnectionRequestModal } from "@/components/connections/ConnectionRequestModal";
+import { DealRoomsListView } from "@/components/deal-rooms/DealRoomsListView";
+import { DealRoomWorkspaceView } from "@/components/deal-rooms/DealRoomWorkspaceView";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
 import { DashboardStats } from "@/components/DashboardStats";
@@ -46,6 +48,7 @@ import {
   logoutUser,
   getAccessToken,
   clearAccessToken,
+  createDealRoom,
   ApiError,
 } from "@/lib/api";
 import {
@@ -120,6 +123,18 @@ export default function Home() {
     opportunityId?: string | null;
     opportunityTitle?: string | null;
   } | null>(null);
+  const [selectedDealRoomId, setSelectedDealRoomId] = useState<string | null>(null);
+
+  const handleOpenDealRoomFromProposal = async (proposalId: string) => {
+    try {
+      const room = await createDealRoom(proposalId);
+      setSelectedDealRoomId(room.id);
+      setCurrentView("deal-rooms");
+    } catch (err) {
+      console.error("Failed to open Deal Room from proposal", err);
+      setCurrentView("deal-rooms");
+    }
+  };
 
   const loadData = useCallback(async (statusFilter?: TransactionStatus) => {
     try {
@@ -393,6 +408,8 @@ export default function Home() {
                   ? "Explore Network"
                   : currentView === "collaborations"
                   ? "Connections & Proposals"
+                  : currentView === "deal-rooms"
+                  ? "AI Deal Rooms"
                   : currentView === "profile"
                   ? "Profile System"
                   : "Commerce Ledger"}
@@ -662,7 +679,27 @@ export default function Home() {
               <ConnectionsProposalsView
                 currentUser={currentUser}
                 onOpenAuth={() => setIsAuthOpen(true)}
+                onOpenDealRoom={handleOpenDealRoomFromProposal}
               />
+            </div>
+          ) : currentView === "deal-rooms" ? (
+            /* ========================================================================= */
+            /* AI DEAL ROOMS COLLABORATION WORKSPACES                                    */
+            /* ========================================================================= */
+            <div className="space-y-6">
+              {selectedDealRoomId ? (
+                <DealRoomWorkspaceView
+                  roomId={selectedDealRoomId}
+                  currentUser={currentUser}
+                  onBackToList={() => setSelectedDealRoomId(null)}
+                />
+              ) : (
+                <DealRoomsListView
+                  currentUser={currentUser}
+                  onSelectRoom={(roomId) => setSelectedDealRoomId(roomId)}
+                  onOpenBrowse={() => setCurrentView("browse")}
+                />
+              )}
             </div>
           ) : currentView === "profile" ? (
             /* ========================================================================= */

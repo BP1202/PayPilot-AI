@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Building2,
   User,
+  Briefcase,
 } from "lucide-react";
 import { Proposal, ProposalStatus, User as UserType } from "@/types";
 import { respondToProposal } from "@/lib/api";
@@ -28,6 +29,7 @@ interface ProposalDetailModalProps {
   proposal: Proposal;
   currentUser: UserType | null;
   onUpdate?: (updated: Proposal) => void;
+  onOpenDealRoom?: (proposalId: string) => void;
 }
 
 const STATUS_BADGE: Record<
@@ -70,6 +72,7 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
   proposal: initialProposal,
   currentUser,
   onUpdate,
+  onOpenDealRoom,
 }) => {
   const [proposal, setProposal] = useState<Proposal>(initialProposal);
   const [activeTab, setActiveTab] = useState<"terms" | "history" | "agreement">(
@@ -612,6 +615,20 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
                     Withdraw
                   </button>
                 )}
+
+              {/* Accepted State Action */}
+              {isAccepted && onOpenDealRoom && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenDealRoom(proposal.id);
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 rounded-xl shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  <span>Open AI Deal Room</span>
+                </button>
+              )}
 
               <button
                 onClick={onClose}

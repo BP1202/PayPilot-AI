@@ -1,6 +1,18 @@
 from app.models.business import Business
 from app.models.collaboration_activity import CollaborationActivity
 from app.models.connection import Connection, ConnectionIntent, ConnectionStatus
+from app.models.deal_room import (
+    DealRoom,
+    DealRoomActivity,
+    DealRoomActivityType,
+    DealRoomClarification,
+    DealRoomClarificationStatus,
+    DealRoomDocument,
+    DealRoomDocumentType,
+    DealRoomNote,
+    DealRoomParticipant,
+    DealRoomStatus,
+)
 from app.models.opportunity import (
     Opportunity,
     OpportunityStatus,
@@ -20,6 +32,16 @@ __all__ = [
     "Connection",
     "ConnectionIntent",
     "ConnectionStatus",
+    "DealRoom",
+    "DealRoomActivity",
+    "DealRoomActivityType",
+    "DealRoomClarification",
+    "DealRoomClarificationStatus",
+    "DealRoomDocument",
+    "DealRoomDocumentType",
+    "DealRoomNote",
+    "DealRoomParticipant",
+    "DealRoomStatus",
     "IndividualProfile",
     "Opportunity",
     "OpportunityStatus",

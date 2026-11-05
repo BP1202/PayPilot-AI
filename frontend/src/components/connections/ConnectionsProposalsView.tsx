@@ -102,6 +102,7 @@ type TabId = "incoming" | "sent" | "connections" | "proposals";
 interface ConnectionsProposalsViewProps {
   currentUser: UserType | null;
   onOpenAuth: () => void;
+  onOpenDealRoom?: (proposalId: string) => void;
 }
 
 function SkeletonCard() {
@@ -658,6 +659,7 @@ function ProposalsTab({
 export const ConnectionsProposalsView: React.FC<ConnectionsProposalsViewProps> = ({
   currentUser,
   onOpenAuth,
+  onOpenDealRoom,
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>("incoming");
   const [createProposalFor, setCreateProposalFor] = useState<Connection | null>(null);
@@ -783,6 +785,7 @@ export const ConnectionsProposalsView: React.FC<ConnectionsProposalsViewProps> =
           proposal={viewProposal}
           currentUser={currentUser}
           onUpdate={(updated) => setViewProposal(updated)}
+          onOpenDealRoom={onOpenDealRoom}
         />
       )}
     </div>

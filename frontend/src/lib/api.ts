@@ -44,6 +44,20 @@ import {
   ProposalCreatePayload,
   ProposalActionPayload,
   CollaborationActivity,
+  DealRoom,
+  DealRoomOverview,
+  DealRoomListResponse,
+  DealRoomStatus,
+  DealRoomStatusUpdatePayload,
+  DealRoomNote,
+  DealRoomNoteCreatePayload,
+  DealRoomClarification,
+  DealRoomClarificationCreatePayload,
+  DealRoomClarificationAnswerPayload,
+  DealRoomDocument,
+  DealRoomDocumentCreatePayload,
+  DealRoomActivity,
+  DealRoomAIAnalysisResponse,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -1092,5 +1106,318 @@ export async function fetchCollaborationActivity(
     );
   } catch (err) {
     return handleFetchError(err, "Unable to load collaboration activity. Please try again.");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AI Deal Room Workspace API (Issue #8)
+// ---------------------------------------------------------------------------
+
+export async function createDealRoom(proposalId: string): Promise<DealRoom> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/deal-rooms`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ proposal_id: proposalId }),
+    });
+    return await handleResponse<DealRoom>(
+      res,
+      "Unable to initialize Deal Room workspace. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to initialize Deal Room workspace. Please try again.");
+  }
+}
+
+export async function fetchDealRooms(
+  statusFilter?: DealRoomStatus
+): Promise<DealRoomListResponse> {
+  try {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const res = await fetch(`${getApiBaseUrl()}/deal-rooms${query}`, {
+      cache: "no-store",
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<DealRoomListResponse>(
+      res,
+      "Unable to load Deal Rooms. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load Deal Rooms. Please try again.");
+  }
+}
+
+export async function fetchDealRoomById(roomId: string): Promise<DealRoom> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<DealRoom>(
+      res,
+      "Unable to load Deal Room details. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load Deal Room details. Please try again.");
+  }
+}
+
+export async function fetchDealRoomOverview(roomId: string): Promise<DealRoomOverview> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/overview`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<DealRoomOverview>(
+      res,
+      "Unable to load Deal Room overview. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load Deal Room overview. Please try again.");
+  }
+}
+
+export async function updateDealRoomStatus(
+  roomId: string,
+  payload: DealRoomStatusUpdatePayload
+): Promise<DealRoom> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/status`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<DealRoom>(
+      res,
+      "Unable to update Deal Room status. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to update Deal Room status. Please try again.");
+  }
+}
+
+export async function fetchDealRoomNotes(roomId: string): Promise<DealRoomNote[]> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/notes`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<DealRoomNote[]>(
+      res,
+      "Unable to load notes. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load notes. Please try again.");
+  }
+}
+
+export async function createDealRoomNote(
+  roomId: string,
+  payload: DealRoomNoteCreatePayload
+): Promise<DealRoomNote> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/notes`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<DealRoomNote>(
+      res,
+      "Unable to save note. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to save note. Please try again.");
+  }
+}
+
+export async function fetchDealRoomClarifications(
+  roomId: string
+): Promise<DealRoomClarification[]> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/clarifications`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<DealRoomClarification[]>(
+      res,
+      "Unable to load clarifications. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load clarifications. Please try again.");
+  }
+}
+
+export async function createDealRoomClarification(
+  roomId: string,
+  payload: DealRoomClarificationCreatePayload
+): Promise<DealRoomClarification> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/clarifications`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<DealRoomClarification>(
+      res,
+      "Unable to submit clarification question. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to submit clarification question. Please try again.");
+  }
+}
+
+export async function answerDealRoomClarification(
+  roomId: string,
+  clarificationId: string,
+  answer: string
+): Promise<DealRoomClarification> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/clarifications/${encodeURIComponent(clarificationId)}/answer`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ answer }),
+      }
+    );
+    return await handleResponse<DealRoomClarification>(
+      res,
+      "Unable to submit answer. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to submit answer. Please try again.");
+  }
+}
+
+export async function fetchDealRoomDocuments(
+  roomId: string
+): Promise<DealRoomDocument[]> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/documents`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<DealRoomDocument[]>(
+      res,
+      "Unable to load documents. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load documents. Please try again.");
+  }
+}
+
+export async function createDealRoomDocument(
+  roomId: string,
+  payload: DealRoomDocumentCreatePayload
+): Promise<DealRoomDocument> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/documents`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<DealRoomDocument>(
+      res,
+      "Unable to attach document reference. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to attach document reference. Please try again.");
+  }
+}
+
+export async function deleteDealRoomDocument(
+  roomId: string,
+  documentId: string
+): Promise<void> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/documents/${encodeURIComponent(documentId)}`,
+      {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      }
+    );
+    if (!res.ok) {
+      await handleResponse<unknown>(
+        res,
+        "Unable to remove document reference. Please try again."
+      );
+    }
+  } catch (err) {
+    return handleFetchError(err, "Unable to remove document reference. Please try again.");
+  }
+}
+
+export async function fetchDealRoomActivities(
+  roomId: string
+): Promise<DealRoomActivity[]> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/activity`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<DealRoomActivity[]>(
+      res,
+      "Unable to load activity log. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load activity log. Please try again.");
+  }
+}
+
+export async function analyzeDealRoomAI(
+  roomId: string,
+  analysisType: "SUMMARY" | "RESPONSIBILITIES" | "RISKS" | "NEXT_ACTIONS" = "SUMMARY"
+): Promise<DealRoomAIAnalysisResponse> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/ai/analyze`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ analysis_type: analysisType }),
+      }
+    );
+    return await handleResponse<DealRoomAIAnalysisResponse>(
+      res,
+      "AI Deal Room Copilot could not complete analysis. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "AI Deal Room Copilot could not complete analysis. Please try again."
+    );
   }
 }

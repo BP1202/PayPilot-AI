@@ -628,3 +628,198 @@ export interface ProposalActionPayload {
   action: "ACCEPT" | "REJECT" | "REQUEST_REVISION" | "WITHDRAW";
   note?: string | null;
 }
+
+// ============================================================================
+// DEAL ROOM TYPES (Issue #8)
+// ============================================================================
+
+export type DealRoomStatus =
+  | "ACTIVE"
+  | "ON_HOLD"
+  | "COMPLETION_REVIEW"
+  | "COMPLETED"
+  | "CANCELLED";
+
+export type DealRoomDocumentType =
+  | "SPECIFICATION"
+  | "DESIGN"
+  | "REFERENCE_LINK"
+  | "CONTRACT_PREVIEW"
+  | "DELIVERABLE_DRAFT"
+  | "OTHER";
+
+export type DealRoomActivityType =
+  | "ROOM_CREATED"
+  | "STATUS_CHANGED"
+  | "NOTE_ADDED"
+  | "DOCUMENT_ATTACHED"
+  | "DOCUMENT_DELETED"
+  | "CLARIFICATION_OPENED"
+  | "CLARIFICATION_ANSWERED";
+
+export type DealRoomClarificationStatus = "OPEN" | "RESOLVED";
+
+export interface DealRoomParticipantCard {
+  id: string;
+  user_id: string;
+  name: string;
+  headline?: string | null;
+  industry?: string | null;
+  collaboration_role: string;
+  assigned_responsibilities?: string | null;
+  joined_at: string;
+}
+
+export interface DealRoomDocument {
+  id: string;
+  room_id: string;
+  uploaded_by_id: string;
+  uploader_name: string;
+  title: string;
+  document_type: DealRoomDocumentType | string;
+  reference_url: string;
+  description?: string | null;
+  created_at: string;
+}
+
+export interface DealRoomNote {
+  id: string;
+  room_id: string;
+  author_id: string;
+  author_name: string;
+  title: string;
+  content: string;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DealRoomClarification {
+  id: string;
+  room_id: string;
+  asked_by_id: string;
+  asker_name: string;
+  question: string;
+  status: DealRoomClarificationStatus;
+  answered_by_id?: string | null;
+  answerer_name?: string | null;
+  answer?: string | null;
+  answered_at?: string | null;
+  created_at: string;
+}
+
+export interface DealRoomActivity {
+  id: string;
+  room_id: string;
+  actor_id: string;
+  actor_name: string;
+  activity_type: DealRoomActivityType;
+  title: string;
+  details?: string | null;
+  created_at: string;
+}
+
+export interface DealRoomMilestoneItem {
+  title: string;
+  description?: string;
+  amount?: number | string;
+  target_date?: string;
+  due_days?: number;
+  status?: string;
+}
+
+export interface DealRoom {
+  id: string;
+  proposal_id: string;
+  connection_id: string;
+  opportunity_id?: string | null;
+  opportunity_title?: string | null;
+  title: string;
+  description: string;
+  status: DealRoomStatus;
+  status_reason?: string | null;
+  accepted_proposal_version: number;
+
+  // Agreed Terms Snapshot
+  agreed_scope_of_work?: string | null;
+  agreed_deliverables: string[];
+  agreed_budget_amount?: string | null;
+  agreed_currency: string;
+  agreed_timeline_summary?: string | null;
+  agreed_estimated_duration_days?: number | null;
+  agreed_milestones: DealRoomMilestoneItem[];
+  agreed_responsibilities: Record<string, string>;
+  agreed_assumptions: string[];
+  agreed_conditions: string[];
+  agreed_notes?: string | null;
+
+  participants: DealRoomParticipantCard[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DealRoomOverview {
+  id: string;
+  title: string;
+  status: DealRoomStatus;
+  status_reason?: string | null;
+  accepted_proposal_version: number;
+  opportunity_title?: string | null;
+  participants: DealRoomParticipantCard[];
+  scope_preview?: string | null;
+  deliverables_count: number;
+  milestones_count: number;
+  total_budget?: string | null;
+  currency: string;
+  estimated_duration_days?: number | null;
+  recent_activities: DealRoomActivity[];
+  open_clarifications_count: number;
+  pinned_notes_count: number;
+  documents_count: number;
+}
+
+export interface DealRoomListResponse {
+  items: DealRoom[];
+  total: number;
+}
+
+export interface DealRoomAIAnalysisResponse {
+  analysis_type: string;
+  summary: string;
+  key_findings: string[];
+  actionable_recommendations: string[];
+  provenance_breakdown: Record<string, string[]>;
+  mode: "LIVE_AI" | "DETERMINISTIC_FALLBACK";
+  provider: string;
+  model: string;
+}
+
+export interface DealRoomCreatePayload {
+  proposal_id: string;
+}
+
+export interface DealRoomStatusUpdatePayload {
+  status: DealRoomStatus;
+  reason?: string | null;
+}
+
+export interface DealRoomNoteCreatePayload {
+  title: string;
+  content: string;
+  is_pinned?: boolean;
+}
+
+export interface DealRoomClarificationCreatePayload {
+  question: string;
+}
+
+export interface DealRoomClarificationAnswerPayload {
+  answer: string;
+}
+
+export interface DealRoomDocumentCreatePayload {
+  title: string;
+  document_type: DealRoomDocumentType;
+  reference_url: string;
+  description?: string | null;
+}
