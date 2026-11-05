@@ -25,6 +25,9 @@ import {
   OpportunityPublishPayload,
   OpportunityClosePayload,
   OpportunityVisibilityUpdatePayload,
+  OpportunityPublic,
+  OpportunityDiscoveryParams,
+  OpportunityDiscoveryResponse,
   RegisterPayload,
   TokenResponse,
   Transaction,
@@ -766,30 +769,24 @@ export async function updateOpportunityVisibility(
 }
 
 export async function fetchPublishedOpportunities(
-  params?:
-    | {
-        intent?: string;
-        category?: string;
-        limit?: number;
-        offset?: number;
-      }
-    | string,
+  params?: OpportunityDiscoveryParams | string,
   categoryArg?: string
-): Promise<OpportunityListResponse> {
+): Promise<OpportunityDiscoveryResponse> {
   try {
-    let resolvedParams: { intent?: string; category?: string; limit?: number; offset?: number } = {};
-    if (typeof params === "string") {
-      resolvedParams.intent = params;
-      if (categoryArg) resolvedParams.category = categoryArg;
-    } else if (params) {
-      resolvedParams = params;
-    }
-
     const searchParams = new URLSearchParams();
-    if (resolvedParams.intent) searchParams.set("intent", resolvedParams.intent);
-    if (resolvedParams.category) searchParams.set("category", resolvedParams.category);
-    if (resolvedParams.limit) searchParams.set("limit", String(resolvedParams.limit));
-    if (resolvedParams.offset) searchParams.set("offset", String(resolvedParams.offset));
+    if (typeof params === "string") {
+      searchParams.set("intent", params);
+      if (categoryArg) searchParams.set("category", categoryArg);
+    } else if (params) {
+      if (params.q && params.q.trim()) searchParams.set("q", params.q.trim());
+      if (params.intent) searchParams.set("intent", params.intent);
+      if (params.category) searchParams.set("category", params.category);
+      if (params.industry && params.industry.trim()) searchParams.set("industry", params.industry.trim());
+      if (params.skill && params.skill.trim()) searchParams.set("skill", params.skill.trim());
+      if (params.sort) searchParams.set("sort", params.sort);
+      if (params.page) searchParams.set("page", String(params.page));
+      if (params.limit) searchParams.set("limit", String(params.limit));
+    }
 
     const url = `${getApiBaseUrl()}/opportunities/published${
       searchParams.toString() ? `?${searchParams.toString()}` : ""
@@ -798,7 +795,7 @@ export async function fetchPublishedOpportunities(
     const res = await fetch(url, {
       headers: getAuthHeaders(),
     });
-    return await handleResponse<OpportunityListResponse>(
+    return await handleResponse<OpportunityDiscoveryResponse>(
       res,
       "Unable to load published opportunities right now. Please try again."
     );

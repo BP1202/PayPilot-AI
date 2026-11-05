@@ -17,6 +17,7 @@ from app.schemas.opportunity import (
     OpportunityAnalyzeResponse,
     OpportunityCloseRequest,
     OpportunityCreate,
+    OpportunityDiscoveryResponse,
     OpportunityListResponse,
     OpportunityPublishRequest,
     OpportunityReanalyzeRequest,
@@ -122,33 +123,70 @@ def list_opportunities(
 
 @router.get(
     "/published",
-    response_model=OpportunityListResponse,
-    summary="List published opportunities across the network with visibility enforcement",
+    response_model=OpportunityDiscoveryResponse,
+    summary="List published opportunities across the network with search, filtering, and visibility enforcement",
 )
 def list_published_opportunities(
     service: Annotated[OpportunityService, Depends(get_opportunity_service)],
     optional_user_id: Annotated[str | None, Depends(get_optional_user_id)] = None,
+    q: Annotated[
+        str | None,
+        Query(
+            alias="q",
+            max_length=100,
+            description="Keyword search across title, description, industry, or skills",
+        ),
+    ] = None,
     intent_filter: Annotated[
         OpportunityIntent | None,
-        Query(alias="intent", description="Filter by intent"),
+        Query(
+            alias="intent",
+            description="Filter by intent (SEEKING_SOLUTION, OFFERING_SOLUTION)",
+        ),
     ] = None,
     category_filter: Annotated[
         OpportunityCategory | None,
-        Query(alias="category", description="Filter by category"),
+        Query(
+            alias="category",
+            description="Filter by category (FINTECH, TECH, BUSINESS, LOCAL)",
+        ),
     ] = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
-) -> OpportunityListResponse:
-    items, total = service.list_public_opportunities(
+    industry_filter: Annotated[
+        str | None,
+        Query(
+            alias="industry",
+            max_length=100,
+            description="Filter by industry sector",
+        ),
+    ] = None,
+    skill_filter: Annotated[
+        str | None,
+        Query(
+            alias="skill",
+            max_length=100,
+            description="Filter by required skill or capability",
+        ),
+    ] = None,
+    sort: Annotated[
+        str,
+        Query(
+            pattern="^(newest|oldest)$",
+            description="Sort order: 'newest' (default) or 'oldest'",
+        ),
+    ] = "newest",
+    page: Annotated[int, Query(ge=1, description="Page number (1-indexed)")] = 1,
+    limit: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 12,
+) -> OpportunityDiscoveryResponse:
+    return service.list_public_opportunities(
         requester_id=optional_user_id,
+        q=q,
         intent_filter=intent_filter.value if intent_filter else None,
         category_filter=category_filter.value if category_filter else None,
+        industry_filter=industry_filter,
+        skill_filter=skill_filter,
+        sort=sort,
+        page=page,
         limit=limit,
-        offset=offset,
-    )
-    return OpportunityListResponse(
-        items=[OpportunityResponse.model_validate(item) for item in items],
-        total=total,
     )
 
 

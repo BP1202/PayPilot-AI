@@ -11,6 +11,7 @@ import { ActiveCollaborationsSection } from "@/components/dashboard/ActiveCollab
 import { RecentActivitySection } from "@/components/dashboard/RecentActivitySection";
 import { NetworkImpactBanner } from "@/components/dashboard/NetworkImpactBanner";
 import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
+import { OpportunityDiscoveryFeed } from "@/components/discovery/OpportunityDiscoveryFeed";
 import { ProfileWorkspace } from "@/components/profile/ProfileWorkspace";
 import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
@@ -620,17 +621,17 @@ export default function Home() {
             /* EXPLORE OPPORTUNITY NETWORK VIEW                                          */
             /* ========================================================================= */
             <div className="space-y-6">
-              <section aria-label="Browse Network">
-                <RecommendedOpportunitiesSection
-                  onSelectCategory={(category) =>
-                    handleOpenNewStudio("SEEKING_SOLUTION", category)
-                  }
-                  onExploreAll={() => setCurrentView("opportunities")}
-                />
-              </section>
-              <section aria-label="Impact Network">
-                <NetworkImpactBanner onExplore={() => handleOpenNewStudio("OFFERING_SOLUTION")} />
-              </section>
+              <OpportunityDiscoveryFeed
+                currentUser={currentUser}
+                initialIntent={studioInitialIntent}
+                initialCategory={studioInitialCategory}
+                onOpenInStudio={(opp) =>
+                  handleOpenExistingStudio(opp as unknown as Opportunity)
+                }
+                onCreateOpportunity={(intent, category) =>
+                  handleOpenNewStudio(intent, category)
+                }
+              />
             </div>
           ) : currentView === "profile" ? (
             /* ========================================================================= */

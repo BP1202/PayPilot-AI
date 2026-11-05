@@ -365,3 +365,49 @@ export interface BusinessProfileUpdatePayload {
   resources?: string[];
   interests?: string[];
 }
+
+export interface OpportunityPublic {
+  id: string;
+  business_id?: number | null;
+  business_name?: string | null;
+  submission_type: OpportunityType;
+  intent: OpportunityIntent;
+  category: OpportunityCategory;
+  status: OpportunityStatus;
+  visibility: OpportunityVisibility;
+  title: string;
+  problem_statement?: string | null;
+  proposed_solution?: string | null;
+  industry?: string | null;
+  value_proposition?: string | null;
+  target_customer_segments: string[];
+  customer_pain_points: string[];
+  required_skills_and_resources: string[];
+  potential_business_models: string[];
+  key_assumptions: string[];
+  risks_and_uncertainties: string[];
+  missing_information: string[];
+  suggested_follow_up_questions: string[];
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OpportunityDiscoveryParams {
+  q?: string;
+  intent?: OpportunityIntent;
+  category?: OpportunityCategory;
+  industry?: string;
+  skill?: string;
+  sort?: "newest" | "oldest";
+  page?: number;
+  limit?: number;
+}
+
+export interface OpportunityDiscoveryResponse {
+  items: OpportunityPublic[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}

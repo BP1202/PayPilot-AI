@@ -1,3 +1,4 @@
+import math
 from datetime import UTC, datetime
 from typing import Any
 
@@ -16,6 +17,8 @@ from app.schemas.opportunity import (
     OpportunityAnalyzeRequest,
     OpportunityAnalyzeResponse,
     OpportunityCreate,
+    OpportunityDiscoveryResponse,
+    OpportunityPublicResponse,
     OpportunityReanalyzeRequest,
     OpportunityUpdate,
 )
@@ -364,11 +367,15 @@ class OpportunityService:
     def list_public_opportunities(
         self,
         requester_id: str | None = None,
+        q: str | None = None,
         intent_filter: str | None = None,
         category_filter: str | None = None,
-        limit: int = 50,
-        offset: int = 0,
-    ) -> tuple[list[Opportunity], int]:
+        industry_filter: str | None = None,
+        skill_filter: str | None = None,
+        sort: str = "newest",
+        page: int = 1,
+        limit: int = 12,
+    ) -> OpportunityDiscoveryResponse:
         allowed = (
             [
                 OpportunityVisibility.PUBLIC.value,
@@ -377,12 +384,38 @@ class OpportunityService:
             if requester_id
             else [OpportunityVisibility.PUBLIC.value]
         )
-        return self.repo.list_published(
+        safe_q = q.strip()[:100] if q and q.strip() else None
+        safe_page = max(1, page)
+        safe_limit = max(1, min(100, limit))
+        offset = (safe_page - 1) * safe_limit
+
+        items, total = self.repo.list_published(
             allowed_visibilities=allowed,
+            q=safe_q,
             intent=intent_filter,
             category=category_filter,
-            limit=limit,
+            industry=industry_filter.strip() if industry_filter and industry_filter.strip() else None,
+            skill=skill_filter.strip() if skill_filter and skill_filter.strip() else None,
+            sort=sort,
+            limit=safe_limit,
             offset=offset,
+        )
+
+        pages = math.ceil(total / safe_limit) if total > 0 else 1
+
+        public_items: list[OpportunityPublicResponse] = []
+        for opp in items:
+            biz_name = opp.business.name if opp.business else None
+            dto = OpportunityPublicResponse.model_validate(opp)
+            dto.business_name = biz_name
+            public_items.append(dto)
+
+        return OpportunityDiscoveryResponse(
+            items=public_items,
+            total=total,
+            page=safe_page,
+            limit=safe_limit,
+            pages=pages,
         )
 
     def update_opportunity(

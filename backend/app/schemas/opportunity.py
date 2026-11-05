@@ -241,6 +241,7 @@ class OpportunityCloseRequest(BaseModel):
 class OpportunityPublicResponse(BaseModel):
     id: str
     business_id: int | None = None
+    business_name: str | None = None
     submission_type: str
     intent: str
     category: str
@@ -267,3 +268,11 @@ class OpportunityPublicResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class OpportunityDiscoveryResponse(BaseModel):
+    items: list[OpportunityPublicResponse]
+    total: int
+    page: int
+    limit: int
+    pages: int
