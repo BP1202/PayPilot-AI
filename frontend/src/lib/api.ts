@@ -35,6 +35,15 @@ import {
   Transaction,
   TransactionStatus,
   User,
+  Connection,
+  ConnectionListResponse,
+  ConnectionCreatePayload,
+  ConnectionRespondPayload,
+  Proposal,
+  ProposalListResponse,
+  ProposalCreatePayload,
+  ProposalActionPayload,
+  CollaborationActivity,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -875,5 +884,213 @@ export async function fetchComplementaryOpportunities(
       err,
       "Unable to load complementary opportunities right now. Please try again."
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Connections API
+// ---------------------------------------------------------------------------
+
+export async function sendConnectionRequest(
+  payload: ConnectionCreatePayload
+): Promise<Connection> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/connections`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return await handleResponse<Connection>(
+      res,
+      "Unable to send connection request. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to send connection request. Please try again.");
+  }
+}
+
+export async function fetchConnectionRequests(
+  direction: "incoming" | "outgoing" | "all",
+  status?: string
+): Promise<ConnectionListResponse> {
+  try {
+    const params = new URLSearchParams({ direction });
+    if (status) params.set("status", status);
+    const res = await fetch(`${getApiBaseUrl()}/connections?${params.toString()}`, {
+      cache: "no-store",
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<ConnectionListResponse>(
+      res,
+      "Unable to load connection requests. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load connection requests. Please try again.");
+  }
+}
+
+export async function respondToConnectionRequest(
+  connectionId: string,
+  payload: ConnectionRespondPayload
+): Promise<Connection> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/connections/${encodeURIComponent(connectionId)}/respond`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<Connection>(
+      res,
+      "Unable to respond to connection request. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to respond to connection request. Please try again.");
+  }
+}
+
+export async function withdrawConnectionRequest(
+  connectionId: string
+): Promise<Connection> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/connections/${encodeURIComponent(connectionId)}/withdraw`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<Connection>(
+      res,
+      "Unable to withdraw connection request. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to withdraw connection request. Please try again.");
+  }
+}
+
+export async function fetchAcceptedConnections(): Promise<ConnectionListResponse> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/connections?direction=all&status=ACCEPTED`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<ConnectionListResponse>(
+      res,
+      "Unable to load accepted connections. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load accepted connections. Please try again.");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Proposals API
+// ---------------------------------------------------------------------------
+
+export async function createProposal(
+  payload: ProposalCreatePayload
+): Promise<Proposal> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/proposals`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return await handleResponse<Proposal>(
+      res,
+      "Unable to create proposal. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to create proposal. Please try again.");
+  }
+}
+
+export async function fetchProposals(
+  role?: "sent" | "received" | "all"
+): Promise<ProposalListResponse> {
+  try {
+    const params = new URLSearchParams();
+    if (role) params.set("role", role);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const res = await fetch(`${getApiBaseUrl()}/proposals${query}`, {
+      cache: "no-store",
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<ProposalListResponse>(
+      res,
+      "Unable to load proposals. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load proposals. Please try again.");
+  }
+}
+
+export async function fetchProposalById(proposalId: string): Promise<Proposal> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/proposals/${encodeURIComponent(proposalId)}`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<Proposal>(
+      res,
+      "Unable to load proposal details. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load proposal details. Please try again.");
+  }
+}
+
+export async function respondToProposal(
+  proposalId: string,
+  payload: ProposalActionPayload
+): Promise<Proposal> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/proposals/${encodeURIComponent(proposalId)}/action`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<Proposal>(
+      res,
+      "Unable to process proposal action. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to process proposal action. Please try again.");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Collaboration Activity API
+// ---------------------------------------------------------------------------
+
+export async function fetchCollaborationActivity(
+  page?: number
+): Promise<{ items: CollaborationActivity[]; total: number }> {
+  try {
+    const params = new URLSearchParams();
+    if (page) params.set("page", String(page));
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const res = await fetch(`${getApiBaseUrl()}/collaboration/activity${query}`, {
+      cache: "no-store",
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<{ items: CollaborationActivity[]; total: number }>(
+      res,
+      "Unable to load collaboration activity. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(err, "Unable to load collaboration activity. Please try again.");
   }
 }

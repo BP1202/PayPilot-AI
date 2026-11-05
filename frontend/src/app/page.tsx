@@ -15,6 +15,8 @@ import { OpportunityDiscoveryFeed } from "@/components/discovery/OpportunityDisc
 import { ProfileWorkspace } from "@/components/profile/ProfileWorkspace";
 import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
 import { CandidateRecommendationsModal } from "@/components/matching/CandidateRecommendationsModal";
+import { ConnectionsProposalsView } from "@/components/connections/ConnectionsProposalsView";
+import { ConnectionRequestModal } from "@/components/connections/ConnectionRequestModal";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
 import { DashboardStats } from "@/components/DashboardStats";
@@ -112,6 +114,12 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [matchingOpportunity, setMatchingOpportunity] = useState<Opportunity | null>(null);
+  const [connectTarget, setConnectTarget] = useState<{
+    recipientUserId: string;
+    recipientName?: string | null;
+    opportunityId?: string | null;
+    opportunityTitle?: string | null;
+  } | null>(null);
 
   const loadData = useCallback(async (statusFilter?: TransactionStatus) => {
     try {
@@ -383,6 +391,10 @@ export default function Home() {
                   ? "Opportunity Workspace"
                   : currentView === "browse"
                   ? "Explore Network"
+                  : currentView === "collaborations"
+                  ? "Connections & Proposals"
+                  : currentView === "profile"
+                  ? "Profile System"
                   : "Commerce Ledger"}
               </span>
             </div>
@@ -642,6 +654,16 @@ export default function Home() {
                 }
               />
             </div>
+          ) : currentView === "collaborations" ? (
+            /* ========================================================================= */
+            /* CONNECTIONS & PROPOSALS COLLABORATION VIEW                                */
+            /* ========================================================================= */
+            <div className="space-y-6">
+              <ConnectionsProposalsView
+                currentUser={currentUser}
+                onOpenAuth={() => setIsAuthOpen(true)}
+              />
+            </div>
           ) : currentView === "profile" ? (
             /* ========================================================================= */
             /* PROFILE SYSTEM (INDIVIDUAL + ORGANIZATION)                                */
@@ -726,7 +748,30 @@ export default function Home() {
         opportunityId={matchingOpportunity?.id ?? null}
         opportunityTitle={matchingOpportunity?.title}
         onClose={() => setMatchingOpportunity(null)}
+        onConnectCandidate={(candidate) => {
+          setConnectTarget({
+            recipientUserId: String(candidate.id),
+            recipientName: candidate.name,
+            opportunityId: matchingOpportunity?.id || null,
+            opportunityTitle: matchingOpportunity?.title,
+          });
+        }}
       />
+
+      {connectTarget && (
+        <ConnectionRequestModal
+          isOpen={true}
+          onClose={() => setConnectTarget(null)}
+          recipientUserId={connectTarget.recipientUserId}
+          recipientName={connectTarget.recipientName}
+          opportunityId={connectTarget.opportunityId}
+          opportunityTitle={connectTarget.opportunityTitle}
+          onSuccess={() => {
+            setConnectTarget(null);
+            setSuccessToast("Connection request sent successfully!");
+          }}
+        />
+      )}
 
       <AuthModal
         isOpen={isAuthOpen}

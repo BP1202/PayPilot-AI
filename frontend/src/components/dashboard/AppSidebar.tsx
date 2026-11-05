@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Sparkles,
   ArrowRight,
+  Handshake,
 } from "lucide-react";
 import { User, Business } from "@/types";
 
@@ -21,6 +22,7 @@ export type DashboardView =
   | "home"
   | "opportunities"
   | "browse"
+  | "collaborations"
   | "ledger"
   | "profile";
 
@@ -68,6 +70,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { id: "home", label: "Home", icon: HomeIcon },
     { id: "opportunities", label: "My Opportunities", icon: Lightbulb },
     { id: "browse", label: "Browse Opportunities", icon: Compass },
+    { id: "collaborations", label: "Connections & Proposals", icon: Handshake },
     { id: "profile", label: "Profiles", icon: Building2 },
     { id: "ledger", label: "Commerce Ledger", icon: Receipt },
   ];
@@ -228,4 +231,3 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     </aside>
   );
 };
-

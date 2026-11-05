@@ -468,3 +468,163 @@ export interface ParticipantMatchesResponse {
   items: ParticipantCandidate[];
   mode: "LIVE_AI" | "DETERMINISTIC_FALLBACK";
 }
+
+// ===== Connections & Proposals =====
+
+export type ConnectionStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN";
+export type ConnectionIntent =
+  | "EXPLORE_COLLABORATION"
+  | "OFFER_CAPABILITY"
+  | "SEEK_ASSISTANCE"
+  | "CO_FOUNDER"
+  | "PARTNERSHIP";
+
+export type ProposalStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "REVISION_REQUESTED"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "WITHDRAWN";
+
+export interface ParticipantCard {
+  user_id: string;
+  full_name?: string | null;
+  headline?: string | null;
+  industry?: string | null;
+  skills: string[];
+}
+
+export interface Connection {
+  id: string;
+  status: ConnectionStatus;
+  intent: ConnectionIntent;
+  message: string;
+  response_note?: string | null;
+  requester: ParticipantCard;
+  recipient: ParticipantCard;
+  opportunity_id?: string | null;
+  opportunity_title?: string | null;
+  accepted_at?: string | null;
+  declined_at?: string | null;
+  withdrawn_at?: string | null;
+  created_at: string;
+}
+
+export interface ConnectionListResponse {
+  items: Connection[];
+  total: number;
+  pending_count: number;
+  accepted_count: number;
+}
+
+export interface ProposalMilestoneItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  amount: string; // Decimal as string
+  target_date?: string | null;
+}
+
+export interface ProposalRevision {
+  id: string;
+  version: number;
+  title: string;
+  description: string;
+  scope_of_work?: string | null;
+  deliverables: string[];
+  budget_amount?: string | null;
+  currency: string;
+  milestones: ProposalMilestoneItem[];
+  responsibilities: Record<string, string>;
+  assumptions: string[];
+  conditions: string[];
+  notes?: string | null;
+  change_summary?: string | null;
+  created_by_id: string;
+  created_at: string;
+}
+
+export interface Proposal {
+  id: string;
+  connection_id: string;
+  opportunity_id?: string | null;
+  opportunity_title?: string | null;
+  proposer: ParticipantCard;
+  recipient: ParticipantCard;
+  status: ProposalStatus;
+  current_version: number;
+  title: string;
+  description: string;
+  scope_of_work?: string | null;
+  deliverables: string[];
+  budget_amount?: string | null; // Decimal as string
+  currency: string;
+  timeline_summary?: string | null;
+  estimated_duration_days?: number | null;
+  milestones: ProposalMilestoneItem[];
+  responsibilities: Record<string, string>;
+  assumptions: string[];
+  conditions: string[];
+  notes?: string | null;
+  proposer_accepted_at?: string | null;
+  recipient_accepted_at?: string | null;
+  accepted_version?: number | null;
+  rejection_reason?: string | null;
+  revision_requested_note?: string | null;
+  revisions: ProposalRevision[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProposalListResponse {
+  items: Proposal[];
+  total: number;
+}
+
+export interface CollaborationActivity {
+  id: string;
+  entity_type: "CONNECTION" | "PROPOSAL";
+  entity_id: string;
+  activity_type: string;
+  title: string;
+  details?: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface ConnectionCreatePayload {
+  recipient_id: string;
+  opportunity_id?: string | null;
+  intent: ConnectionIntent;
+  message: string;
+}
+
+export interface ConnectionRespondPayload {
+  action: "ACCEPT" | "DECLINE";
+  response_note?: string | null;
+}
+
+export interface ProposalCreatePayload {
+  connection_id: string;
+  opportunity_id?: string | null;
+  title: string;
+  description: string;
+  scope_of_work?: string | null;
+  deliverables: string[];
+  budget_amount?: string | null; // Send as string for Decimal safety
+  currency: string;
+  timeline_summary?: string | null;
+  estimated_duration_days?: number | null;
+  milestones: ProposalMilestoneItem[];
+  responsibilities: Record<string, string>;
+  assumptions: string[];
+  conditions: string[];
+  notes?: string | null;
+}
+
+export interface ProposalActionPayload {
+  action: "ACCEPT" | "REJECT" | "REQUEST_REVISION" | "WITHDRAW";
+  note?: string | null;
+}

@@ -4,13 +4,14 @@ from app.schemas.business import (
     BusinessProfileExtractRequest,
     BusinessRead,
 )
-from app.schemas.matching import (
-    MatchExplanation,
-    MatchTier,
-    OpportunityCandidate,
-    OpportunityMatchesResponse,
-    ParticipantCandidate,
-    ParticipantMatchesResponse,
+from app.schemas.connection import (
+    ActivityListResponse,
+    ActivityResponse,
+    ConnectionCreatePayload,
+    ConnectionListResponse,
+    ConnectionRespondPayload,
+    ConnectionResponse,
+    ParticipantCard,
 )
 from app.schemas.copilot import (
     CopilotChatRequest,
@@ -44,6 +45,15 @@ from app.schemas.payment import (
     DashboardOverviewResponse,
     LedgerListResponse,
 )
+from app.schemas.proposal import (
+    ProposalActionPayload,
+    ProposalCreatePayload,
+    ProposalListResponse,
+    ProposalMilestoneItem,
+    ProposalResponse,
+    ProposalRevisionPayload,
+    ProposalRevisionResponse,
+)
 from app.schemas.transaction import (
     DashboardTotals,
     TransactionCreate,
@@ -59,11 +69,17 @@ from app.schemas.user import (
 )
 
 __all__ = [
+    "ActivityListResponse",
+    "ActivityResponse",
     "ApprovePaymentRequest",
     "BusinessCreate",
     "BusinessProfileExtractRequest",
     "BusinessProfileExtraction",
     "BusinessRead",
+    "ConnectionCreatePayload",
+    "ConnectionListResponse",
+    "ConnectionRespondPayload",
+    "ConnectionResponse",
     "CopilotChatRequest",
     "CopilotChatResponse",
     "CopilotMode",
@@ -86,7 +102,15 @@ __all__ = [
     "OpportunityResponse",
     "OpportunityUpdate",
     "ParticipantCandidate",
+    "ParticipantCard",
     "ParticipantMatchesResponse",
+    "ProposalActionPayload",
+    "ProposalCreatePayload",
+    "ProposalListResponse",
+    "ProposalMilestoneItem",
+    "ProposalResponse",
+    "ProposalRevisionPayload",
+    "ProposalRevisionResponse",
     "RecommendedAction",
     "TokenResponse",
     "TransactionCreate",

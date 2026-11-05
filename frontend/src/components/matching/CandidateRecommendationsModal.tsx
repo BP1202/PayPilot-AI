@@ -11,6 +11,7 @@ import {
   RefreshCw,
   MapPin,
   Briefcase,
+  UserPlus,
 } from "lucide-react";
 import { ParticipantCandidate, ParticipantMatchesResponse } from "@/types";
 import { fetchOpportunityCandidates } from "@/lib/api";
@@ -21,11 +22,12 @@ interface CandidateRecommendationsModalProps {
   opportunityId: string | null;
   opportunityTitle?: string;
   onClose: () => void;
+  onConnectCandidate?: (candidate: ParticipantCandidate) => void;
 }
 
 export const CandidateRecommendationsModal: React.FC<
   CandidateRecommendationsModalProps
-> = ({ isOpen, opportunityId, opportunityTitle, onClose }) => {
+> = ({ isOpen, opportunityId, opportunityTitle, onClose, onConnectCandidate }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ParticipantMatchesResponse | null>(null);
@@ -67,6 +69,8 @@ export const CandidateRecommendationsModal: React.FC<
   }, [isOpen, opportunityId]);
 
   if (!isOpen) return null;
+
+  const candidateItems = data?.items || [];
 
   return (
     <div
@@ -121,19 +125,22 @@ export const CandidateRecommendationsModal: React.FC<
           )}
 
           {error && !loading && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center space-y-2">
-              <p className="text-xs font-semibold text-red-800">{error}</p>
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-center space-y-2">
+              <p className="text-xs text-rose-700">{error}</p>
               <button
                 onClick={() => {
+                  setError(null);
                   if (opportunityId) {
                     setLoading(true);
                     fetchOpportunityCandidates(opportunityId)
-                      .then(setData)
-                      .catch((err) => setError(err.message))
+                      .then((res) => setData(res))
+                      .catch((err) =>
+                        setError(err instanceof Error ? err.message : "Failed.")
+                      )
                       .finally(() => setLoading(false));
                   }
                 }}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-200 transition cursor-pointer"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 <span>Retry</span>
@@ -141,29 +148,22 @@ export const CandidateRecommendationsModal: React.FC<
             </div>
           )}
 
-          {!loading && !error && data && Array.isArray(data.items) && data.items.length === 0 && (
-            <div className="text-center py-12 space-y-3">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-                <Users className="h-6 w-6" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-800">
-                  No matching candidates identified yet
-                </p>
-                <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-                  As more professionals and organizations register capabilities in this
-                  domain, relevant matches will appear automatically.
-                </p>
-              </div>
+          {!loading && !error && data && candidateItems.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 space-y-2 text-center">
+              <UserCheck className="h-8 w-8 text-slate-300" />
+              <p className="text-xs font-semibold text-slate-700">
+                No matching candidates identified yet
+              </p>
+              <p className="text-[11px] text-slate-400 max-w-xs">
+                As more participants publish matching skills and services, candidate recommendations will appear here.
+              </p>
             </div>
           )}
 
           {!loading &&
             !error &&
             data &&
-            Array.isArray(data.items) &&
-            data.items.length > 0 &&
-            data.items.map((candidate: ParticipantCandidate, idx: number) => {
+            candidateItems.map((candidate, idx) => {
               const isBiz = candidate.participant_type === "BUSINESS";
               return (
                 <div
@@ -223,6 +223,16 @@ export const CandidateRecommendationsModal: React.FC<
                         </div>
                       </div>
                     </div>
+
+                    {onConnectCandidate && (
+                      <button
+                        onClick={() => onConnectCandidate(candidate)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer shrink-0"
+                      >
+                        <UserPlus className="h-3.5 w-3.5" />
+                        <span>Connect</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Skills & Services Pills */}
@@ -273,4 +283,3 @@ export const CandidateRecommendationsModal: React.FC<
     </div>
   );
 };
-
