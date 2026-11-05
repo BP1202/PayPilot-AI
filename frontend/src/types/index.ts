@@ -17,8 +17,22 @@ export interface Business {
   interests?: string[];
   completeness_percent?: number;
   missing_fields?: string[];
+  published_at?: string | null;
+  closed_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface OpportunityPublishPayload {
+  visibility?: OpportunityVisibility;
+}
+
+export interface OpportunityClosePayload {
+  reason?: string;
+}
+
+export interface OpportunityVisibilityUpdatePayload {
+  visibility: OpportunityVisibility;
 }
 
 export interface BusinessProfileExtraction {
@@ -143,9 +157,10 @@ export type OpportunityStatus =
   | "TRANSACTING"
   | "GROWING"
   | "COMPLETED"
-  | "ARCHIVED";
+  | "ARCHIVED"
+  | "CLOSED";
 
-export type OpportunityVisibility = "PRIVATE" | "SHARED" | "PUBLIC";
+export type OpportunityVisibility = "PRIVATE" | "AUTHENTICATED" | "PUBLIC" | "SHARED";
 
 export type ProvenanceCategory =
   | "USER_PROVIDED"

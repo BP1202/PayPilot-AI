@@ -94,4 +94,3 @@ def check_business_access(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This business profile is private.",
         )
-

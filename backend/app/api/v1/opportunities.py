@@ -1,17 +1,28 @@
 from typing import Annotated
 
-from app.core.auth import get_current_user_id, get_optional_user
+from app.core.auth import (
+    get_current_user_id,
+    get_optional_user,
+    get_optional_user_id,
+)
 from app.core.database import get_db
-from app.models.opportunity import OpportunityCategory, OpportunityIntent
+from app.models.opportunity import (
+    OpportunityCategory,
+    OpportunityIntent,
+    OpportunityVisibility,
+)
 from app.models.user import User
 from app.schemas.opportunity import (
     OpportunityAnalyzeRequest,
     OpportunityAnalyzeResponse,
+    OpportunityCloseRequest,
     OpportunityCreate,
     OpportunityListResponse,
+    OpportunityPublishRequest,
     OpportunityReanalyzeRequest,
     OpportunityResponse,
     OpportunityUpdate,
+    OpportunityVisibilityUpdateRequest,
 )
 from app.services.opportunity_service import OpportunityService
 from fastapi import APIRouter, Depends, Query, status
@@ -65,7 +76,10 @@ def list_opportunities(
     user_id: Annotated[str, Depends(get_current_user_id)],
     status_filter: Annotated[
         str | None,
-        Query(alias="status", description="Filter by status (e.g. DRAFT, ANALYSED)"),
+        Query(
+            alias="status",
+            description="Filter by status (e.g. DRAFT, ANALYSED, PUBLISHED, CLOSED)",
+        ),
     ] = None,
     intent_filter: Annotated[
         OpportunityIntent | None,
@@ -81,12 +95,52 @@ def list_opportunities(
             description="Filter by category (e.g. FINTECH, TECH, BUSINESS, LOCAL)",
         ),
     ] = None,
+    visibility_filter: Annotated[
+        OpportunityVisibility | None,
+        Query(
+            alias="visibility",
+            description="Filter by visibility (PRIVATE, AUTHENTICATED, PUBLIC)",
+        ),
+    ] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> OpportunityListResponse:
     items, total = service.list_user_opportunities(
         user_id=user_id,
         status_filter=status_filter,
+        intent_filter=intent_filter.value if intent_filter else None,
+        category_filter=category_filter.value if category_filter else None,
+        visibility_filter=visibility_filter.value if visibility_filter else None,
+        limit=limit,
+        offset=offset,
+    )
+    return OpportunityListResponse(
+        items=[OpportunityResponse.model_validate(item) for item in items],
+        total=total,
+    )
+
+
+@router.get(
+    "/published",
+    response_model=OpportunityListResponse,
+    summary="List published opportunities across the network with visibility enforcement",
+)
+def list_published_opportunities(
+    service: Annotated[OpportunityService, Depends(get_opportunity_service)],
+    optional_user_id: Annotated[str | None, Depends(get_optional_user_id)] = None,
+    intent_filter: Annotated[
+        OpportunityIntent | None,
+        Query(alias="intent", description="Filter by intent"),
+    ] = None,
+    category_filter: Annotated[
+        OpportunityCategory | None,
+        Query(alias="category", description="Filter by category"),
+    ] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> OpportunityListResponse:
+    items, total = service.list_public_opportunities(
+        requester_id=optional_user_id,
         intent_filter=intent_filter.value if intent_filter else None,
         category_filter=category_filter.value if category_filter else None,
         limit=limit,
@@ -101,14 +155,16 @@ def list_opportunities(
 @router.get(
     "/{opportunity_id}",
     response_model=OpportunityResponse,
-    summary="Retrieve an opportunity draft by ID",
+    summary="Retrieve an opportunity draft or published profile by ID with visibility enforcement",
 )
 def get_opportunity(
     opportunity_id: str,
     service: Annotated[OpportunityService, Depends(get_opportunity_service)],
-    user_id: Annotated[str, Depends(get_current_user_id)],
+    optional_user_id: Annotated[str | None, Depends(get_optional_user_id)] = None,
 ) -> OpportunityResponse:
-    opp = service.get_opportunity(opportunity_id=opportunity_id, user_id=user_id)
+    opp = service.get_opportunity(
+        opportunity_id=opportunity_id, requester_id=optional_user_id
+    )
     return OpportunityResponse.model_validate(opp)
 
 
@@ -142,5 +198,81 @@ async def reanalyze_opportunity(
 ) -> OpportunityResponse:
     opp = await service.reanalyze_opportunity(
         opportunity_id=opportunity_id, payload=payload, user_id=user_id
+    )
+    return OpportunityResponse.model_validate(opp)
+
+
+@router.post(
+    "/{opportunity_id}/publish",
+    response_model=OpportunityResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Publish an opportunity draft with creator authorization and validation",
+)
+def publish_opportunity(
+    opportunity_id: str,
+    service: Annotated[OpportunityService, Depends(get_opportunity_service)],
+    user_id: Annotated[str, Depends(get_current_user_id)],
+    payload: OpportunityPublishRequest | None = None,
+) -> OpportunityResponse:
+    target_vis = payload.visibility if payload else OpportunityVisibility.PUBLIC
+    opp = service.publish_opportunity(
+        opportunity_id=opportunity_id,
+        user_id=user_id,
+        target_visibility=target_vis,
+    )
+    return OpportunityResponse.model_validate(opp)
+
+
+@router.post(
+    "/{opportunity_id}/unpublish",
+    response_model=OpportunityResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Unpublish an active opportunity back to a private draft",
+)
+def unpublish_opportunity(
+    opportunity_id: str,
+    service: Annotated[OpportunityService, Depends(get_opportunity_service)],
+    user_id: Annotated[str, Depends(get_current_user_id)],
+) -> OpportunityResponse:
+    opp = service.unpublish_opportunity(opportunity_id=opportunity_id, user_id=user_id)
+    return OpportunityResponse.model_validate(opp)
+
+
+@router.post(
+    "/{opportunity_id}/close",
+    response_model=OpportunityResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Close an opportunity",
+)
+def close_opportunity(
+    opportunity_id: str,
+    service: Annotated[OpportunityService, Depends(get_opportunity_service)],
+    user_id: Annotated[str, Depends(get_current_user_id)],
+    payload: OpportunityCloseRequest | None = None,
+) -> OpportunityResponse:
+    opp = service.close_opportunity(
+        opportunity_id=opportunity_id,
+        user_id=user_id,
+        reason=payload.reason if payload else None,
+    )
+    return OpportunityResponse.model_validate(opp)
+
+
+@router.put(
+    "/{opportunity_id}/visibility",
+    response_model=OpportunityResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update visibility policy for an opportunity",
+)
+def update_opportunity_visibility(
+    opportunity_id: str,
+    payload: OpportunityVisibilityUpdateRequest,
+    service: Annotated[OpportunityService, Depends(get_opportunity_service)],
+    user_id: Annotated[str, Depends(get_current_user_id)],
+) -> OpportunityResponse:
+    opp = service.update_visibility(
+        opportunity_id=opportunity_id,
+        user_id=user_id,
+        visibility=payload.visibility,
     )
     return OpportunityResponse.model_validate(opp)

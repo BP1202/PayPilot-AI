@@ -49,4 +49,3 @@ class IndividualProfileRepository:
         self.db.commit()
         self.db.refresh(profile)
         return profile
-

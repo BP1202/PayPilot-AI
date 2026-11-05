@@ -22,6 +22,11 @@ import {
   Code2,
   Briefcase,
   MapPin,
+  Globe,
+  Lock,
+  Eye,
+  Archive,
+  Ban,
 } from "lucide-react";
 import {
   Opportunity,
@@ -34,10 +39,15 @@ import {
   ProvenanceCategory,
 } from "@/types";
 import {
+  ApiError,
   analyzeOpportunity,
   createOpportunity,
   updateOpportunity,
   reanalyzeOpportunity,
+  publishOpportunity,
+  unpublishOpportunity,
+  closeOpportunity,
+  updateOpportunityVisibility,
 } from "@/lib/api";
 
 interface OpportunityStudioModalProps {
@@ -65,8 +75,14 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
   const [intent, setIntent] = useState<OpportunityIntent>(initialIntent || "SEEKING_SOLUTION");
   const [category, setCategory] = useState<OpportunityCategory>(initialCategory || "BUSINESS");
   const [descriptionInput, setDescriptionInput] = useState("");
+  const [oppStatus, setOppStatus] = useState<OpportunityStatus>("DRAFT");
+  const [visibility, setVisibility] = useState<OpportunityVisibility>("PRIVATE");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isUnpublishing, setIsUnpublishing] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Analysis metadata & engine mode
@@ -104,6 +120,8 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
       setSubmissionType(existingOpportunity.submission_type);
       setIntent(existingOpportunity.intent || "SEEKING_SOLUTION");
       setCategory(existingOpportunity.category || "BUSINESS");
+      setOppStatus(existingOpportunity.status || "DRAFT");
+      setVisibility(existingOpportunity.visibility || "PRIVATE");
       setDescriptionInput(existingOpportunity.original_description);
       setTitle(existingOpportunity.title);
       setIndustry(existingOpportunity.industry || "");
@@ -130,6 +148,9 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
       setSubmissionType("IDEA");
       setIntent(initialIntent || "SEEKING_SOLUTION");
       setCategory(initialCategory || "BUSINESS");
+      setOppStatus("DRAFT");
+      setVisibility("PRIVATE");
+      setValidationErrors([]);
       setDescriptionInput("");
       setTitle("");
       setIndustry("");
@@ -328,8 +349,8 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
           missing_information: missingInfo,
           suggested_follow_up_questions: followUpQuestions,
           provenance: provenanceMap,
-          status: "ANALYSED" as OpportunityStatus,
-          visibility: "PRIVATE" as OpportunityVisibility,
+          status: oppStatus === "CLOSED" ? ("CLOSED" as OpportunityStatus) : oppStatus === "PUBLISHED" ? ("PUBLISHED" as OpportunityStatus) : ("ANALYSED" as OpportunityStatus),
+          visibility: visibility as OpportunityVisibility,
         });
 
         onSuccess(updated, `Opportunity draft "${updated.title}" updated.`);
@@ -384,6 +405,147 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    setValidationErrors([]);
+    setErrorMessage(null);
+
+    const errs: string[] = [];
+    if (title.trim().length < 5) {
+      errs.push("Title must be at least 5 characters long.");
+    }
+    if (!industry.trim() || industry.trim().length < 2) {
+      errs.push("Opportunity must belong to a specific industry.");
+    }
+    const substance = [proposedSolution.trim(), problemStatement.trim(), descriptionInput.trim()].join(" ");
+    if (substance.trim().length < 10) {
+      errs.push("Opportunity must provide substantial description or solution details (at least 10 characters).");
+    }
+    if (targetCustomerSegments.length === 0 && requiredSkills.length === 0 && !valueProposition.trim()) {
+      errs.push("Must define at least one target segment, required skill, or value proposition.");
+    }
+    if (errs.length > 0) {
+      setValidationErrors(errs);
+      return;
+    }
+
+    try {
+      setIsPublishing(true);
+      let oppId = existingOpportunity?.id;
+
+      if (!oppId) {
+        const created = await createOpportunity({
+          submission_type: submissionType,
+          intent,
+          category,
+          title: title.trim(),
+          original_description: descriptionInput.trim(),
+          industry: industry.trim(),
+          problem_statement: problemStatement.trim(),
+          proposed_solution: proposedSolution.trim(),
+          value_proposition: valueProposition.trim(),
+          target_customer_segments: targetCustomerSegments,
+          customer_pain_points: customerPainPoints,
+          required_skills_and_resources: requiredSkills,
+          potential_business_models: businessModels,
+          key_assumptions: keyAssumptions,
+          risks_and_uncertainties: risks,
+          missing_information: missingInfo,
+          suggested_follow_up_questions: followUpQuestions,
+          provenance: provenanceMap,
+          ai_metadata: {
+            mode: aiMode,
+            provider: aiProvider,
+            model: aiModel,
+            confidence: aiConfidence,
+          },
+          business_id: businessId || undefined,
+          status: "DRAFT" as OpportunityStatus,
+          visibility: visibility || "PRIVATE",
+        });
+        oppId = created.id;
+      } else {
+        await updateOpportunity(oppId, {
+          title: title.trim(),
+          intent,
+          category,
+          original_description: descriptionInput.trim(),
+          industry: industry.trim(),
+          problem_statement: problemStatement.trim(),
+          proposed_solution: proposedSolution.trim(),
+          value_proposition: valueProposition.trim(),
+          target_customer_segments: targetCustomerSegments,
+          customer_pain_points: customerPainPoints,
+          required_skills_and_resources: requiredSkills,
+          potential_business_models: businessModels,
+          key_assumptions: keyAssumptions,
+          risks_and_uncertainties: risks,
+          missing_information: missingInfo,
+          suggested_follow_up_questions: followUpQuestions,
+          provenance: provenanceMap,
+        });
+      }
+
+      const published = await publishOpportunity(oppId, {
+        visibility: visibility === "PRIVATE" ? "PUBLIC" : visibility,
+      });
+
+      setOppStatus("PUBLISHED");
+      setVisibility(published.visibility);
+      onSuccess(published, `Opportunity "${published.title}" is now published (${published.visibility})!`);
+      onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to publish opportunity.";
+      const errorData = err instanceof ApiError ? (err.data as Record<string, any> | undefined) : undefined;
+      if (errorData && errorData.detail) {
+        const detail = errorData.detail;
+        if (Array.isArray(detail)) {
+          setValidationErrors(detail.map((d: any) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))));
+        } else if (typeof detail === "string") {
+          setValidationErrors([detail]);
+        } else {
+          setErrorMessage(msg);
+        }
+      } else {
+        setErrorMessage(msg);
+      }
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!existingOpportunity) return;
+    try {
+      setIsUnpublishing(true);
+      setErrorMessage(null);
+      const unpublished = await unpublishOpportunity(existingOpportunity.id);
+      setOppStatus("DRAFT");
+      setVisibility("PRIVATE");
+      onSuccess(unpublished, `Opportunity "${unpublished.title}" has been unpublished and returned to private drafts.`);
+      onClose();
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to unpublish opportunity.");
+    } finally {
+      setIsUnpublishing(false);
+    }
+  };
+
+  const handleCloseOpportunity = async () => {
+    if (!existingOpportunity) return;
+    try {
+      setIsClosing(true);
+      setErrorMessage(null);
+      const closed = await closeOpportunity(existingOpportunity.id);
+      setOppStatus("CLOSED");
+      onSuccess(closed, `Opportunity "${closed.title}" is now closed.`);
+      onClose();
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to close opportunity.");
+    } finally {
+      setIsClosing(false);
     }
   };
 
@@ -731,6 +893,99 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 >
                   Edit original text
                 </button>
+              </div>
+
+              {/* Lifecycle Status & Visibility Controls */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-700">Lifecycle Status:</span>
+                    <span
+                      data-testid="lifecycle-status-badge"
+                      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold ${
+                        oppStatus === "PUBLISHED"
+                          ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          : oppStatus === "CLOSED"
+                          ? "bg-slate-100 text-slate-700 border border-slate-300"
+                          : "bg-amber-50 text-amber-800 border border-amber-200"
+                      }`}
+                    >
+                      {oppStatus === "PUBLISHED" ? (
+                        <Globe className="h-3.5 w-3.5" />
+                      ) : oppStatus === "CLOSED" ? (
+                        <Lock className="h-3.5 w-3.5" />
+                      ) : (
+                        <FileText className="h-3.5 w-3.5" />
+                      )}
+                      <span>{oppStatus === "PUBLISHED" ? "PUBLISHED" : oppStatus === "CLOSED" ? "CLOSED" : "DRAFT"}</span>
+                    </span>
+                  </div>
+
+                  {oppStatus !== "CLOSED" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-600">Visibility:</span>
+                      <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("PRIVATE")}
+                          className={`rounded-md px-2 py-0.5 font-bold transition cursor-pointer ${
+                            visibility === "PRIVATE"
+                              ? "bg-white text-indigo-700 shadow-xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          Private
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("AUTHENTICATED")}
+                          className={`rounded-md px-2 py-0.5 font-bold transition cursor-pointer ${
+                            visibility === "AUTHENTICATED"
+                              ? "bg-white text-indigo-700 shadow-xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          Members Only
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("PUBLIC")}
+                          className={`rounded-md px-2 py-0.5 font-bold transition cursor-pointer ${
+                            visibility === "PUBLIC"
+                              ? "bg-white text-indigo-700 shadow-xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          Public
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {oppStatus === "CLOSED" && (
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-600 flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span>This opportunity is closed. Historical records are preserved, but it cannot be republished.</span>
+                  </div>
+                )}
+
+                {validationErrors.length > 0 && (
+                  <div
+                    data-testid="validation-errors-box"
+                    className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 space-y-1"
+                  >
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                      <span>Required for Network Publication:</span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-0.5 pl-1 text-[11px] text-rose-700">
+                      {validationErrors.map((err, idx) => (
+                        <li key={idx}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               {/* Intent & Category Review Selectors */}
@@ -1268,32 +1523,77 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-y-2">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  Close
+                  Cancel
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSaveDraft}
-                  disabled={isSaving || !title.trim()}
-                  className="flex items-center space-x-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Saving Draft...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>Save Opportunity Draft</span>
-                    </>
-                  )}
-                </button>
+
+                {oppStatus === "PUBLISHED" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleUnpublish}
+                      disabled={isUnpublishing}
+                      className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isUnpublishing ? "Unpublishing..." : "Unpublish to Draft"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloseOpportunity}
+                      disabled={isClosing}
+                      className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800 hover:bg-rose-100 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isClosing ? "Closing..." : "Close Opportunity"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={isSaving || !title.trim()}
+                      className="flex items-center space-x-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                      <span>Save Changes</span>
+                    </button>
+                  </>
+                ) : oppStatus === "CLOSED" ? (
+                  <span className="text-xs font-bold text-slate-500 py-2 px-3 bg-slate-100 rounded-lg">
+                    Opportunity Closed
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={isSaving || !title.trim()}
+                      className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isSaving ? "Saving..." : "Save Opportunity Draft"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePublish}
+                      disabled={isPublishing || !title.trim()}
+                      className="flex items-center space-x-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-200 hover:bg-emerald-700 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      {isPublishing ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Publishing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="h-3.5 w-3.5" />
+                          <span>Publish Opportunity</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}

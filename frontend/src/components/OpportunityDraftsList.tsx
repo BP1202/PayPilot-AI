@@ -11,6 +11,10 @@ import {
   Target,
   Rocket,
   Building2,
+  Globe,
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
 } from "lucide-react";
 import { Opportunity, OpportunityStatus, Business } from "@/types";
 
@@ -74,16 +78,6 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
               All
             </button>
             <button
-              onClick={() => onFilterChange("ANALYSED")}
-              className={`rounded-md px-2.5 py-1 font-medium transition ${
-                selectedStatus === "ANALYSED"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Analysed
-            </button>
-            <button
               onClick={() => onFilterChange("DRAFT")}
               className={`rounded-md px-2.5 py-1 font-medium transition ${
                 selectedStatus === "DRAFT"
@@ -92,6 +86,36 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
               }`}
             >
               Drafts
+            </button>
+            <button
+              onClick={() => onFilterChange("PUBLISHED")}
+              className={`rounded-md px-2.5 py-1 font-medium transition ${
+                selectedStatus === "PUBLISHED"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Published
+            </button>
+            <button
+              onClick={() => onFilterChange("CLOSED")}
+              className={`rounded-md px-2.5 py-1 font-medium transition ${
+                selectedStatus === "CLOSED"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Closed
+            </button>
+            <button
+              onClick={() => onFilterChange("ANALYSED")}
+              className={`rounded-md px-2.5 py-1 font-medium transition ${
+                selectedStatus === "ANALYSED"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Analysed
             </button>
           </div>
 
@@ -231,6 +255,59 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
                       >
                         {opp.submission_type}
                       </span>
+
+                      {/* Lifecycle Status Badge */}
+                      {opp.status === "PUBLISHED" ? (
+                        <span
+                          data-testid="status-badge-published"
+                          className="inline-flex items-center gap-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[11px] font-bold"
+                        >
+                          <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                          <span>Published</span>
+                        </span>
+                      ) : opp.status === "CLOSED" ? (
+                        <span
+                          data-testid="status-badge-closed"
+                          className="inline-flex items-center gap-1 rounded-md bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 text-[11px] font-bold"
+                        >
+                          <Lock className="h-3 w-3 text-slate-500" />
+                          <span>Closed</span>
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="status-badge-draft"
+                          className="inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 text-[11px] font-bold"
+                        >
+                          <span>{opp.status === "ANALYSED" ? "Analysed" : "Draft"}</span>
+                        </span>
+                      )}
+
+                      {/* Visibility Badge */}
+                      {opp.visibility === "PUBLIC" ? (
+                        <span
+                          data-testid="visibility-badge-public"
+                          className="inline-flex items-center gap-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 text-[11px] font-semibold"
+                        >
+                          <Globe className="h-3 w-3 text-blue-600" />
+                          <span>Public</span>
+                        </span>
+                      ) : opp.visibility === "AUTHENTICATED" ? (
+                        <span
+                          data-testid="visibility-badge-authenticated"
+                          className="inline-flex items-center gap-1 rounded-md bg-violet-50 text-violet-700 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold"
+                        >
+                          <ShieldCheck className="h-3 w-3 text-violet-600" />
+                          <span>Members Only</span>
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="visibility-badge-private"
+                          className="inline-flex items-center gap-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 text-[11px] font-semibold"
+                        >
+                          <Lock className="h-3 w-3 text-slate-500" />
+                          <span>Private</span>
+                        </span>
+                      )}
                     </div>
 
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 shrink-0">

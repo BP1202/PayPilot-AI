@@ -21,6 +21,10 @@ import {
   OpportunityStatus,
   OpportunityType,
   OpportunityUpdatePayload,
+  OpportunityVisibility,
+  OpportunityPublishPayload,
+  OpportunityClosePayload,
+  OpportunityVisibilityUpdatePayload,
   RegisterPayload,
   TokenResponse,
   Transaction,
@@ -651,6 +655,157 @@ export async function fetchPublicBusinessProfile(
     handleFetchError(
       err,
       "Unable to load organization profile. Please try again."
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Opportunity Publishing & Lifecycle Controls (Issue #4)
+// ---------------------------------------------------------------------------
+
+export async function publishOpportunity(
+  opportunityId: string,
+  visibilityOrPayload: OpportunityVisibility | OpportunityPublishPayload = "PUBLIC"
+): Promise<Opportunity> {
+  const visibility =
+    typeof visibilityOrPayload === "string"
+      ? visibilityOrPayload
+      : visibilityOrPayload?.visibility || "PUBLIC";
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/opportunities/${encodeURIComponent(opportunityId)}/publish`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ visibility }),
+      }
+    );
+    return await handleResponse<Opportunity>(
+      res,
+      "Unable to publish opportunity. Please ensure required information is provided."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to publish opportunity. Please ensure required information is provided."
+    );
+  }
+}
+
+export async function unpublishOpportunity(
+  opportunityId: string
+): Promise<Opportunity> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/opportunities/${encodeURIComponent(opportunityId)}/unpublish`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<Opportunity>(
+      res,
+      "Unable to unpublish opportunity. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to unpublish opportunity. Please try again."
+    );
+  }
+}
+
+export async function closeOpportunity(
+  opportunityId: string,
+  reason?: string
+): Promise<Opportunity> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/opportunities/${encodeURIComponent(opportunityId)}/close`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      }
+    );
+    return await handleResponse<Opportunity>(
+      res,
+      "Unable to close opportunity. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to close opportunity. Please try again."
+    );
+  }
+}
+
+export async function updateOpportunityVisibility(
+  opportunityId: string,
+  visibility: OpportunityVisibility
+): Promise<Opportunity> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/opportunities/${encodeURIComponent(opportunityId)}/visibility`,
+      {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ visibility }),
+      }
+    );
+    return await handleResponse<Opportunity>(
+      res,
+      "Unable to update opportunity visibility. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to update opportunity visibility. Please try again."
+    );
+  }
+}
+
+export async function fetchPublishedOpportunities(
+  params?:
+    | {
+        intent?: string;
+        category?: string;
+        limit?: number;
+        offset?: number;
+      }
+    | string,
+  categoryArg?: string
+): Promise<OpportunityListResponse> {
+  try {
+    let resolvedParams: { intent?: string; category?: string; limit?: number; offset?: number } = {};
+    if (typeof params === "string") {
+      resolvedParams.intent = params;
+      if (categoryArg) resolvedParams.category = categoryArg;
+    } else if (params) {
+      resolvedParams = params;
+    }
+
+    const searchParams = new URLSearchParams();
+    if (resolvedParams.intent) searchParams.set("intent", resolvedParams.intent);
+    if (resolvedParams.category) searchParams.set("category", resolvedParams.category);
+    if (resolvedParams.limit) searchParams.set("limit", String(resolvedParams.limit));
+    if (resolvedParams.offset) searchParams.set("offset", String(resolvedParams.offset));
+
+    const url = `${getApiBaseUrl()}/opportunities/published${
+      searchParams.toString() ? `?${searchParams.toString()}` : ""
+    }`;
+
+    const res = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+    return await handleResponse<OpportunityListResponse>(
+      res,
+      "Unable to load published opportunities right now. Please try again."
+    );
+  } catch (err) {
+    handleFetchError(
+      err,
+      "Unable to load published opportunities right now. Please try again."
     );
   }
 }

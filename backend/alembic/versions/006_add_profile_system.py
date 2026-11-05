@@ -103,4 +103,3 @@ def downgrade() -> None:
     op.drop_column("businesses", "visibility")
     op.drop_column("businesses", "location")
     op.drop_table("individual_profiles")
-

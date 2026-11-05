@@ -4,7 +4,12 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.opportunity import Opportunity, OpportunityStatus, OpportunityType
+from app.models.opportunity import (
+    Opportunity,
+    OpportunityStatus,
+    OpportunityType,
+    OpportunityVisibility,
+)
 from app.repositories.business_repository import BusinessRepository
 from app.repositories.opportunity_repository import OpportunityRepository
 from app.schemas.opportunity import (
@@ -97,22 +102,244 @@ class OpportunityService:
         )
         return self.repo.create(opportunity)
 
-    def get_opportunity(self, opportunity_id: str, user_id: str) -> Opportunity:
+    def validate_for_publication(self, opp: Opportunity) -> list[str]:
+        """Validates that an opportunity meets all quality and commercial criteria before publication."""
+        errors: list[str] = []
+
+        if opp.status == OpportunityStatus.CLOSED.value:
+            errors.append(
+                "Closed opportunities cannot be republished. Please create a new opportunity draft."
+            )
+            return errors
+
+        if not (opp.title and len(opp.title.strip()) >= 5):
+            errors.append("Title must be at least 5 characters long.")
+
+        if not (opp.industry and len(opp.industry.strip()) >= 2):
+            errors.append("Industry sector must be specified.")
+
+        has_substance = (
+            (opp.problem_statement and len(opp.problem_statement.strip()) >= 10)
+            or (opp.proposed_solution and len(opp.proposed_solution.strip()) >= 10)
+            or (
+                opp.original_description and len(opp.original_description.strip()) >= 15
+            )
+        )
+        if not has_substance:
+            errors.append(
+                "A detailed problem statement, proposed solution, or description (at least 10 characters) is required."
+            )
+
+        has_commercial_clarity = (
+            bool(opp.target_customer_segments and len(opp.target_customer_segments) > 0)
+            or bool(
+                opp.required_skills_and_resources
+                and len(opp.required_skills_and_resources) > 0
+            )
+            or bool(opp.value_proposition and len(opp.value_proposition.strip()) >= 5)
+        )
+        if not has_commercial_clarity:
+            errors.append(
+                "At least one target customer segment, required skill/resource, or value proposition must be defined."
+            )
+
+        if opp.business_id is not None:
+            biz = BusinessRepository(self.db).get_by_id(opp.business_id)
+            if not biz or biz.user_id != opp.user_id:
+                errors.append(
+                    "Linked business profile does not belong to the opportunity creator."
+                )
+
+        return errors
+
+    def get_opportunity(
+        self, opportunity_id: str, requester_id: str | None = None
+    ) -> Opportunity:
+        opp = self.repo.get_by_id(opportunity_id)
+        if not opp:
+            if not requester_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required to view this opportunity.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Opportunity draft not found.",
+            )
+
+        is_owner = requester_id is not None and opp.user_id == requester_id
+        if is_owner:
+            return opp
+
+        # Non-owner access checks
+        if opp.status not in (
+            OpportunityStatus.PUBLISHED.value,
+            OpportunityStatus.CLOSED.value,
+        ):
+            if not requester_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required to view this opportunity.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: This opportunity is a private draft.",
+            )
+
+        vis = (opp.visibility or OpportunityVisibility.PRIVATE.value).upper()
+        if vis == OpportunityVisibility.PRIVATE.value:
+            if not requester_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required to view this opportunity.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: This opportunity is private.",
+            )
+        elif vis == OpportunityVisibility.AUTHENTICATED.value:
+            if not requester_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required to view this opportunity.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return opp
+        elif vis in (
+            OpportunityVisibility.PUBLIC.value,
+            OpportunityVisibility.SHARED.value,
+        ):
+            return opp
+        else:
+            if not requester_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required to view this opportunity.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: This opportunity is private.",
+            )
+
+    def publish_opportunity(
+        self,
+        opportunity_id: str,
+        user_id: str,
+        target_visibility: OpportunityVisibility = OpportunityVisibility.PUBLIC,
+    ) -> Opportunity:
         opp = self.repo.get_by_id(opportunity_id)
         if not opp:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Opportunity draft not found.",
             )
-
-        # Strict tenant / creator ownership authorization check
         if opp.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied: You do not have permission to view this opportunity.",
+                detail="Access denied: You do not have permission to publish this opportunity.",
             )
 
-        return opp
+        errors = self.validate_for_publication(opp)
+        if errors:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Cannot publish opportunity: {'; '.join(errors)}",
+            )
+
+        vis_val = (
+            target_visibility.value
+            if hasattr(target_visibility, "value")
+            else str(target_visibility)
+        )
+        if vis_val == OpportunityVisibility.PRIVATE.value:
+            vis_val = OpportunityVisibility.PUBLIC.value
+
+        opp.status = OpportunityStatus.PUBLISHED.value
+        opp.visibility = vis_val
+        opp.published_at = datetime.now(UTC)
+        opp.updated_at = datetime.now(UTC)
+        return self.repo.update(opp)
+
+    def unpublish_opportunity(self, opportunity_id: str, user_id: str) -> Opportunity:
+        opp = self.repo.get_by_id(opportunity_id)
+        if not opp:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Opportunity not found.",
+            )
+        if opp.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You do not have permission to unpublish this opportunity.",
+            )
+
+        if opp.status == OpportunityStatus.CLOSED.value:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Closed opportunities cannot be unpublished.",
+            )
+        if opp.status != OpportunityStatus.PUBLISHED.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Opportunity is not currently published.",
+            )
+
+        opp.status = OpportunityStatus.DRAFT.value
+        opp.visibility = OpportunityVisibility.PRIVATE.value
+        opp.updated_at = datetime.now(UTC)
+        return self.repo.update(opp)
+
+    def close_opportunity(
+        self, opportunity_id: str, user_id: str, reason: str | None = None
+    ) -> Opportunity:
+        opp = self.repo.get_by_id(opportunity_id)
+        if not opp:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Opportunity not found.",
+            )
+        if opp.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You do not have permission to close this opportunity.",
+            )
+
+        opp.status = OpportunityStatus.CLOSED.value
+        opp.closed_at = datetime.now(UTC)
+        opp.updated_at = datetime.now(UTC)
+        return self.repo.update(opp)
+
+    def update_visibility(
+        self,
+        opportunity_id: str,
+        user_id: str,
+        visibility: OpportunityVisibility,
+    ) -> Opportunity:
+        opp = self.repo.get_by_id(opportunity_id)
+        if not opp:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Opportunity not found.",
+            )
+        if opp.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You do not have permission to modify visibility.",
+            )
+        if opp.status == OpportunityStatus.CLOSED.value:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Cannot change visibility of a closed opportunity.",
+            )
+
+        vis_val = visibility.value if hasattr(visibility, "value") else str(visibility)
+        opp.visibility = vis_val
+        opp.updated_at = datetime.now(UTC)
+        return self.repo.update(opp)
 
     def list_user_opportunities(
         self,
@@ -120,12 +347,38 @@ class OpportunityService:
         status_filter: str | None = None,
         intent_filter: str | None = None,
         category_filter: str | None = None,
+        visibility_filter: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[Opportunity], int]:
         return self.repo.list_by_user(
             user_id=user_id,
             status=status_filter,
+            intent=intent_filter,
+            category=category_filter,
+            visibility=visibility_filter,
+            limit=limit,
+            offset=offset,
+        )
+
+    def list_public_opportunities(
+        self,
+        requester_id: str | None = None,
+        intent_filter: str | None = None,
+        category_filter: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[Opportunity], int]:
+        allowed = (
+            [
+                OpportunityVisibility.PUBLIC.value,
+                OpportunityVisibility.AUTHENTICATED.value,
+            ]
+            if requester_id
+            else [OpportunityVisibility.PUBLIC.value]
+        )
+        return self.repo.list_published(
+            allowed_visibilities=allowed,
             intent=intent_filter,
             category=category_filter,
             limit=limit,
@@ -138,6 +391,18 @@ class OpportunityService:
         opp = self.get_opportunity(opportunity_id, user_id)
 
         update_data = payload.model_dump(exclude_unset=True)
+
+        # Enforce closed opportunity protection
+        if opp.status == OpportunityStatus.CLOSED.value:
+            new_status = update_data.get("status")
+            if new_status and (
+                getattr(new_status, "value", str(new_status))
+                != OpportunityStatus.CLOSED.value
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Closed opportunities cannot be reopened or republished.",
+                )
         if "business_id" in update_data and update_data["business_id"] is not None:
             biz = BusinessRepository(self.db).get_by_id(update_data["business_id"])
             if not biz or biz.user_id != user_id:

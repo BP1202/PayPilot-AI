@@ -35,6 +35,7 @@ class OpportunityRepository:
         status: str | None = None,
         intent: str | None = None,
         category: str | None = None,
+        visibility: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[Opportunity], int]:
@@ -45,6 +46,8 @@ class OpportunityRepository:
             base_query = base_query.where(Opportunity.intent == intent)
         if category:
             base_query = base_query.where(Opportunity.category == category)
+        if visibility:
+            base_query = base_query.where(Opportunity.visibility == visibility)
 
         # Count total
         count_stmt = select(func.count()).select_from(base_query.subquery())
@@ -53,6 +56,38 @@ class OpportunityRepository:
         # Items ordered by updated_at desc
         stmt = (
             base_query.order_by(Opportunity.updated_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        items = list(self.db.execute(stmt).scalars().all())
+        return items, total
+
+    def list_published(
+        self,
+        allowed_visibilities: list[str],
+        intent: str | None = None,
+        category: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[Opportunity], int]:
+        base_query = (
+            select(Opportunity)
+            .where(Opportunity.status == "PUBLISHED")
+            .where(Opportunity.visibility.in_(allowed_visibilities))
+        )
+        if intent:
+            base_query = base_query.where(Opportunity.intent == intent)
+        if category:
+            base_query = base_query.where(Opportunity.category == category)
+
+        count_stmt = select(func.count()).select_from(base_query.subquery())
+        total = self.db.execute(count_stmt).scalar() or 0
+
+        stmt = (
+            base_query.order_by(
+                Opportunity.published_at.desc().nullslast(),
+                Opportunity.updated_at.desc(),
+            )
             .offset(offset)
             .limit(limit)
         )

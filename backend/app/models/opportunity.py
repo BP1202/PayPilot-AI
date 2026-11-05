@@ -36,12 +36,14 @@ class OpportunityStatus(str, enum.Enum):
     GROWING = "GROWING"
     COMPLETED = "COMPLETED"
     ARCHIVED = "ARCHIVED"
+    CLOSED = "CLOSED"
 
 
 class OpportunityVisibility(str, enum.Enum):
     PRIVATE = "PRIVATE"
-    SHARED = "SHARED"
+    AUTHENTICATED = "AUTHENTICATED"
     PUBLIC = "PUBLIC"
+    SHARED = "SHARED"
 
 
 class ProvenanceCategory(str, enum.Enum):
@@ -81,7 +83,16 @@ class Opportunity(Base):
         String(30), nullable=False, default=OpportunityStatus.DRAFT.value, index=True
     )
     visibility: Mapped[str] = mapped_column(
-        String(20), nullable=False, default=OpportunityVisibility.PRIVATE.value
+        String(30),
+        nullable=False,
+        default=OpportunityVisibility.PRIVATE.value,
+        index=True,
+    )
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)

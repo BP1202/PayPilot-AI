@@ -61,4 +61,3 @@ class IndividualProfilePublicRead(BaseModel):
 class ProfileMeResponse(BaseModel):
     individual: IndividualProfileRead
     businesses: list[BusinessRead] = Field(default_factory=list)
-

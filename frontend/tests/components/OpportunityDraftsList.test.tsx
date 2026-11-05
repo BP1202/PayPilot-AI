@@ -187,4 +187,60 @@ describe("OpportunityDraftsList Component", () => {
     expect(screen.getByTestId("linked-org-badge")).toBeInTheDocument();
     expect(screen.getByText("Apex Precision Gearworks")).toBeInTheDocument();
   });
+
+  it("renders lifecycle status badges and visibility badges correctly", () => {
+    const opps = [
+      {
+        ...mockOpportunities[0],
+        status: "PUBLISHED" as const,
+        visibility: "PUBLIC" as const,
+      },
+      {
+        ...mockOpportunities[1],
+        status: "CLOSED" as const,
+        visibility: "AUTHENTICATED" as const,
+      },
+    ];
+
+    render(
+      <OpportunityDraftsList
+        opportunities={opps}
+        isLoading={false}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("status-badge-published")).toHaveTextContent("Published");
+    expect(screen.getByTestId("visibility-badge-public")).toHaveTextContent("Public");
+
+    expect(screen.getByTestId("status-badge-closed")).toHaveTextContent("Closed");
+    expect(screen.getByTestId("visibility-badge-authenticated")).toHaveTextContent("Members Only");
+  });
+
+  it("handles status filter changes for Published and Closed tabs", () => {
+    const onFilterChange = vi.fn();
+    render(
+      <OpportunityDraftsList
+        opportunities={mockOpportunities}
+        isLoading={false}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={onFilterChange}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Published" }));
+    expect(onFilterChange).toHaveBeenCalledWith("PUBLISHED");
+
+    fireEvent.click(screen.getByRole("button", { name: "Closed" }));
+    expect(onFilterChange).toHaveBeenCalledWith("CLOSED");
+
+    fireEvent.click(screen.getByRole("button", { name: "Drafts" }));
+    expect(onFilterChange).toHaveBeenCalledWith("DRAFT");
+
+    fireEvent.click(screen.getByRole("button", { name: "All" }));
+    expect(onFilterChange).toHaveBeenCalledWith(undefined);
+  });
 });

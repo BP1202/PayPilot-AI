@@ -181,5 +181,125 @@ describe("OpportunityStudioModal Component", () => {
       expect(screen.getByText(/We couldn't analyze your opportunity submission/i)).toBeInTheDocument();
     });
   });
-});
 
+  it("publishes an opportunity with selected visibility and notifies on success", async () => {
+    vi.mocked(api.updateOpportunity).mockResolvedValue(mockSavedOpportunity);
+    vi.mocked(api.publishOpportunity).mockResolvedValue({
+      ...mockSavedOpportunity,
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      published_at: "2026-11-05T00:00:00Z",
+    });
+
+    render(
+      <OpportunityStudioModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        existingOpportunity={mockSavedOpportunity}
+      />
+    );
+
+    // Switch visibility to Public
+    const publicBtn = screen.getByRole("button", { name: "Public" });
+    fireEvent.click(publicBtn);
+
+    // Click Publish Opportunity
+    const publishBtn = screen.getByRole("button", { name: /Publish Opportunity/i });
+    fireEvent.click(publishBtn);
+
+    await waitFor(() => {
+      expect(api.publishOpportunity).toHaveBeenCalledWith(
+        mockSavedOpportunity.id,
+        expect.anything()
+      );
+      expect(onSuccess).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("displays validation errors when trying to publish without required fields", async () => {
+    const invalidOpp = {
+      ...mockSavedOpportunity,
+      industry: "", // Missing industry
+    };
+
+    render(
+      <OpportunityStudioModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        existingOpportunity={invalidOpp}
+      />
+    );
+
+    const publishBtn = screen.getByRole("button", { name: /Publish Opportunity/i });
+    fireEvent.click(publishBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Opportunity must belong to a specific industry/i)).toBeInTheDocument();
+      expect(api.publishOpportunity).not.toHaveBeenCalled();
+    });
+  });
+
+  it("unpublishes a published opportunity back to draft", async () => {
+    const publishedOpp = {
+      ...mockSavedOpportunity,
+      status: "PUBLISHED" as const,
+      visibility: "PUBLIC" as const,
+    };
+    vi.mocked(api.unpublishOpportunity).mockResolvedValue({
+      ...publishedOpp,
+      status: "DRAFT",
+      visibility: "PRIVATE",
+    });
+
+    render(
+      <OpportunityStudioModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        existingOpportunity={publishedOpp}
+      />
+    );
+
+    const unpublishBtn = screen.getByRole("button", { name: /Unpublish to Draft/i });
+    fireEvent.click(unpublishBtn);
+
+    await waitFor(() => {
+      expect(api.unpublishOpportunity).toHaveBeenCalledWith(publishedOpp.id);
+      expect(onSuccess).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("closes an opportunity and displays closed state", async () => {
+    const publishedOpp = {
+      ...mockSavedOpportunity,
+      status: "PUBLISHED" as const,
+    };
+    vi.mocked(api.closeOpportunity).mockResolvedValue({
+      ...publishedOpp,
+      status: "CLOSED",
+      closed_at: "2026-11-05T01:00:00Z",
+    });
+
+    render(
+      <OpportunityStudioModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        existingOpportunity={publishedOpp}
+      />
+    );
+
+    const closeBtn = screen.getByRole("button", { name: /Close Opportunity/i });
+    fireEvent.click(closeBtn);
+
+    await waitFor(() => {
+      expect(api.closeOpportunity).toHaveBeenCalledWith(publishedOpp.id);
+      expect(onSuccess).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+});
