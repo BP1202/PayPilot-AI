@@ -626,3 +626,4 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
     </div>
   );
 };
+
