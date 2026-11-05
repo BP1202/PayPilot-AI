@@ -6,6 +6,7 @@ from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.deal_rooms import router as deal_rooms_router
 from app.api.v1.ledger import router as ledger_router
 from app.api.v1.matches import router as matches_router
+from app.api.v1.milestones import router as milestones_router
 from app.api.v1.opportunities import router as opportunities_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.profiles import router as profiles_router
@@ -26,3 +27,4 @@ api_v1_router.include_router(matches_router)
 api_v1_router.include_router(connections_router)
 api_v1_router.include_router(proposals_router)
 api_v1_router.include_router(deal_rooms_router)
+api_v1_router.include_router(milestones_router)

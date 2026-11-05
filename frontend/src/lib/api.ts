@@ -58,6 +58,14 @@ import {
   DealRoomDocumentCreatePayload,
   DealRoomActivity,
   DealRoomAIAnalysisResponse,
+  MilestoneExecution,
+  MilestoneEvidence,
+  MilestoneListResponse,
+  MilestonePaymentReadinessResponse,
+  MilestoneEvidenceCreatePayload,
+  MilestoneReviewPayload,
+  MilestoneCancelPayload,
+  MilestoneAIAnalysisResponse,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -1418,6 +1426,231 @@ export async function analyzeDealRoomAI(
     return handleFetchError(
       err,
       "AI Deal Room Copilot could not complete analysis. Please try again."
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Issue #9: Milestone Execution, Deliverables & Evidence Verification APIs
+// ---------------------------------------------------------------------------
+
+export async function initializeDealRoomMilestones(
+  roomId: string
+): Promise<MilestoneExecution[]> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/initialize`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<MilestoneExecution[]>(
+      res,
+      "Unable to initialize milestones from accepted proposal. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to initialize milestones from accepted proposal. Please try again."
+    );
+  }
+}
+
+export async function fetchDealRoomMilestones(
+  roomId: string
+): Promise<MilestoneListResponse> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<MilestoneListResponse>(
+      res,
+      "Unable to load milestones for this deal room. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to load milestones for this deal room. Please try again."
+    );
+  }
+}
+
+export async function fetchDealRoomMilestone(
+  roomId: string,
+  milestoneId: string
+): Promise<MilestoneExecution> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<MilestoneExecution>(
+      res,
+      "Unable to load milestone details. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to load milestone details. Please try again."
+    );
+  }
+}
+
+export async function startMilestoneWork(
+  roomId: string,
+  milestoneId: string
+): Promise<MilestoneExecution> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/start`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<MilestoneExecution>(
+      res,
+      "Unable to start milestone work. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to start milestone work. Please try again."
+    );
+  }
+}
+
+export async function submitMilestoneEvidence(
+  roomId: string,
+  milestoneId: string,
+  payload: MilestoneEvidenceCreatePayload
+): Promise<MilestoneEvidence> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/evidence`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<MilestoneEvidence>(
+      res,
+      "Unable to submit milestone deliverables and evidence. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to submit milestone deliverables and evidence. Please try again."
+    );
+  }
+}
+
+export async function reviewMilestoneEvidence(
+  roomId: string,
+  milestoneId: string,
+  payload: MilestoneReviewPayload
+): Promise<MilestoneExecution> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/reviews`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<MilestoneExecution>(
+      res,
+      "Unable to record milestone review decision. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to record milestone review decision. Please try again."
+    );
+  }
+}
+
+export async function cancelDealRoomMilestone(
+  roomId: string,
+  milestoneId: string,
+  reason: string
+): Promise<MilestoneExecution> {
+  try {
+    const payload: MilestoneCancelPayload = { reason };
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/cancel`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<MilestoneExecution>(
+      res,
+      "Unable to cancel milestone. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to cancel milestone. Please try again."
+    );
+  }
+}
+
+export async function fetchMilestonePaymentReadiness(
+  roomId: string,
+  milestoneId: string
+): Promise<MilestonePaymentReadinessResponse> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/payment-readiness`,
+      {
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<MilestonePaymentReadinessResponse>(
+      res,
+      "Unable to load milestone payment readiness. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to load milestone payment readiness. Please try again."
+    );
+  }
+}
+
+export async function analyzeMilestoneAI(
+  roomId: string,
+  milestoneId: string
+): Promise<MilestoneAIAnalysisResponse> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/ai/analyze`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<MilestoneAIAnalysisResponse>(
+      res,
+      "AI Milestone Copilot could not complete review analysis. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "AI Milestone Copilot could not complete review analysis. Please try again."
     );
   }
 }

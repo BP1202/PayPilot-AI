@@ -36,6 +36,13 @@ class DealRoomActivityType(str, enum.Enum):
     DOCUMENT_DELETED = "DOCUMENT_DELETED"
     CLARIFICATION_OPENED = "CLARIFICATION_OPENED"
     CLARIFICATION_ANSWERED = "CLARIFICATION_ANSWERED"
+    MILESTONE_INITIALIZED = "MILESTONE_INITIALIZED"
+    MILESTONE_STARTED = "MILESTONE_STARTED"
+    EVIDENCE_SUBMITTED = "EVIDENCE_SUBMITTED"
+    EVIDENCE_RESUBMITTED = "EVIDENCE_RESUBMITTED"
+    REVISION_REQUESTED = "REVISION_REQUESTED"
+    MILESTONE_APPROVED = "MILESTONE_APPROVED"
+    MILESTONE_CANCELLED = "MILESTONE_CANCELLED"
 
 
 class DealRoomClarificationStatus(str, enum.Enum):
@@ -157,6 +164,12 @@ class DealRoom(Base):
         back_populates="deal_room",
         cascade="all, delete-orphan",
         order_by="DealRoomClarification.created_at.desc()",
+    )
+    milestones = relationship(
+        "MilestoneExecution",
+        back_populates="deal_room",
+        cascade="all, delete-orphan",
+        order_by="MilestoneExecution.milestone_index.asc()",
     )
 
 

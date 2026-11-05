@@ -823,3 +823,161 @@ export interface DealRoomDocumentCreatePayload {
   reference_url: string;
   description?: string | null;
 }
+
+// ===== Issue #9: Milestone Execution, Deliverables & Evidence Verification =====
+
+export type MilestoneExecutionStatus =
+  | "NOT_STARTED"
+  | "IN_PROGRESS"
+  | "SUBMITTED_FOR_REVIEW"
+  | "REVISION_REQUESTED"
+  | "APPROVED"
+  | "CANCELLED";
+
+export type PaymentReadinessStatus =
+  | "NOT_READY"
+  | "READY_FOR_PAYMENT_REVIEW"
+  | "PAYMENT_IN_PROGRESS"
+  | "PAID";
+
+export type MilestoneEvidenceType =
+  | "DOCUMENT"
+  | "IMAGE"
+  | "VIDEO_LINK"
+  | "EXTERNAL_REFERENCE"
+  | "CODE_REPOSITORY"
+  | "OTHER";
+
+export type EvidenceReviewStatus =
+  | "PENDING_REVIEW"
+  | "REVISION_REQUESTED"
+  | "APPROVED"
+  | "SUPERSEDED";
+
+export type MilestoneReviewDecision = "APPROVED" | "REVISION_REQUESTED";
+
+export interface MilestoneParticipantSummary {
+  user_id: string;
+  name: string;
+  email?: string | null;
+  role?: string | null;
+}
+
+export interface MilestoneEvidence {
+  id: string;
+  milestone_id: string;
+  room_id: string;
+  submitted_by_id: string;
+  submitter_name: string;
+  submission_version: number;
+  title: string;
+  description: string;
+  evidence_type: MilestoneEvidenceType;
+  reference_url: string;
+  attachments: Record<string, any>[];
+  status: EvidenceReviewStatus;
+  created_at: string;
+}
+
+export interface MilestoneReview {
+  id: string;
+  milestone_id: string;
+  evidence_id: string;
+  evidence_version: number;
+  reviewer_id: string;
+  reviewer_name: string;
+  decision: MilestoneReviewDecision;
+  comments?: string | null;
+  created_at: string;
+}
+
+export interface MilestoneExecution {
+  id: string;
+  room_id: string;
+  source_proposal_id: string;
+  accepted_proposal_version: number;
+  milestone_index: number;
+  title: string;
+  description?: string | null;
+  expected_deliverables: string[];
+  agreed_amount?: string | null;
+  currency: string;
+  due_days?: number | null;
+  planned_due_date?: string | null;
+  responsible_user: MilestoneParticipantSummary;
+  reviewer_user: MilestoneParticipantSummary;
+  status: MilestoneExecutionStatus;
+  cancellation_reason?: string | null;
+  payment_readiness: PaymentReadinessStatus;
+  current_evidence_submission?: MilestoneEvidence | null;
+  evidence_submissions_count: number;
+  reviews_count: number;
+  started_at?: string | null;
+  submitted_at?: string | null;
+  approved_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MilestoneListResponse {
+  items: MilestoneExecution[];
+  total: number;
+  completed_count: number;
+  in_progress_count: number;
+  pending_review_count: number;
+  total_agreed_amount: string;
+  approved_amount: string;
+}
+
+export interface MilestonePaymentReadinessResponse {
+  milestone_id: string;
+  room_id: string;
+  title: string;
+  payment_readiness: PaymentReadinessStatus;
+  agreed_amount?: string | null;
+  currency: string;
+  approved_evidence_id?: string | null;
+  approved_evidence_version?: number | null;
+  reviewer_id?: string | null;
+  approved_at?: string | null;
+  source_proposal_version: number;
+  settlement_note: string;
+}
+
+export interface MilestoneEvidenceCreatePayload {
+  title: string;
+  description: string;
+  evidence_type?: MilestoneEvidenceType;
+  reference_url: string;
+  attachments?: Record<string, any>[];
+}
+
+export interface MilestoneReviewPayload {
+  evidence_id: string;
+  decision: MilestoneReviewDecision;
+  comments?: string | null;
+}
+
+export interface MilestoneCancelPayload {
+  reason: string;
+}
+
+export interface MilestoneDeliverableCheck {
+  deliverable: string;
+  satisfied: boolean;
+  confidence: number;
+  explanation: string;
+}
+
+export interface MilestoneAIAnalysisResponse {
+  milestone_id: string;
+  completeness_score: number;
+  deliverables_analysis: MilestoneDeliverableCheck[];
+  review_checklist: string[];
+  observations: string[];
+  provenance_breakdown: Record<string, string[]>;
+  mode: "LIVE_AI" | "DETERMINISTIC_FALLBACK";
+  provider: string;
+  model: string;
+}
+

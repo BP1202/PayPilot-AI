@@ -55,6 +55,7 @@ import {
   fetchDealRoomActivities,
   analyzeDealRoomAI,
 } from "@/lib/api";
+import { MilestoneExecutionWorkspace } from "./MilestoneExecutionWorkspace";
 
 interface DealRoomWorkspaceViewProps {
   roomId: string;
@@ -765,56 +766,12 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
 
       {/* TAB 3: DELIVERABLES & MILESTONES */}
       {activeTab === "MILESTONES" && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">
-                  Agreed Milestone Schedule
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Structured execution roadmap agreed in Proposal v{room.accepted_proposal_version}.
-                </p>
-              </div>
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                {room.agreed_milestones.length} Stages Defined
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {room.agreed_milestones.map((m, idx) => (
-                <div
-                  key={idx}
-                  className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className="h-6 w-6 rounded-full bg-slate-900 text-white text-[11px] font-extrabold flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <h4 className="text-sm font-bold text-slate-900">{m.title}</h4>
-                    </div>
-                    {m.amount && (
-                      <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                        ${Number(m.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}{" "}
-                        {room.agreed_currency}
-                      </span>
-                    )}
-                  </div>
-                  {m.description && (
-                    <p className="text-xs text-slate-600 pl-8">{m.description}</p>
-                  )}
-                  {m.due_days && (
-                    <div className="pl-8 flex items-center gap-2 text-[11px] text-slate-400">
-                      <Clock className="h-3 w-3" />
-                      <span>Target timeline: {m.due_days} days from start</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <MilestoneExecutionWorkspace
+          roomId={room.id}
+          currentUser={currentUser || null}
+          agreedMilestones={room.agreed_milestones}
+          currency={room.agreed_currency}
+        />
       )}
 
       {/* TAB 4: DOCUMENTS & REFERENCES */}
