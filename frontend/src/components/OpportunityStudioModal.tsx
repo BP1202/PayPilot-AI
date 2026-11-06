@@ -28,6 +28,8 @@ import {
   Archive,
   Ban,
   Users,
+  ArrowLeft,
+  Check,
 } from "lucide-react";
 import {
   Opportunity,
@@ -608,43 +610,99 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex flex-col bg-slate-50 w-screen h-screen overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="studio-title"
     >
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden my-auto">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
-          <div className="flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-100">
+      {/* Full View Studio Header */}
+      <header className="shrink-0 z-20 border-b border-slate-200/90 bg-white px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+            aria-label="Back to dashboard"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to Dashboard</span>
+          </button>
+
+          <div className="h-5 w-px bg-slate-200 hidden sm:block" />
+
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm ${
+                intent === "SEEKING_SOLUTION"
+                  ? "bg-blue-600 shadow-blue-200"
+                  : "bg-emerald-600 shadow-emerald-200"
+              }`}
+            >
               <Lightbulb className="h-5 w-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 id="studio-title" className="text-lg font-bold text-slate-900">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 id="studio-title" className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
                   {existingOpportunity ? "Edit Opportunity Draft" : "Idea Capture & Opportunity Studio"}
                 </h2>
-                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-800">
-                  Two-Sided Opportunity Network
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold border ${
+                    intent === "SEEKING_SOLUTION"
+                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  }`}
+                >
+                  {intent === "SEEKING_SOLUTION" ? "Seek Solutions" : "Share Skills & Ideas"}
+                </span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 border border-slate-200">
+                  Full View Workspace
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 hidden md:block">
                 Structure your needs or offerings into a validated commercial opportunity.
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Top Header Step Indicator & Close */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden lg:flex items-center gap-1.5 rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => step === "review" && setStep("capture")}
+              className={`px-2.5 py-1 rounded-lg transition ${
+                step === "capture"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900 cursor-pointer"
+              }`}
+            >
+              1. Capture & Intent
+            </button>
+            <span className="text-slate-300">/</span>
+            <span
+              className={`px-2.5 py-1 rounded-lg transition ${
+                step === "review"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500"
+              }`}
+            >
+              2. AI Business Structure
+            </span>
+          </div>
+
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
             aria-label="Close modal"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
+      </header>
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      {/* Full View Studio Canvas */}
+      <main className="flex-1 overflow-y-auto bg-slate-50/70 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto space-y-6">
           {errorMessage && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 flex items-start space-x-3">
               <AlertCircle className="h-5 w-5 flex-shrink-0 text-rose-600 mt-0.5" />
@@ -669,29 +727,29 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIntent("SEEKING_SOLUTION")}
-                    className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
+                    className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition cursor-pointer ${
                       intent === "SEEKING_SOLUTION"
-                        ? "border-indigo-600 bg-indigo-50/60 shadow-sm ring-1 ring-indigo-600"
+                        ? "border-blue-500 bg-blue-50/80 shadow-xs ring-2 ring-blue-500"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
                     <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                         intent === "SEEKING_SOLUTION"
-                          ? "bg-indigo-600 text-white"
+                          ? "bg-blue-600 text-white shadow-xs"
                           : "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      <Target className="h-4 w-4" />
+                      <Target className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-bold text-slate-900">I need something</p>
-                        <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100/70 px-1.5 py-0.5 rounded">
-                          Seek Solutions
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-extrabold text-slate-900">I need something</p>
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full border border-blue-200">
+                          Seek Solutions · Blue
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                         Find developers, funding, specialized partners, or commercial solutions for your problem or idea.
                       </p>
                     </div>
@@ -700,29 +758,29 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIntent("OFFERING_SOLUTION")}
-                    className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
+                    className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition cursor-pointer ${
                       intent === "OFFERING_SOLUTION"
-                        ? "border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-600"
+                        ? "border-emerald-500 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
                     <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                         intent === "OFFERING_SOLUTION"
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-emerald-600 text-white shadow-xs"
                           : "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      <Rocket className="h-4 w-4" />
+                      <Rocket className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-bold text-slate-900">I can offer something</p>
-                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded">
-                          Share Skills & Ideas
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-extrabold text-slate-900">I can offer something</p>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Share Skills & Ideas · Green
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                         Share your technical skills, commercial services, product ideas, startup capabilities, or resources.
                       </p>
                     </div>
@@ -1473,15 +1531,17 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
             </div>
           )}
         </div>
+      </main>
 
-        {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/80 px-6 py-4">
+      {/* FULL VIEW STUDIO FOOTER BAR */}
+      <footer className="shrink-0 z-20 border-t border-slate-200/90 bg-white px-4 sm:px-8 py-3.5 shadow-2xs">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
           {step === "capture" ? (
             <>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -1489,7 +1549,11 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 type="button"
                 onClick={handleAnalyze}
                 disabled={isAnalyzing || descriptionInput.trim().length < 10}
-                className="flex items-center space-x-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition cursor-pointer"
+                className={`flex items-center space-x-2 rounded-xl px-5 py-2 text-xs sm:text-sm font-bold text-white shadow-md disabled:opacity-50 transition cursor-pointer ${
+                  intent === "SEEKING_SOLUTION"
+                    ? "bg-blue-600 shadow-blue-200 hover:bg-blue-700"
+                    : "bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700"
+                }`}
               >
                 {isAnalyzing ? (
                   <>
@@ -1511,7 +1575,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setStep("capture")}
-                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Back to Text
                 </button>
@@ -1519,7 +1583,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                   type="button"
                   onClick={handleReanalyze}
                   disabled={isAnalyzing}
-                  className="flex items-center space-x-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                  className="flex items-center space-x-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition cursor-pointer"
                 >
                   <RotateCw className={`h-3.5 w-3.5 ${isAnalyzing ? "animate-spin" : ""}`} />
                   <span>Re-analyze</span>
@@ -1530,7 +1594,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1541,7 +1605,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                       type="button"
                       onClick={handleUnpublish}
                       disabled={isUnpublishing}
-                      className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer disabled:opacity-50"
+                      className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer disabled:opacity-50"
                     >
                       {isUnpublishing ? "Unpublishing..." : "Unpublish to Draft"}
                     </button>
@@ -1549,7 +1613,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                       type="button"
                       onClick={handleCloseOpportunity}
                       disabled={isClosing}
-                      className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800 hover:bg-rose-100 transition cursor-pointer disabled:opacity-50"
+                      className="rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800 hover:bg-rose-100 transition cursor-pointer disabled:opacity-50"
                     >
                       {isClosing ? "Closing..." : "Close Opportunity"}
                     </button>
@@ -1577,7 +1641,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                     </button>
                   </>
                 ) : oppStatus === "CLOSED" ? (
-                  <span className="text-xs font-bold text-slate-500 py-2 px-3 bg-slate-100 rounded-lg">
+                  <span className="text-xs font-bold text-slate-500 py-2 px-3 bg-slate-100 rounded-xl">
                     Opportunity Closed
                   </span>
                 ) : (
@@ -1614,7 +1678,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
             </>
           )}
         </div>
-      </div>
+      </footer>
     </div>
   );
 };
