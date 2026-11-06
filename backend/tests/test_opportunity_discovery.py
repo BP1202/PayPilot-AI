@@ -325,9 +325,7 @@ def test_filters_intent_category_industry_skill(client_with_db, test_db_session)
     assert res_intent["items"][0]["title"] == "Core Banking API Gateway"
 
     # Filter by category = TECH
-    res_cat = client_with_db.get(
-        "/api/v1/opportunities/published?category=TECH"
-    ).json()
+    res_cat = client_with_db.get("/api/v1/opportunities/published?category=TECH").json()
     assert res_cat["total"] == 1
     assert res_cat["items"][0]["title"] == "Custom Freight Route Dashboard"
 
@@ -436,4 +434,3 @@ def test_discovery_schema_excludes_sensitive_internal_fields(
     assert "provenance" not in item
     assert "ai_metadata" not in item
     assert "raw_input" not in item
-

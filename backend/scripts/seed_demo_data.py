@@ -83,9 +83,26 @@ def seed_demo_data() -> None:
                 "bio": "Specializing in distributed fintech architectures, AI orchestration, and high-throughput transaction pipelines.",
                 "location": "San Francisco, CA",
                 "industry": "Fintech & Cloud Systems",
-                "skills": ["Python", "FastAPI", "React", "Next.js", "PostgreSQL", "System Architecture", "Cloud Infrastructure"],
-                "services": ["AI Architecture Consulting", "Full-Stack Development", "Technical Due Diligence"],
-                "interests": ["Fintech", "Payment Networks", "Distributed Systems", "AI Agentic Workflows"],
+                "skills": [
+                    "Python",
+                    "FastAPI",
+                    "React",
+                    "Next.js",
+                    "PostgreSQL",
+                    "System Architecture",
+                    "Cloud Infrastructure",
+                ],
+                "services": [
+                    "AI Architecture Consulting",
+                    "Full-Stack Development",
+                    "Technical Due Diligence",
+                ],
+                "interests": [
+                    "Fintech",
+                    "Payment Networks",
+                    "Distributed Systems",
+                    "AI Agentic Workflows",
+                ],
             },
             {
                 "id": "usr_demo_bob",
@@ -95,9 +112,23 @@ def seed_demo_data() -> None:
                 "bio": "Building next-generation B2B commercial tools and opportunity networks. 10+ years scaling fintech products.",
                 "location": "New York, NY",
                 "industry": "Fintech & B2B SaaS",
-                "skills": ["Product Strategy", "Fintech Compliance", "Commercialization", "B2B SaaS", "Roadmapping"],
-                "services": ["Product Strategy", "Venture Advisory", "Commercial Partnerships"],
-                "interests": ["Automated Reconciliation", "Opportunity Networks", "Cross-Border Settlement"],
+                "skills": [
+                    "Product Strategy",
+                    "Fintech Compliance",
+                    "Commercialization",
+                    "B2B SaaS",
+                    "Roadmapping",
+                ],
+                "services": [
+                    "Product Strategy",
+                    "Venture Advisory",
+                    "Commercial Partnerships",
+                ],
+                "interests": [
+                    "Automated Reconciliation",
+                    "Opportunity Networks",
+                    "Cross-Border Settlement",
+                ],
             },
             {
                 "id": "usr_demo_carol",
@@ -107,8 +138,18 @@ def seed_demo_data() -> None:
                 "bio": "Passionate about building intuitive, enterprise-grade design systems and user-centric financial interfaces.",
                 "location": "Austin, TX",
                 "industry": "Design & Product Tech",
-                "skills": ["UI/UX Design", "Figma", "Design Systems", "User Research", "Frontend Prototyping"],
-                "services": ["Design Systems Architecture", "Product UI/UX Audits", "Rapid Prototyping"],
+                "skills": [
+                    "UI/UX Design",
+                    "Figma",
+                    "Design Systems",
+                    "User Research",
+                    "Frontend Prototyping",
+                ],
+                "services": [
+                    "Design Systems Architecture",
+                    "Product UI/UX Audits",
+                    "Rapid Prototyping",
+                ],
                 "interests": ["Accessible Design", "Design Tokens", "Modern Web UX"],
             },
         ]
@@ -135,7 +176,11 @@ def seed_demo_data() -> None:
             created_users[meta["email"]] = user
 
             # Profile
-            profile = db.query(IndividualProfile).filter(IndividualProfile.user_id == user.id).first()
+            profile = (
+                db.query(IndividualProfile)
+                .filter(IndividualProfile.user_id == user.id)
+                .first()
+            )
             if not profile:
                 profile = IndividualProfile(
                     user_id=user.id,
@@ -184,20 +229,52 @@ def seed_demo_data() -> None:
                 "proposed_solution": "Deploy a containerized FastAPI reconciliation engine with rule-based and AI fuzzy matching capabilities.",
                 "industry": "Fintech & Accounting",
                 "value_proposition": "Cut reconciliation latency by 90% and prevent financial discrepancy leakage.",
-                "target_customer_segments": ["Mid-Market Fintechs", "Cross-Border Marketplaces", "Digital Banks"],
-                "customer_pain_points": ["Manual spreadsheet reconciliation", "Delayed month-end close", "Unmatched transaction errors"],
-                "required_skills_and_resources": ["Python", "FastAPI", "PostgreSQL", "Financial Data Pipelines", "AI Matching"],
-                "potential_business_models": ["SaaS Subscription", "Volume-Based API Usage"],
-                "key_assumptions": ["Bank transaction feeds available via standard CSV/API", "Tolerable discrepancy window is within 48 hours"],
-                "risks_and_uncertainties": ["Bank feed schema variability", "High volume peak load concurrency"],
-                "missing_information": ["Target batch processing window (real-time vs 6-hour batch)"],
-                "suggested_follow_up_questions": ["What is the expected daily transaction volume?"],
+                "target_customer_segments": [
+                    "Mid-Market Fintechs",
+                    "Cross-Border Marketplaces",
+                    "Digital Banks",
+                ],
+                "customer_pain_points": [
+                    "Manual spreadsheet reconciliation",
+                    "Delayed month-end close",
+                    "Unmatched transaction errors",
+                ],
+                "required_skills_and_resources": [
+                    "Python",
+                    "FastAPI",
+                    "PostgreSQL",
+                    "Financial Data Pipelines",
+                    "AI Matching",
+                ],
+                "potential_business_models": [
+                    "SaaS Subscription",
+                    "Volume-Based API Usage",
+                ],
+                "key_assumptions": [
+                    "Bank transaction feeds available via standard CSV/API",
+                    "Tolerable discrepancy window is within 48 hours",
+                ],
+                "risks_and_uncertainties": [
+                    "Bank feed schema variability",
+                    "High volume peak load concurrency",
+                ],
+                "missing_information": [
+                    "Target batch processing window (real-time vs 6-hour batch)"
+                ],
+                "suggested_follow_up_questions": [
+                    "What is the expected daily transaction volume?"
+                ],
                 "provenance": {
                     "problem_statement": ProvenanceCategory.USER_PROVIDED.value,
                     "proposed_solution": ProvenanceCategory.AI_SUGGESTION.value,
                     "value_proposition": ProvenanceCategory.AI_HYPOTHESIS.value,
                 },
-                "ai_metadata": {"provider": "google-gemini", "model": "gemini-1.5-flash", "confidence": 0.94, "mode": "LIVE_AI"},
+                "ai_metadata": {
+                    "provider": "google-gemini",
+                    "model": "gemini-1.5-flash",
+                    "confidence": 0.94,
+                    "mode": "LIVE_AI",
+                },
             },
             {
                 "id": "opp_demo_fraud_guard",
@@ -214,16 +291,36 @@ def seed_demo_data() -> None:
                 "proposed_solution": "Lightweight inference pipeline combining rule heuristics with embedding distance anomaly checks.",
                 "industry": "Fintech & Cybersecurity",
                 "value_proposition": "Stop duplicate and suspicious payment releases before irreversible execution.",
-                "target_customer_segments": ["Payment Facilitators", "B2B Deal Networks"],
+                "target_customer_segments": [
+                    "Payment Facilitators",
+                    "B2B Deal Networks",
+                ],
                 "customer_pain_points": ["Payment disputes", "Fraudulent invoices"],
-                "required_skills_and_resources": ["Python", "Kafka", "PostgreSQL", "Machine Learning"],
-                "potential_business_models": ["Per-Transaction Fee", "Enterprise License"],
+                "required_skills_and_resources": [
+                    "Python",
+                    "Kafka",
+                    "PostgreSQL",
+                    "Machine Learning",
+                ],
+                "potential_business_models": [
+                    "Per-Transaction Fee",
+                    "Enterprise License",
+                ],
                 "key_assumptions": ["Transaction latency budget is under 150ms"],
-                "risks_and_uncertainties": ["False positive rate during initial warm-up"],
+                "risks_and_uncertainties": [
+                    "False positive rate during initial warm-up"
+                ],
                 "missing_information": [],
                 "suggested_follow_up_questions": [],
-                "provenance": {"problem_statement": ProvenanceCategory.USER_PROVIDED.value},
-                "ai_metadata": {"provider": "google-gemini", "model": "gemini-1.5-flash", "confidence": 0.91, "mode": "LIVE_AI"},
+                "provenance": {
+                    "problem_statement": ProvenanceCategory.USER_PROVIDED.value
+                },
+                "ai_metadata": {
+                    "provider": "google-gemini",
+                    "model": "gemini-1.5-flash",
+                    "confidence": 0.91,
+                    "mode": "LIVE_AI",
+                },
             },
             {
                 "id": "opp_demo_design_sys",
@@ -241,15 +338,33 @@ def seed_demo_data() -> None:
                 "industry": "Design Systems",
                 "value_proposition": "Accelerate product delivery by 3x while ensuring 100% accessibility compliance.",
                 "target_customer_segments": ["Fintech Startups", "Developer Teams"],
-                "customer_pain_points": ["Inconsistent UI", "Accessibility compliance audits"],
-                "required_skills_and_resources": ["Figma", "React", "Tailwind CSS", "WCAG 2.1 Guidelines"],
-                "potential_business_models": ["Productized Service", "One-Time Asset License"],
+                "customer_pain_points": [
+                    "Inconsistent UI",
+                    "Accessibility compliance audits",
+                ],
+                "required_skills_and_resources": [
+                    "Figma",
+                    "React",
+                    "Tailwind CSS",
+                    "WCAG 2.1 Guidelines",
+                ],
+                "potential_business_models": [
+                    "Productized Service",
+                    "One-Time Asset License",
+                ],
                 "key_assumptions": ["Tech stack uses modern React/Next.js"],
                 "risks_and_uncertainties": [],
                 "missing_information": [],
                 "suggested_follow_up_questions": [],
-                "provenance": {"problem_statement": ProvenanceCategory.USER_PROVIDED.value},
-                "ai_metadata": {"provider": "google-gemini", "model": "gemini-1.5-flash", "confidence": 0.95, "mode": "LIVE_AI"},
+                "provenance": {
+                    "problem_statement": ProvenanceCategory.USER_PROVIDED.value
+                },
+                "ai_metadata": {
+                    "provider": "google-gemini",
+                    "model": "gemini-1.5-flash",
+                    "confidence": 0.95,
+                    "mode": "LIVE_AI",
+                },
             },
         ]
 
@@ -368,7 +483,13 @@ def seed_demo_data() -> None:
         db.flush()
 
         # Proposal Revision record
-        rev = db.query(ProposalRevision).filter(ProposalRevision.proposal_id == prop.id, ProposalRevision.version == 1).first()
+        rev = (
+            db.query(ProposalRevision)
+            .filter(
+                ProposalRevision.proposal_id == prop.id, ProposalRevision.version == 1
+            )
+            .first()
+        )
         if not rev:
             rev = ProposalRevision(
                 proposal_id=prop.id,
@@ -485,10 +606,14 @@ def seed_demo_data() -> None:
         # ---------------------------------------------------------------------
         # 6. Deal Room Milestones Execution & Evidence
         # ---------------------------------------------------------------------
-        ms1 = db.query(MilestoneExecution).filter(
-            MilestoneExecution.room_id == room.id,
-            MilestoneExecution.milestone_index == 0,
-        ).first()
+        ms1 = (
+            db.query(MilestoneExecution)
+            .filter(
+                MilestoneExecution.room_id == room.id,
+                MilestoneExecution.milestone_index == 0,
+            )
+            .first()
+        )
 
         if not ms1:
             ms1 = MilestoneExecution(
@@ -498,7 +623,10 @@ def seed_demo_data() -> None:
                 milestone_index=0,
                 title="Stage 1: Core Architecture & Ingestion Pipeline",
                 description="Deliver modular FastAPI service, PostgreSQL schema, and automated ingestion of multi-currency ledger CSV feeds.",
-                expected_deliverables=["FastAPI Core Ingestion Service", "PostgreSQL Schema & Migration Scripts"],
+                expected_deliverables=[
+                    "FastAPI Core Ingestion Service",
+                    "PostgreSQL Schema & Migration Scripts",
+                ],
                 agreed_amount=Decimal("3000.00"),
                 currency="USD",
                 due_days=14,
@@ -522,7 +650,12 @@ def seed_demo_data() -> None:
                 description="Completed the core FastAPI ingestion endpoints with comprehensive test coverage, Docker Compose file, and database migrations.",
                 evidence_type=MilestoneEvidenceType.CODE_REPOSITORY.value,
                 reference_url="https://github.com/paypilot/reconciliation-engine",
-                attachments=[{"type": "link", "url": "https://github.com/paypilot/reconciliation-engine/releases/tag/v1.0.0"}],
+                attachments=[
+                    {
+                        "type": "link",
+                        "url": "https://github.com/paypilot/reconciliation-engine/releases/tag/v1.0.0",
+                    }
+                ],
                 status=EvidenceReviewStatus.APPROVED.value,
             )
             db.add(ev1)
@@ -539,10 +672,14 @@ def seed_demo_data() -> None:
             db.add(rev1)
             print("  + Milestone 1 created (APPROVED, READY_FOR_PAYMENT_REVIEW)")
 
-        ms2 = db.query(MilestoneExecution).filter(
-            MilestoneExecution.room_id == room.id,
-            MilestoneExecution.milestone_index == 1,
-        ).first()
+        ms2 = (
+            db.query(MilestoneExecution)
+            .filter(
+                MilestoneExecution.room_id == room.id,
+                MilestoneExecution.milestone_index == 1,
+            )
+            .first()
+        )
 
         if not ms2:
             ms2 = MilestoneExecution(
@@ -552,7 +689,10 @@ def seed_demo_data() -> None:
                 milestone_index=1,
                 title="Stage 2: Fuzzy Reconciliation & Rule Engine",
                 description="Implement matching heuristics, tolerance window filters, and discrepancy flagging mechanisms.",
-                expected_deliverables=["Fuzzy Matching & Rule-Based Reconciliation Engine", "Pytest Suite (>90% coverage)"],
+                expected_deliverables=[
+                    "Fuzzy Matching & Rule-Based Reconciliation Engine",
+                    "Pytest Suite (>90% coverage)",
+                ],
                 agreed_amount=Decimal("4000.00"),
                 currency="USD",
                 due_days=21,
@@ -581,10 +721,14 @@ def seed_demo_data() -> None:
             db.add(ev2)
             print("  + Milestone 2 created (SUBMITTED_FOR_REVIEW)")
 
-        ms3 = db.query(MilestoneExecution).filter(
-            MilestoneExecution.room_id == room.id,
-            MilestoneExecution.milestone_index == 2,
-        ).first()
+        ms3 = (
+            db.query(MilestoneExecution)
+            .filter(
+                MilestoneExecution.room_id == room.id,
+                MilestoneExecution.milestone_index == 2,
+            )
+            .first()
+        )
 
         if not ms3:
             ms3 = MilestoneExecution(
@@ -594,7 +738,10 @@ def seed_demo_data() -> None:
                 milestone_index=2,
                 title="Stage 3: Integration Verification & Production Handover",
                 description="Deliver comprehensive integration test suite, performance benchmarks, and deployment documentation.",
-                expected_deliverables=["Deployment Configuration & API Documentation", "Production Runbook"],
+                expected_deliverables=[
+                    "Deployment Configuration & API Documentation",
+                    "Production Runbook",
+                ],
                 agreed_amount=Decimal("3000.00"),
                 currency="USD",
                 due_days=14,

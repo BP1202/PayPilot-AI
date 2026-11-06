@@ -167,17 +167,13 @@ def upgrade() -> None:
     op.create_index(
         "ix_milestone_evidence_milestone_id", "milestone_evidence", ["milestone_id"]
     )
-    op.create_index(
-        "ix_milestone_evidence_room_id", "milestone_evidence", ["room_id"]
-    )
+    op.create_index("ix_milestone_evidence_room_id", "milestone_evidence", ["room_id"])
     op.create_index(
         "ix_milestone_evidence_submitted_by_id",
         "milestone_evidence",
         ["submitted_by_id"],
     )
-    op.create_index(
-        "ix_milestone_evidence_status", "milestone_evidence", ["status"]
-    )
+    op.create_index("ix_milestone_evidence_status", "milestone_evidence", ["status"])
 
     # 3. milestone_reviews table
     op.create_table(

@@ -51,7 +51,9 @@ def upgrade() -> None:
         sa.Column("agreed_scope_of_work", sa.Text(), nullable=True),
         sa.Column("agreed_deliverables", sa.JSON(), nullable=False),
         sa.Column("agreed_budget_amount", sa.Numeric(12, 2), nullable=True),
-        sa.Column("agreed_currency", sa.String(3), nullable=False, server_default="USD"),
+        sa.Column(
+            "agreed_currency", sa.String(3), nullable=False, server_default="USD"
+        ),
         sa.Column("agreed_timeline_summary", sa.String(255), nullable=True),
         sa.Column("agreed_estimated_duration_days", sa.Integer(), nullable=True),
         sa.Column("agreed_milestones", sa.JSON(), nullable=False),
@@ -72,10 +74,24 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
     )
-    op.create_index(op.f("ix_deal_rooms_proposal_id"), "deal_rooms", ["proposal_id"], unique=True)
-    op.create_index(op.f("ix_deal_rooms_connection_id"), "deal_rooms", ["connection_id"], unique=False)
-    op.create_index(op.f("ix_deal_rooms_opportunity_id"), "deal_rooms", ["opportunity_id"], unique=False)
-    op.create_index(op.f("ix_deal_rooms_status"), "deal_rooms", ["status"], unique=False)
+    op.create_index(
+        op.f("ix_deal_rooms_proposal_id"), "deal_rooms", ["proposal_id"], unique=True
+    )
+    op.create_index(
+        op.f("ix_deal_rooms_connection_id"),
+        "deal_rooms",
+        ["connection_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_rooms_opportunity_id"),
+        "deal_rooms",
+        ["opportunity_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_rooms_status"), "deal_rooms", ["status"], unique=False
+    )
 
     # 2. deal_room_participants table
     op.create_table(
@@ -107,8 +123,18 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
     )
-    op.create_index(op.f("ix_deal_room_participants_room_id"), "deal_room_participants", ["room_id"], unique=False)
-    op.create_index(op.f("ix_deal_room_participants_user_id"), "deal_room_participants", ["user_id"], unique=False)
+    op.create_index(
+        op.f("ix_deal_room_participants_room_id"),
+        "deal_room_participants",
+        ["room_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_room_participants_user_id"),
+        "deal_room_participants",
+        ["user_id"],
+        unique=False,
+    )
 
     # 3. deal_room_activities table
     op.create_table(
@@ -136,10 +162,30 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
     )
-    op.create_index(op.f("ix_deal_room_activities_room_id"), "deal_room_activities", ["room_id"], unique=False)
-    op.create_index(op.f("ix_deal_room_activities_actor_id"), "deal_room_activities", ["actor_id"], unique=False)
-    op.create_index(op.f("ix_deal_room_activities_activity_type"), "deal_room_activities", ["activity_type"], unique=False)
-    op.create_index(op.f("ix_deal_room_activities_created_at"), "deal_room_activities", ["created_at"], unique=False)
+    op.create_index(
+        op.f("ix_deal_room_activities_room_id"),
+        "deal_room_activities",
+        ["room_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_room_activities_actor_id"),
+        "deal_room_activities",
+        ["actor_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_room_activities_activity_type"),
+        "deal_room_activities",
+        ["activity_type"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_room_activities_created_at"),
+        "deal_room_activities",
+        ["created_at"],
+        unique=False,
+    )
 
     # 4. deal_room_documents table
     op.create_table(
@@ -173,8 +219,18 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
     )
-    op.create_index(op.f("ix_deal_room_documents_room_id"), "deal_room_documents", ["room_id"], unique=False)
-    op.create_index(op.f("ix_deal_room_documents_uploaded_by_id"), "deal_room_documents", ["uploaded_by_id"], unique=False)
+    op.create_index(
+        op.f("ix_deal_room_documents_room_id"),
+        "deal_room_documents",
+        ["room_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_room_documents_uploaded_by_id"),
+        "deal_room_documents",
+        ["uploaded_by_id"],
+        unique=False,
+    )
 
     # 5. deal_room_notes table
     op.create_table(
@@ -194,7 +250,9 @@ def upgrade() -> None:
         ),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("is_pinned", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column(
+            "is_pinned", sa.Boolean(), nullable=False, server_default=sa.text("false")
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -208,8 +266,15 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
     )
-    op.create_index(op.f("ix_deal_room_notes_room_id"), "deal_room_notes", ["room_id"], unique=False)
-    op.create_index(op.f("ix_deal_room_notes_author_id"), "deal_room_notes", ["author_id"], unique=False)
+    op.create_index(
+        op.f("ix_deal_room_notes_room_id"), "deal_room_notes", ["room_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_deal_room_notes_author_id"),
+        "deal_room_notes",
+        ["author_id"],
+        unique=False,
+    )
 
     # 6. deal_room_clarifications table
     op.create_table(
@@ -244,9 +309,24 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
     )
-    op.create_index(op.f("ix_deal_room_clarifications_room_id"), "deal_room_clarifications", ["room_id"], unique=False)
-    op.create_index(op.f("ix_deal_room_clarifications_asked_by_id"), "deal_room_clarifications", ["asked_by_id"], unique=False)
-    op.create_index(op.f("ix_deal_room_clarifications_status"), "deal_room_clarifications", ["status"], unique=False)
+    op.create_index(
+        op.f("ix_deal_room_clarifications_room_id"),
+        "deal_room_clarifications",
+        ["room_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_room_clarifications_asked_by_id"),
+        "deal_room_clarifications",
+        ["asked_by_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_deal_room_clarifications_status"),
+        "deal_room_clarifications",
+        ["status"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:
@@ -256,4 +336,3 @@ def downgrade() -> None:
     op.drop_table("deal_room_activities")
     op.drop_table("deal_room_participants")
     op.drop_table("deal_rooms")
-

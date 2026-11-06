@@ -394,8 +394,12 @@ class OpportunityService:
             q=safe_q,
             intent=intent_filter,
             category=category_filter,
-            industry=industry_filter.strip() if industry_filter and industry_filter.strip() else None,
-            skill=skill_filter.strip() if skill_filter and skill_filter.strip() else None,
+            industry=industry_filter.strip()
+            if industry_filter and industry_filter.strip()
+            else None,
+            skill=skill_filter.strip()
+            if skill_filter and skill_filter.strip()
+            else None,
             sort=sort,
             limit=safe_limit,
             offset=offset,
