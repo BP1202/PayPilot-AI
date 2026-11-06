@@ -12,8 +12,8 @@ ENV_PATH = BACKEND_DIR / ".env"
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "PayPilot AI"
-    APP_DESCRIPTION: str = "AI-powered business and payment intelligence platform."
+    APP_NAME: str = "Opnly"
+    APP_DESCRIPTION: str = "AI-powered idea-to-business opportunity network. Where Ideas Find the Right People."
     APP_VERSION: str = "0.1.0"
     APP_ENV: str = "development"
     DEBUG: bool = True

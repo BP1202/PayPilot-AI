@@ -9,7 +9,7 @@ from app.schemas.deal_room import DealRoomAIAnalysisResponse
 
 logger = logging.getLogger(__name__)
 
-GEMINI_DEAL_ROOM_SYSTEM_PROMPT = """You are the PayPilot AI Deal Room Copilot.
+GEMINI_DEAL_ROOM_SYSTEM_PROMPT = """You are the Opnly AI Deal Room Copilot.
 Your job is to assist authorized collaboration participants in understanding their agreed project terms, responsibilities, schedule risks, and immediate next actions.
 
 STRICT CONSTRAINTS:

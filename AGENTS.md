@@ -1,8 +1,8 @@
-# AGENTS.md — PayPilot AI Repository-Wide Agent Guidelines
+# AGENTS.md — Opnly Repository-Wide Agent Guidelines
 
 ## 1. Purpose
 
-This file defines the mandatory working standards for every AI coding agent contributing to PayPilot AI.
+This file defines the mandatory working standards for every AI coding agent contributing to Opnly.
 
 Every agent must prioritize:
 
@@ -17,7 +17,7 @@ These rules apply regardless of the AI model, agent, IDE or development tool bei
 
 ## 2. Product Identity and Vision
 
-**Project:** PayPilot AI
+**Project:** Opnly
 
 **Product:** AI-powered Idea-to-Business Opportunity Network.
 
@@ -52,7 +52,7 @@ Potential future participants include customers, distributors, strategic partner
 
 ### Product Boundaries
 
-PayPilot is not intended to become merely:
+Opnly is not intended to become merely:
 
 - A freelance job marketplace.
 - A generic business directory.
@@ -317,7 +317,7 @@ The AI may prepare and recommend payment actions. Authorized backend workflows m
 Follow this workflow for every task:
 
 1. **Understand:** Identify the user request, expected behavior and acceptance criteria.
-2. **Align:** Identify which PayPilot product module and lifecycle stage the task supports.
+2. **Align:** Identify which Opnly product module and lifecycle stage the task supports.
 3. **Select:** Read applicable specialist agent definitions, skills and instruction files.
 4. **Inspect:** Review relevant files, dependencies, tests and existing implementation.
 5. **Plan:** Define a focused implementation plan and identify risks.
@@ -418,7 +418,7 @@ Keep reports factual, concise and useful.
 
 ## Final Rule
 
-Build PayPilot as a trustworthy, AI-powered opportunity-to-business platform.
+Build Opnly as a trustworthy, AI-powered opportunity-to-business platform.
 
 Every feature, agent, skill, API integration and engineering task must contribute to helping people transform ideas and real-world problems into meaningful collaborations and real commercial outcomes.
 

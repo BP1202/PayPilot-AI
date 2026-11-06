@@ -1,125 +1,207 @@
 "use client";
 
 import React from "react";
-import { Handshake, CheckCircle2, Target, Rocket, ArrowRight } from "lucide-react";
+import {
+  Handshake,
+  CheckCircle2,
+  Target,
+  Rocket,
+  ArrowRight,
+  Search,
+  Briefcase,
+  User,
+  PlusCircle,
+  FileText,
+  Layers,
+  Sparkles,
+} from "lucide-react";
 import { OpportunityIntent } from "@/types";
+import { DashboardView } from "./AppSidebar";
+
+export type UserRole = "seeker" | "creator";
 
 interface OpportunityHeroBannerProps {
-  onQuickAction: (intent: OpportunityIntent) => void;
+  role?: UserRole;
+  userName?: string | null;
+  onNavigate?: (view: DashboardView) => void;
+  onQuickAction?: (intent: OpportunityIntent) => void;
+  onCreateOpportunity?: () => void;
 }
 
 export const OpportunityHeroBanner: React.FC<OpportunityHeroBannerProps> = ({
+  role = "seeker",
+  userName,
+  onNavigate,
   onQuickAction,
+  onCreateOpportunity,
 }) => {
+  const isSeeker = role === "seeker";
+
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-indigo-100/90 bg-gradient-to-r from-indigo-50/70 via-white to-violet-50/60 p-6 sm:p-8 shadow-xs space-y-5">
+    <div className="relative overflow-hidden rounded-3xl border border-indigo-100/90 bg-gradient-to-r from-indigo-50/70 via-white to-violet-50/60 p-6 sm:p-8 shadow-xs space-y-6 w-full">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        {/* Left Column: Vision & Heading */}
-        <div className="lg:col-span-4 space-y-2.5">
+        {/* Left Column: Vision & Primary Information */}
+        <div className="lg:col-span-7 space-y-3">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100/80 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
-            <span>PayPilot AI Opportunity Network</span>
+            <Sparkles className="h-3 w-3" />
+            <span>
+              {isSeeker
+                ? "Seeker Workspace · Opnly Opportunity Network"
+                : "Opportunity Creator · Opnly Opportunity Network"}
+            </span>
           </div>
+
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
             Turn Ideas Into Impact —{" "}
             <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-              The Idea-to-Business Opportunity Network
+              {isSeeker
+                ? "Where Talent Finds Real Opportunities"
+                : "Where Business Problems Find Proven Talent"}
             </span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Connect with the right partners, structure real agreements in AI Deal Rooms, and execute verified milestone-based outcomes.
+
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
+            {isSeeker
+              ? "Discover verified commercial initiatives, submit structured milestone proposals, and get paid for verified outcomes in secure AI Deal Rooms."
+              : "Publish your business problems, evaluate candidate capability proposals, and coordinate verified milestone execution in structured AI Deal Rooms."}
           </p>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* Action-First Buttons Row */}
+          <div className="pt-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Action-First Controls
+            </p>
+            {isSeeker ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("browse")}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  <span>Find Opportunities</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("browse")}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-violet-700 transition cursor-pointer"
+                >
+                  <Rocket className="h-3.5 w-3.5" />
+                  <span>Apply Now</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("deal-rooms")}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
+                >
+                  <Briefcase className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>Track Progress</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("profile")}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
+                >
+                  <User className="h-3.5 w-3.5 text-slate-500" />
+                  <span>Build Profile</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onCreateOpportunity) onCreateOpportunity();
+                    else onQuickAction?.("OFFERING_SOLUTION");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
+                >
+                  <PlusCircle className="h-3.5 w-3.5" />
+                  <span>Capture Opportunity</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("collaborations")}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>Review Proposals</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("browse")}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
+                >
+                  <Search className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>Discover Talent</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("opportunities")}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
+                >
+                  <Layers className="h-3.5 w-3.5 text-slate-500" />
+                  <span>Manage Listings</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Secondary Quick Intents */}
+          <div className="flex items-center gap-2 pt-1 text-xs text-slate-500">
+            <span className="font-medium">Quick actions:</span>
             <button
-              onClick={() => onQuickAction("SEEKING_SOLUTION")}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
+              type="button"
+              onClick={() => onQuickAction?.("SEEKING_SOLUTION")}
+              className="font-bold text-indigo-600 hover:text-indigo-800 transition underline underline-offset-2 cursor-pointer"
             >
-              <span>Post a Request</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              Post a Request
             </button>
+            <span>•</span>
             <button
-              onClick={() => onQuickAction("OFFERING_SOLUTION")}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+              type="button"
+              onClick={() => onQuickAction?.("OFFERING_SOLUTION")}
+              className="font-bold text-emerald-600 hover:text-emerald-800 transition underline underline-offset-2 cursor-pointer"
             >
-              <span>Create Opportunity</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              Create Opportunity
             </button>
           </div>
         </div>
 
-        {/* Center Column: Two-Sided Visual Connector */}
-        <div className="lg:col-span-5 flex items-center justify-center py-2">
-          <div className="relative flex items-center justify-center gap-3 sm:gap-6 w-full max-w-md">
-            {/* Left Node: Seeking */}
-            <div
-              onClick={() => onQuickAction("SEEKING_SOLUTION")}
-              className="group flex flex-col items-center text-center cursor-pointer transition hover:scale-105"
-            >
-              <div className="relative mb-2">
-                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full border-2 border-indigo-500 bg-gradient-to-b from-indigo-100 to-indigo-200 flex items-center justify-center shadow-md shadow-indigo-100 overflow-hidden">
-                  <div className="flex h-full w-full items-center justify-center bg-indigo-600/10 text-indigo-700">
-                    <Target className="h-7 w-7" />
-                  </div>
-                </div>
-                <div className="absolute -top-2.5 -right-2 rounded-full bg-white px-2 py-0.5 text-[9px] font-extrabold text-indigo-700 border border-indigo-200 shadow-2xs whitespace-nowrap">
-                  I need something...
-                </div>
-              </div>
-              <span className="rounded-xl bg-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs group-hover:bg-indigo-700 transition">
-                Seek Solutions
+        {/* Right Column: Role Highlights & Value Pillars */}
+        <div className="lg:col-span-5 lg:border-l lg:border-indigo-100 lg:pl-6 space-y-3">
+          <div className="rounded-2xl bg-white/80 p-4 border border-indigo-50 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span className="text-xs font-extrabold text-slate-900">
+                {isSeeker ? "Seeker Capabilities" : "Creator Capabilities"}
               </span>
-              <span className="text-[10px] font-medium text-slate-500 mt-1">
-                Companies · NGOs · Individuals
+              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                Active Role
               </span>
             </div>
 
-            {/* Infinity Connector with Handshake */}
-            <div className="flex flex-col items-center px-1">
-              <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-200">
-                <Handshake className="h-5 w-5 sm:h-6 sm:w-6" />
-              </div>
-            </div>
-
-            {/* Right Node: Offering */}
-            <div
-              onClick={() => onQuickAction("OFFERING_SOLUTION")}
-              className="group flex flex-col items-center text-center cursor-pointer transition hover:scale-105"
-            >
-              <div className="relative mb-2">
-                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full border-2 border-emerald-500 bg-gradient-to-b from-emerald-100 to-emerald-200 flex items-center justify-center shadow-md shadow-emerald-100 overflow-hidden">
-                  <div className="flex h-full w-full items-center justify-center bg-emerald-600/10 text-emerald-700">
-                    <Rocket className="h-7 w-7" />
-                  </div>
+            {(isSeeker
+              ? [
+                  "Discover verified commercial opportunities",
+                  "Submit structured milestone proposals",
+                  "Secure payments tied to delivered outcomes",
+                  "Build verifiable on-chain/platform reputation",
+                ]
+              : [
+                  "Structure complex ideas into commercial drafts",
+                  "Match with specialized independent professionals",
+                  "Negotiate terms in private AI Deal Rooms",
+                  "Release milestone funds upon verified approvals",
+                ]
+            ).map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
+                <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white shadow-2xs">
+                  <CheckCircle2 className="h-3 w-3" />
                 </div>
-                <div className="absolute -top-2.5 -left-2 rounded-full bg-white px-2 py-0.5 text-[9px] font-extrabold text-emerald-700 border border-emerald-200 shadow-2xs whitespace-nowrap">
-                  I can offer something...
-                </div>
+                <span>{item}</span>
               </div>
-              <span className="rounded-xl bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs group-hover:bg-emerald-700 transition">
-                Share Skills & Ideas
-              </span>
-              <span className="text-[10px] font-medium text-slate-500 mt-1">
-                Developers · Startups · Investors
-              </span>
-            </div>
+            ))}
           </div>
-        </div>
-
-        {/* Right Column: Value Checklist */}
-        <div className="lg:col-span-3 lg:border-l lg:border-indigo-100 lg:pl-6 space-y-2.5">
-          {[
-            "Find matched partners",
-            "Collaborate securely",
-            "Get paid for real work",
-            "Grow together",
-          ].map((text, idx) => (
-            <div key={idx} className="flex items-center gap-2.5">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white shadow-2xs">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              </div>
-              <span className="text-xs font-semibold text-slate-700">{text}</span>
-            </div>
-          ))}
         </div>
       </div>
     </div>

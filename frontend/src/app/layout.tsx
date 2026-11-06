@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PayPilot AI — AI Business & Payment Copilot",
-  description: "The AI business copilot that turns decisions into payments and payments into smarter decisions.",
+  title: "Opnly — Where Ideas Find the Right People",
+  description: "The AI-powered idea-to-business opportunity network. Connect with the right people, structure commercial agreements, and execute verified outcomes.",
 };
 
 export default function RootLayout({

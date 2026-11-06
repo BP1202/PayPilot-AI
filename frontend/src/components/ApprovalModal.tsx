@@ -99,7 +99,7 @@ export const ApprovalModal: React.FC<ApprovalModalProps> = ({
         </div>
 
         <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-          <strong>Security Notice:</strong> PayPilot AI never executes payments automatically.
+          <strong>Security Notice:</strong> Opnly never executes payments automatically.
           Funds will be captured via the simulated PayPal provider only upon your explicit confirmation below.
         </div>
 

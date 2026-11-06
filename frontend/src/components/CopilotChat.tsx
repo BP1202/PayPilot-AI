@@ -9,7 +9,7 @@ export const CopilotChat: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ sender: "user" | "bot"; text: string; mode?: string }>>([
     {
       sender: "bot",
-      text: "Hello! I am your PayPilot Business Copilot. Ask me anything about your cashflow, settled revenue, or pending order approvals.",
+      text: "Hello! I am your Opnly Business Copilot. Ask me anything about your cashflow, settled revenue, or pending order approvals.",
       mode: "DETERMINISTIC_DEMO",
     },
   ]);

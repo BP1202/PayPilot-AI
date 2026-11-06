@@ -1,4 +1,4 @@
-name: PayPilot CI
+name: Opnly CI
 
 on:
   push:

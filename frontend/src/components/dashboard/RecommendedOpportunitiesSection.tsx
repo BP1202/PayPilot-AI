@@ -18,9 +18,13 @@ import {
   OpportunityCategory,
   OpportunityCandidate,
   OpportunityMatchesResponse,
+  OpportunityPublic,
   User,
 } from "@/types";
-import { fetchRecommendedOpportunities } from "@/lib/api";
+import {
+  fetchRecommendedOpportunities,
+  fetchPublishedOpportunities,
+} from "@/lib/api";
 import { MatchRationaleCard, getTierBadge } from "@/components/matching/MatchRationaleCard";
 
 interface RecommendedOpportunitiesSectionProps {
@@ -89,6 +93,7 @@ export const RecommendedOpportunitiesSection: React.FC<
 }) => {
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState<OpportunityMatchesResponse | null>(null);
+  const [liveOpportunities, setLiveOpportunities] = useState<OpportunityPublic[]>([]);
   const [expandedRationaleId, setExpandedRationaleId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -97,31 +102,45 @@ export const RecommendedOpportunitiesSection: React.FC<
   }, []);
 
   useEffect(() => {
-    if (!mounted || !currentUser) {
-      setMatches(null);
-      return;
-    }
+    if (!mounted) return;
 
     let isMounted = true;
-    async function loadMatches() {
-      setLoading(true);
-      try {
-        const res = await fetchRecommendedOpportunities(4);
-        if (isMounted) {
-          setMatches(res);
-        }
-      } catch {
-        if (isMounted) {
-          setMatches(null);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+
+    if (currentUser) {
+      async function loadMatches() {
+        setLoading(true);
+        try {
+          const res = await fetchRecommendedOpportunities(4);
+          if (isMounted) {
+            setMatches(res);
+          }
+        } catch {
+          if (isMounted) {
+            setMatches(null);
+          }
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
         }
       }
+      loadMatches();
+    } else {
+      setMatches(null);
+      async function loadLivePublished() {
+        try {
+          const res = await fetchPublishedOpportunities({ limit: 4, sort: "newest" });
+          if (isMounted && res && Array.isArray(res.items) && res.items.length > 0) {
+            setLiveOpportunities(res.items);
+          }
+        } catch {
+          if (isMounted) {
+            setLiveOpportunities([]);
+          }
+        }
+      }
+      loadLivePublished();
     }
-
-    loadMatches();
 
     return () => {
       isMounted = false;
@@ -249,17 +268,21 @@ export const RecommendedOpportunitiesSection: React.FC<
             </p>
             <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
               Add your specialized skills and services to your profile to receive
-              personalized recommendations from the PayPilot opportunity network.
+              personalized recommendations from the Opnly opportunity network.
             </p>
           </div>
         </div>
       ) : (
-        /* Guest exploration view with 4 Demo / Sample Opportunities */
+        /* Guest exploration view: Live network opportunities or Fallback Samples */
         <div className="space-y-3.5">
           <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 text-xs text-indigo-900 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
-              <span className="font-semibold">Example Network Matches</span>
+              <span className="font-semibold">
+                {liveOpportunities.length > 0
+                  ? "Live Network Opportunities"
+                  : "Example Network Matches"}
+              </span>
             </div>
             <span className="text-[11px] text-indigo-600 font-medium hidden sm:inline">
               Your personalized matches will appear here as the opportunity network grows.
@@ -267,79 +290,157 @@ export const RecommendedOpportunitiesSection: React.FC<
           </div>
 
           <div className="space-y-2.5">
-            {DEMO_OPPORTUNITIES.map((demo) => {
-              const isSeeking = demo.intent === "SEEKING_SOLUTION";
-              return (
-                <div
-                  key={demo.id}
-                  className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition space-y-2"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 border border-emerald-200">
-                          {demo.matchScore}% Match
-                        </span>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-600 border border-slate-200">
-                          Sample Opportunity
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[9px] font-bold border ${
-                            isSeeking
-                              ? "bg-purple-50 text-purple-700 border-purple-200"
-                              : "bg-teal-50 text-teal-700 border-teal-200"
-                          }`}
-                        >
-                          {isSeeking ? "Seeking Solution" : "Offering Solution"}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          • {demo.category}
-                        </span>
+            {liveOpportunities.length > 0
+              ? liveOpportunities.map((opp) => {
+                  const isSeeking = opp.intent === "SEEKING_SOLUTION";
+                  return (
+                    <div
+                      key={opp.id}
+                      className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 border border-emerald-200">
+                              Live Network Opportunity
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[9px] font-bold border ${
+                                isSeeking
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : "bg-teal-50 text-teal-700 border-teal-200"
+                              }`}
+                            >
+                              {isSeeking ? "Seeking Solution" : "Offering Solution"}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              • {opp.category}
+                            </span>
+                          </div>
+
+                          <h4 className="text-xs font-bold text-slate-900">
+                            {opp.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 leading-snug line-clamp-2">
+                            {opp.problem_statement || opp.proposed_solution || opp.value_proposition || "Opportunity on Opnly network."}
+                          </p>
+                        </div>
+
+                        {opp.business_name && (
+                          <div className="text-right shrink-0">
+                            <span className="text-xs font-semibold text-slate-700 block">
+                              {opp.business_name}
+                            </span>
+                            {opp.industry && (
+                              <span className="text-[10px] text-slate-400 block mt-0.5">
+                                {opp.industry}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
-                      <h4 className="text-xs font-bold text-slate-900">
-                        {demo.title}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 leading-snug">
-                        {demo.summary}
-                      </p>
-                    </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100/80 text-[10px]">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {opp.required_skills_and_resources && opp.required_skills_and_resources.length > 0 && (
+                            <>
+                              <span className="text-slate-400 font-medium">Skills:</span>
+                              {opp.required_skills_and_resources.slice(0, 3).map((skill, sIdx) => (
+                                <span
+                                  key={sIdx}
+                                  className="rounded bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </>
+                          )}
+                        </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-extrabold text-indigo-700 block">
-                        {demo.budget}
-                      </span>
-                      <span className="text-[10px] text-slate-400 flex items-center justify-end gap-0.5 mt-0.5">
-                        <MapPin className="h-3 w-3" />
-                        {demo.location}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-100/80 text-[10px]">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <span className="text-slate-400 font-medium">Skills:</span>
-                      {demo.skills.map((skill, sIdx) => (
-                        <span
-                          key={sIdx}
-                          className="rounded bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600"
+                        <button
+                          onClick={onExploreAll}
+                          className="font-bold text-indigo-600 hover:text-indigo-800 transition inline-flex items-center gap-0.5 cursor-pointer ml-2"
                         >
-                          {skill}
-                        </span>
-                      ))}
+                          <span>Explore Network</span>
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
-
-                    <button
-                      onClick={onExploreAll}
-                      className="font-bold text-indigo-600 hover:text-indigo-800 transition inline-flex items-center gap-0.5 cursor-pointer ml-2"
+                  );
+                })
+              : DEMO_OPPORTUNITIES.map((demo) => {
+                  const isSeeking = demo.intent === "SEEKING_SOLUTION";
+                  return (
+                    <div
+                      key={demo.id}
+                      className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition space-y-2"
                     >
-                      <span>Explore</span>
-                      <ArrowRight className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 border border-emerald-200">
+                              {demo.matchScore}% Match
+                            </span>
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-600 border border-slate-200">
+                              Sample Opportunity
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[9px] font-bold border ${
+                                isSeeking
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : "bg-teal-50 text-teal-700 border-teal-200"
+                              }`}
+                            >
+                              {isSeeking ? "Seeking Solution" : "Offering Solution"}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              • {demo.category}
+                            </span>
+                          </div>
+
+                          <h4 className="text-xs font-bold text-slate-900">
+                            {demo.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            {demo.summary}
+                          </p>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-extrabold text-indigo-700 block">
+                            {demo.budget}
+                          </span>
+                          <span className="text-[10px] text-slate-400 flex items-center justify-end gap-0.5 mt-0.5">
+                            <MapPin className="h-3 w-3" />
+                            {demo.location}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100/80 text-[10px]">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="text-slate-400 font-medium">Skills:</span>
+                          {demo.skills.map((skill, sIdx) => (
+                            <span
+                              key={sIdx}
+                              className="rounded bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={onExploreAll}
+                          className="font-bold text-indigo-600 hover:text-indigo-800 transition inline-flex items-center gap-0.5 cursor-pointer ml-2"
+                        >
+                          <span>Explore</span>
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
           </div>
         </div>
       )}

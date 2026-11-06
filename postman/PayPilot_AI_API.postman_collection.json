@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "c194a4b2-9221-4fa3-b6d8-9df8c519aa01",
-    "name": "PayPilot AI - Core API Collection",
-    "description": "Production-ready Postman collection for PayPilot AI. Covers health monitoring, AI-assisted business profile onboarding, dashboard metrics, commerce ledger, AI copilot decision support, and payment approval workflows.",
+    "_postman_id": "c194a4b2-opnly-core-collection-v2",
+    "name": "Opnly - Complete Opportunity Network API",
+    "description": "Comprehensive Postman API collection for Opnly (formerly PayPilot AI) \u2014 the AI-Powered Idea-to-Business Opportunity Network. Covers System Health, Auth, Opportunity Studio & Discovery Feed, Profiles, Matchmaking, Connections, Proposals, AI Deal Rooms, Milestone Execution, Payments, and Copilot.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -16,8 +16,12 @@
             "header": [],
             "url": {
               "raw": "{{rootUrl}}/",
-              "host": ["{{rootUrl}}"],
-              "path": [""]
+              "host": [
+                "{{rootUrl}}"
+              ],
+              "path": [
+                ""
+              ]
             },
             "description": "Returns backend service name and running status."
           },
@@ -27,13 +31,8 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Backend is running\", function () {",
-                  "    var json = pm.response.json();",
-                  "    pm.expect(json.status).to.eql(\"running\");",
-                  "});"
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Backend is running', function () { var j = pm.response.json(); pm.expect(j.status).to.eql('running'); });"
                 ],
                 "type": "text/javascript"
               }
@@ -47,8 +46,12 @@
             "header": [],
             "url": {
               "raw": "{{rootUrl}}/health",
-              "host": ["{{rootUrl}}"],
-              "path": ["health"]
+              "host": [
+                "{{rootUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             },
             "description": "System health probe."
           },
@@ -58,13 +61,8 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Service is healthy\", function () {",
-                  "    var json = pm.response.json();",
-                  "    pm.expect(json.status).to.eql(\"healthy\");",
-                  "});"
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Service is healthy', function () { var j = pm.response.json(); pm.expect(j.status).to.eql('healthy'); });"
                 ],
                 "type": "text/javascript"
               }
@@ -72,309 +70,20 @@
           ]
         },
         {
-          "name": "API v1 Health",
+          "name": "API v1 Health Probe",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
-            },
-            "description": "API v1 sub-router health check."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "2. Business Onboarding & Profile",
-      "item": [
-        {
-          "name": "Extract Business Profile (AI Extraction)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"description\": \"ABC Company is an electronics wholesaler based in Ahmedabad, India. We sell electronic components to retailers and receive payments online.\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/business/extract",
-              "host": ["{{baseUrl}}"],
-              "path": ["business", "extract"]
-            },
-            "description": "Extracts structured entity suggestions (name, industry, business_type, country, currency) from natural language text without hallucinating missing fields."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Extracts business name and entities\", function () {",
-                  "    var data = pm.response.json();",
-                  "    pm.expect(data.name).to.eql(\"ABC Company\");",
-                  "    pm.expect(data.industry).to.eql(\"Electronics\");",
-                  "    pm.expect(data.business_type).to.eql(\"Wholesaler\");",
-                  "    pm.expect(data.country).to.eql(\"India\");",
-                  "    pm.expect(data.currency).to.eql(\"INR\");",
-                  "    pm.expect(data.website).to.eql(\"\"); // Anti-hallucination check",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Create Business Profile (Persist to DB)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-User-ID",
-                "value": "{{userId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"ABC Electronics Wholesale\",\n  \"currency\": \"INR\",\n  \"industry\": \"Electronics\",\n  \"business_type\": \"Wholesaler\",\n  \"country\": \"India\",\n  \"website\": \"https://abcelectronics.example.com\",\n  \"description\": \"Specialized wholesale distributor of electronic components in Ahmedabad.\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/business",
-              "host": ["{{baseUrl}}"],
-              "path": ["business"]
-            },
-            "description": "Creates and persists a verified business profile in PostgreSQL, belonging to the authenticated user."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 201 Created\", function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "var data = pm.response.json();",
-                  "pm.test(\"Profile created with ID and user association\", function () {",
-                  "    pm.expect(data.id).to.be.a('number');",
-                  "    pm.expect(data.name).to.eql(\"ABC Electronics Wholesale\");",
-                  "    pm.expect(data.user_id).to.eql(pm.environment.get(\"userId\"));",
-                  "});",
-                  "pm.environment.set(\"createdBusinessId\", data.id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get Current User Business Profile (/me)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-User-ID",
-                "value": "{{userId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/business/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["business", "me"]
-            },
-            "description": "Retrieves the active profile for the authenticated owner."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Returns business schema\", function () {",
-                  "    var data = pm.response.json();",
-                  "    pm.expect(data).to.have.property('name');",
-                  "    pm.expect(data).to.have.property('currency');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "List User Business Profiles",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-User-ID",
-                "value": "{{userId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/business",
-              "host": ["{{baseUrl}}"],
-              "path": ["business"]
-            },
-            "description": "Lists all business profiles configured for the authenticated user."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Response is an array of businesses\", function () {",
-                  "    var data = pm.response.json();",
-                  "    pm.expect(Array.isArray(data)).to.be.true;",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "3. Dashboard & Metrics",
-      "item": [
-        {
-          "name": "Dashboard Overview",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-User-ID",
-                "value": "{{userId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/dashboard/overview",
-              "host": ["{{baseUrl}}"],
-              "path": ["dashboard", "overview"]
-            },
-            "description": "Retrieves the primary KPIs: total revenue, completed transaction count, pending count, pending receivables, and business profile."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Contains business and totals objects\", function () {",
-                  "    var data = pm.response.json();",
-                  "    pm.expect(data).to.have.property('business');",
-                  "    pm.expect(data).to.have.property('totals');",
-                  "    pm.expect(data.totals).to.have.property('total_revenue');",
-                  "    pm.expect(data.totals).to.have.property('completed_count');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "4. Commerce Ledger",
-      "item": [
-        {
-          "name": "List All Transactions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-User-ID",
-                "value": "{{userId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/ledger",
-              "host": ["{{baseUrl}}"],
-              "path": ["ledger"]
-            },
-            "description": "Retrieves transactions from the commerce ledger."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Items array is present\", function () {",
-                  "    var data = pm.response.json();",
-                  "    pm.expect(Array.isArray(data.items)).to.be.true;",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "List Transactions Filtered by Status (PENDING)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-User-ID",
-                "value": "{{userId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/ledger?status=PENDING",
-              "host": ["{{baseUrl}}"],
-              "path": ["ledger"],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "PENDING"
-                }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
               ]
             },
-            "description": "Retrieves pending receivables awaiting capture or owner approval."
+            "description": "API v1 route verification used by frontend health banner."
           },
           "response": [],
           "event": [
@@ -382,40 +91,87 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "var data = pm.response.json();",
-                  "if (data.items.length > 0) {",
-                  "    pm.environment.set(\"transactionRef\", data.items[0].transaction_ref);",
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API v1 is healthy', function () { var j = pm.response.json(); pm.expect(j.status).to.eql('healthy'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication & Session",
+      "item": [
+        {
+          "name": "Register New User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex.vance@example.com\",\n  \"password\": \"Password123!\",\n  \"full_name\": \"Alex Vance\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registers a new user account on the Opnly Opportunity Network."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Successful registration (200 or 201)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]); });",
+                  "if (pm.response.code < 300) {",
+                  "  var j = pm.response.json();",
+                  "  if (j.access_token) pm.environment.set('accessToken', j.access_token);",
                   "}"
                 ],
                 "type": "text/javascript"
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "5. AI Copilot Decision Support",
-      "item": [
+        },
         {
-          "name": "Get Copilot Recommendation",
+          "name": "Login User & Acquire Token",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
               {
-                "key": "X-User-ID",
-                "value": "{{userId}}"
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/copilot/recommendation",
-              "host": ["{{baseUrl}}"],
-              "path": ["copilot", "recommendation"]
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex.vance@example.com\",\n  \"password\": \"Password123!\"\n}"
             },
-            "description": "Computes working capital acceleration impact and generates owner approval recommendation grounded in verified ledger data."
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates user credentials and captures JWT bearer token into environment."
           },
           "response": [],
           "event": [
@@ -423,15 +179,11 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Contains financial impact projection\", function () {",
-                  "    var data = pm.response.json();",
-                  "    pm.expect(data).to.have.property('title');",
-                  "    pm.expect(data).to.have.property('mode');",
-                  "    pm.expect(data).to.have.property('financial_impact');",
-                  "});"
+                  "pm.test('Login returns 200 with JWT', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test('Has access_token', function () { pm.expect(j.access_token).to.be.a('string'); });",
+                  "pm.environment.set('accessToken', j.access_token);",
+                  "if (j.user && j.user.id) pm.environment.set('userId', j.user.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -439,29 +191,26 @@
           ]
         },
         {
-          "name": "Ask Copilot Chat",
+          "name": "Get Current Session (Auth Me)",
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-User-ID",
-                "value": "{{userId}}"
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"prompt\": \"What is our settled revenue and pending receivables status?\"\n}"
-            },
             "url": {
-              "raw": "{{baseUrl}}/copilot/chat",
-              "host": ["{{baseUrl}}"],
-              "path": ["copilot", "chat"]
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
             },
-            "description": "Interacts with PayPilot AI assistant grounded in deterministic commerce data."
+            "description": "Validates the current JWT token and returns authenticated user identity."
           },
           "response": [],
           "event": [
@@ -469,14 +218,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test(\"Returns valid reply and context\", function () {",
-                  "    var data = pm.response.json();",
-                  "    pm.expect(data.reply).to.be.a('string');",
-                  "    pm.expect(data.context_summary).to.be.an('object');",
-                  "});"
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
                 ],
                 "type": "text/javascript"
               }
@@ -486,10 +228,765 @@
       ]
     },
     {
-      "name": "6. Payment Approval Workflows",
+      "name": "3. Opportunity Network & Discovery",
       "item": [
         {
-          "name": "Approve Customer Payment (Owner Approval)",
+          "name": "Discover Published Opportunities (Public Feed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/opportunities/published?page=1&limit=9&sort=newest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "opportunities",
+                "published"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "9"
+                },
+                {
+                  "key": "sort",
+                  "value": "newest"
+                }
+              ]
+            },
+            "description": "Public discovery feed. Called by the homepage and Explore Network view."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test('Returns items array', function () { pm.expect(j.items).to.be.an('array'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Opportunities by Keyword (Search Bar)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/opportunities/published?q=Fintech&limit=9",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "opportunities",
+                "published"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Fintech"
+                },
+                {
+                  "key": "limit",
+                  "value": "9"
+                }
+              ]
+            },
+            "description": "Filters opportunities by search keyword across title, description, and skills."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Opportunity Draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Real-Time Ledger Settlement for Freight Carriers\",\n  \"submission_type\": \"BUSINESS_PROBLEM\",\n  \"intent\": \"SEEKING_SOLUTION\",\n  \"category\": \"FINTECH\",\n  \"problem_statement\": \"Manual freight reconciliation causes 45-day payment cycles and cash-flow friction.\",\n  \"proposed_solution\": \"Automated dual-entry accounting ledger with milestone-based settlement.\",\n  \"industry\": \"Logistics & Supply Chain\",\n  \"value_proposition\": \"Reduces invoice disputes by 90% and accelerates payouts from 45 days to 24 hours.\",\n  \"target_customer_segments\": [\n    \"Midwest Freight Carriers\",\n    \"3PL Brokers\"\n  ],\n  \"customer_pain_points\": [\n    \"45-day payout delays\",\n    \"Duplicate billing errors\"\n  ],\n  \"required_skills_and_resources\": [\n    \"FastAPI\",\n    \"Next.js\",\n    \"Payment APIs\"\n  ],\n  \"potential_business_models\": [\n    \"SaaS Subscription\",\n    \"0.5% per settled freight volume\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/opportunities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "opportunities"
+              ]
+            },
+            "description": "Creates a structured opportunity draft in the user's workspace."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var j = pm.response.json();",
+                  "if (j.id) pm.environment.set('opportunityId', j.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List User's Opportunity Drafts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/opportunities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "opportunities"
+              ]
+            },
+            "description": "Fetches opportunities created by the authenticated user."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI Business Analyst Evaluation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Autonomous Drone Fleet for Rural Healthcare Delivery\",\n  \"submission_type\": \"PRODUCT_IDEA\",\n  \"raw_text\": \"We want to deliver critical temperature-sensitive vaccines to remote mountain communities using long-range electric VTOL drones.\",\n  \"intent\": \"OFFERING_SOLUTION\",\n  \"category\": \"TECH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/opportunities/analyze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "opportunities",
+                "analyze"
+              ]
+            },
+            "description": "Evaluates commercial viability, assumptions, and business models with AI."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.test('Analysis returns structured fields', function () { pm.expect(j.title).to.be.a('string'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish Opportunity to Network",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visibility\": \"PUBLIC\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/opportunities/{{opportunityId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "opportunities",
+                "{{opportunityId}}",
+                "publish"
+              ]
+            },
+            "description": "Publishes an approved opportunity draft to the public discovery network."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 404', function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Intelligent Matchmaking",
+      "item": [
+        {
+          "name": "Get Recommended Opportunities for Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/matches/opportunities?limit=4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "matches",
+                "opportunities"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "4"
+                }
+              ]
+            },
+            "description": "Generates AI match scores and transparent rationales based on user's profile and skills."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Recommended Candidates for Opportunity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/matches/candidates/{{opportunityId}}?limit=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "matches",
+                "candidates",
+                "{{opportunityId}}"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Finds candidate participants across the network compatible with an opportunity."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 404', function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Profiles & Identity",
+      "item": [
+        {
+          "name": "Get My Combined Profiles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/profiles/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "profiles",
+                "me"
+              ]
+            },
+            "description": "Retrieves the authenticated user's individual profile and associated businesses."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Individual Profile (Skills & Bio)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"headline\": \"Senior Full-Stack & Payment Systems Architect\",\n  \"bio\": \"Over 10 years experience building scalable fintech, API infrastructure, and real-time ledger settlement engines.\",\n  \"location\": \"Austin, TX / Remote\",\n  \"skills\": [\n    \"Python\",\n    \"FastAPI\",\n    \"Next.js\",\n    \"Payment Rails\",\n    \"PostgreSQL\"\n  ],\n  \"interests\": [\n    \"Fintech\",\n    \"Opportunity Networks\",\n    \"CleanTech\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profiles/me/individual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "profiles",
+                "me",
+                "individual"
+              ]
+            },
+            "description": "Persists individual profile details powering matchmaking recommendations."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Connections & Proposals",
+      "item": [
+        {
+          "name": "Send Connection Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_user_id\": \"{{userId}}\",\n  \"opportunity_id\": \"{{opportunityId}}\",\n  \"intent\": \"COLLABORATION\",\n  \"note\": \"Hi! We saw your real-time ledger initiative and would love to partner on the payment settlement engine.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/connections/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "connections",
+                "requests"
+              ]
+            },
+            "description": "Initiates a connection request between participants."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200, 201, or 400', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Incoming Connection Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/connections/requests?type=incoming",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "connections",
+                "requests"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "incoming"
+                }
+              ]
+            },
+            "description": "Lists pending connection requests sent to the user."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Commercial Proposal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Milestone-Based Ledger Settlement Implementation\",\n  \"description\": \"Turnkey engineering services to deploy the real-time reconciliation engine.\",\n  \"scope_of_work\": \"Architecture design, double-entry ledger backend, Next.js dashboard, and PayPal Sandbox integration.\",\n  \"total_amount\": 12500.0,\n  \"currency\": \"USD\",\n  \"timeline_weeks\": 6,\n  \"milestones\": [\n    {\n      \"title\": \"M1: Architecture & Database Schema\",\n      \"amount\": 3500.0,\n      \"description\": \"Dual-entry ledger schema and Alembic migrations.\"\n    },\n    {\n      \"title\": \"M2: API Endpoints & Auth\",\n      \"amount\": 4500.0,\n      \"description\": \"FastAPI REST routes and JWT verification.\"\n    },\n    {\n      \"title\": \"M3: Production Verification\",\n      \"amount\": 4500.0,\n      \"description\": \"End-to-end integration tests and documentation.\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/proposals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proposals"
+              ]
+            },
+            "description": "Submits a commercial proposal with milestone breakdown."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var j = pm.response.json();",
+                  "if (j.id) pm.environment.set('proposalId', j.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. AI Deal Rooms",
+      "item": [
+        {
+          "name": "List Active Deal Rooms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/deal-rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deal-rooms"
+              ]
+            },
+            "description": "Lists AI Deal Room collaboration workspaces where user is an authorized participant."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI Deal Room Analysis & Progress Audit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/deal-rooms/{{dealRoomId}}/ai/analyze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deal-rooms",
+                "{{dealRoomId}}",
+                "ai",
+                "analyze"
+              ]
+            },
+            "description": "Executes AI Deal Room Copilot analysis across notes, milestones, and deliverable readiness."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 404', function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Dashboard & Payments",
+      "item": [
+        {
+          "name": "Dashboard Financial Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "overview"
+              ]
+            },
+            "description": "Business KPIs: settled revenue, pending receivables, transaction volume."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commerce Ledger Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ledger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger"
+              ]
+            },
+            "description": "Audit trail of commercial transactions and payments."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI Copilot Decision Support Recommendation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/copilot/recommendation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "copilot",
+                "recommendation"
+              ]
+            },
+            "description": "Grounded AI decision intelligence for working capital and milestone payments."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Copilot Grounded Natural Language Chat",
           "request": {
             "method": "POST",
             "header": [
@@ -500,18 +997,27 @@
               {
                 "key": "X-User-ID",
                 "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"transaction_ref\": \"{{transactionRef}}\",\n  \"owner_approved\": true,\n  \"idempotency_key\": \"postman-exec-{{$timestamp}}\"\n}"
+              "raw": "{\n  \"prompt\": \"How is our opportunity network revenue progressing?\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/payments/approve",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "approve"]
+              "raw": "{{baseUrl}}/copilot/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "copilot",
+                "chat"
+              ]
             },
-            "description": "Executes owner-approved payment capture with idempotency guarantees."
+            "description": "Inquire with AI copilot regarding orders, milestones, or revenues."
           },
           "response": [],
           "event": [
@@ -519,9 +1025,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 200 or 400 (if already captured/invalid)\", function () {",
-                  "    pm.expect([200, 400]).to.include(pm.response.code);",
-                  "});"
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
                 ],
                 "type": "text/javascript"
               }
@@ -530,20 +1034,5 @@
         }
       ]
     }
-  ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "exec": [
-          "// Collection-level pre-request setup",
-          "if (!pm.environment.get(\"userId\")) {",
-          "    pm.environment.set(\"userId\", \"owner_default\");",
-          "}"
-        ],
-        "type": "text/javascript"
-      }
-    }
   ]
 }
-

@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Home from "@/app/page";
 import * as api from "@/lib/api";
 import {
@@ -137,6 +137,10 @@ const mockOppList: OpportunityListResponse = {
 describe("Home Page Dashboard & Connectivity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", "/");
+      localStorage.clear();
+    }
     vi.mocked(api.getStoredUser).mockReturnValue(null);
     vi.mocked(api.getAccessToken).mockReturnValue(null);
     vi.mocked(api.fetchDashboardOverview).mockResolvedValue(mockOverview);
@@ -146,29 +150,32 @@ describe("Home Page Dashboard & Connectivity", () => {
     vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
   });
 
-  it("renders opportunity network hero, how it works, and recommended sample opportunities on homepage", async () => {
+  it("renders action-first opportunity network hero, role indicator, and recommended sample opportunities on homepage", async () => {
     render(<Home />);
 
     await waitFor(() => {
       // Hero headline
       expect(screen.getAllByText(/Turn Ideas Into Impact/i).length).toBeGreaterThanOrEqual(1);
-      // Primary CTAs
+      // Action-First Buttons for Seeker
+      expect(screen.getAllByText("Find Opportunities").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("Apply Now")).toBeInTheDocument();
+      expect(screen.getByText("Track Progress")).toBeInTheDocument();
+      expect(screen.getByText("Build Profile")).toBeInTheDocument();
+      // Primary quick CTAs
       expect(screen.getAllByText("Post a Request").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("Create Opportunity").length).toBeGreaterThanOrEqual(1);
-      // How It Works section
-      expect(screen.getByText("How PayPilot Works")).toBeInTheDocument();
-      expect(screen.getByText("01")).toBeInTheDocument();
-      expect(screen.getByText("Capture & Structure")).toBeInTheDocument();
-      // Trust section
-      expect(screen.getByText("Built for Commercial Confidence")).toBeInTheDocument();
+      // Active role is displayed
+      expect(screen.getAllByText("Seeker").length).toBeGreaterThanOrEqual(1);
       // Sample / demo opportunity
       expect(screen.getByText("AI Automated Financial Reconciliation Engine")).toBeInTheDocument();
     });
 
-    // Commerce Ledger, Copilot Chat, and KPI cards are NOT on homepage
+    // Commerce Ledger, Copilot Chat, KPI cards, and repetitive marketing are NOT on homepage
     expect(screen.queryByText("Commerce Ledger")).not.toBeInTheDocument();
     expect(screen.queryByText("Copilot Business Assistant")).not.toBeInTheDocument();
     expect(screen.queryByText("Settled Revenue")).not.toBeInTheDocument();
+    expect(screen.queryByText("How Opnly Works")).not.toBeInTheDocument();
+    expect(screen.queryByText("Built for Commercial Confidence")).not.toBeInTheDocument();
   });
 
   it("renders data successfully when navigating to Payments & Earnings view", async () => {
@@ -224,7 +231,7 @@ describe("Home Page Dashboard & Connectivity", () => {
 
   it("sanitizes raw technical errors so zero technical jargon or URLs are revealed on the UI", async () => {
     vi.mocked(api.fetchDashboardOverview).mockRejectedValue(
-      new Error("Unable to connect to PayPilot backend at http://127.0.0.1:8000/api/v1. Status 500.")
+      new Error("Unable to connect to Opnly backend at http://127.0.0.1:8000/api/v1. Status 500.")
     );
 
     render(<Home />);
@@ -313,6 +320,10 @@ describe("Home Page Dashboard & Connectivity", () => {
 describe("Opportunity Drafts Visibility for Authenticated Users", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", "/");
+    }
+    localStorage.setItem("opnly_active_role", "creator");
     vi.mocked(api.getStoredUser).mockReturnValue(mockUser);
     vi.mocked(api.getAccessToken).mockReturnValue("mock_valid_token");
     vi.mocked(api.fetchDashboardOverview).mockResolvedValue(mockOverview);
@@ -320,6 +331,10 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(mockLedger);
     vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
     vi.mocked(api.fetchUserOpportunities).mockResolvedValue(mockOppList);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem("opnly_active_role");
   });
 
   it("loads and displays authenticated user's opportunities when user has active session", async () => {

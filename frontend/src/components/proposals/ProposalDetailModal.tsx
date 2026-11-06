@@ -183,7 +183,7 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
                 Collaboration Agreement Accepted (v{proposal.accepted_version || proposal.current_version})
               </p>
               <p className="text-xs text-emerald-800 leading-relaxed">
-                Both parties have explicitly agreed to these terms. This records mutual agreement within PayPilot to advance to Stage 7: AI Deal Room for formalization. It does not execute an automated legal contract or disburse payments.
+                Both parties have explicitly agreed to these terms. This records mutual agreement within Opnly to advance to Stage 7: AI Deal Room for formalization. It does not execute an automated legal contract or disburse payments.
               </p>
               <div className="flex items-center gap-4 pt-1 text-[11px] text-emerald-700 font-medium">
                 {proposal.proposer_accepted_at && (
@@ -499,7 +499,7 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
                   <ul className="list-disc list-inside space-y-0.5 text-slate-600">
                     <li>Generate bilateral commercial milestone escrow contracts</li>
                     <li>Connect approved deliverable milestones to verified PayPal settlements</li>
-                    <li>Immutable logging in the PayPilot Commerce Ledger</li>
+                    <li>Immutable logging in the Opnly Payments & Earnings Ledger</li>
                   </ul>
                 </div>
               </div>

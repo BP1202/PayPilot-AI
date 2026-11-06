@@ -1,15 +1,15 @@
 ---
 name: secure-coding
-description: Apply secure development practices when writing, reviewing, or modifying application code, APIs, authentication, idea confidentiality, publication visibility, databases, PayPal integrations, and sensitive data workflows for PayPilot AI.
+description: Apply secure development practices when writing, reviewing, or modifying application code, APIs, authentication, idea confidentiality, publication visibility, databases, PayPal integrations, and sensitive data workflows for Opnly.
 ---
 
 # Secure Coding Skill
 
 ## 1. Purpose
 
-Ensure that security, data privacy, and intellectual property protection are embedded throughout the development lifecycle for PayPilot AI — the AI-powered Idea-to-Business Opportunity Network.
+Ensure that security, data privacy, and intellectual property protection are embedded throughout the development lifecycle for Opnly — the AI-powered Idea-to-Business Opportunity Network.
 
-Within PayPilot AI, security encompasses protecting creator ideas, enforcing publication visibility, isolating multi-tenant data, defending against AI injection, and securing financial milestone settlements in the opportunity lifecycle:
+Within Opnly, security encompasses protecting creator ideas, enforcing publication visibility, isolating multi-tenant data, defending against AI injection, and securing financial milestone settlements in the opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
 ## 2. When to Use

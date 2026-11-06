@@ -1,15 +1,15 @@
 ---
 name: fintech-payments
-description: Design, implement, integrate, test, and review payment workflows, PayPal REST API integrations, Deal Room milestone settlements, webhooks, transaction lifecycles, and financial data integrity for PayPilot AI.
+description: Design, implement, integrate, test, and review payment workflows, PayPal REST API integrations, Deal Room milestone settlements, webhooks, transaction lifecycles, and financial data integrity for Opnly.
 ---
 
 # Fintech & Payments Skill
 
 ## 1. Purpose
 
-Build secure, reliable, and traceable financial workflows for PayPilot AI — the AI-powered Idea-to-Business Opportunity Network.
+Build secure, reliable, and traceable financial workflows for Opnly — the AI-powered Idea-to-Business Opportunity Network.
 
-Within PayPilot AI, payments represent the commercial settlement stage (**Transact**) of the 9-stage opportunity lifecycle:
+Within Opnly, payments represent the commercial settlement stage (**Transact**) of the 9-stage opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
 Payment operations settle approved commercial proposals and deliverables agreed upon in the **AI Deal Room**, updating the immutable **Commerce Ledger**. Every financial action must have a clear owner, verified milestone deliverable, deterministic amount, and auditable status.

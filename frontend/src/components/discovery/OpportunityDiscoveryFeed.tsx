@@ -35,6 +35,7 @@ interface OpportunityDiscoveryFeedProps {
   currentUser?: User | null;
   initialIntent?: OpportunityIntent;
   initialCategory?: OpportunityCategory;
+  initialQuery?: string;
   onOpenInStudio?: (opp: OpportunityPublic) => void;
   onCreateOpportunity?: (intent?: OpportunityIntent, category?: OpportunityCategory) => void;
 }
@@ -50,6 +51,7 @@ export const OpportunityDiscoveryFeed: React.FC<OpportunityDiscoveryFeedProps> =
   currentUser,
   initialIntent,
   initialCategory,
+  initialQuery = "",
   onOpenInStudio,
   onCreateOpportunity,
 }) => {
@@ -61,7 +63,13 @@ export const OpportunityDiscoveryFeed: React.FC<OpportunityDiscoveryFeedProps> =
   const [error, setError] = useState<string | null>(null);
 
   // Search & Filters state
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+
+  useEffect(() => {
+    if (initialQuery !== undefined) {
+      setSearchQuery(initialQuery);
+    }
+  }, [initialQuery]);
   const [selectedIntent, setSelectedIntent] = useState<OpportunityIntent | undefined>(
     initialIntent
   );

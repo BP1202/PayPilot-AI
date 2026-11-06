@@ -1,17 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
+import { AppSidebar, DashboardView, UserRole } from "@/components/dashboard/AppSidebar";
 import { OpportunityHeroBanner } from "@/components/dashboard/OpportunityHeroBanner";
-import { HowItWorksSection } from "@/components/dashboard/HowItWorksSection";
-import { TrustSecuritySection } from "@/components/dashboard/TrustSecuritySection";
-import { OpportunityStatsBar } from "@/components/dashboard/OpportunityStatsBar";
-import { OpportunityQuickActions } from "@/components/dashboard/OpportunityQuickActions";
 import { RecommendedOpportunitiesSection } from "@/components/dashboard/RecommendedOpportunitiesSection";
-import { PendingActionsSection } from "@/components/dashboard/PendingActionsSection";
 import { ActiveCollaborationsSection } from "@/components/dashboard/ActiveCollaborationsSection";
 import { RecentActivitySection } from "@/components/dashboard/RecentActivitySection";
-import { NetworkImpactBanner } from "@/components/dashboard/NetworkImpactBanner";
 import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
 import { OpportunityDiscoveryFeed } from "@/components/discovery/OpportunityDiscoveryFeed";
 import { ProfileWorkspace } from "@/components/profile/ProfileWorkspace";
@@ -51,10 +45,12 @@ import {
   getAccessToken,
   clearAccessToken,
   createDealRoom,
+  checkBackendHealth,
   ApiError,
 } from "@/lib/api";
 import {
   Bell,
+  Search,
   RefreshCw,
   AlertCircle,
   CheckCircle2,
@@ -100,9 +96,72 @@ function sanitizeErrorMessage(rawMessage?: string): string {
   return rawMessage;
 }
 
+const ROLE_STORAGE_KEY = "opnly_active_role";
+
+function getInitialView(): DashboardView {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get("view") as DashboardView;
+    const validViews: DashboardView[] = [
+      "home",
+      "opportunities",
+      "browse",
+      "collaborations",
+      "deal-rooms",
+      "ledger",
+      "profile",
+    ];
+    if (viewParam && validViews.includes(viewParam)) {
+      return viewParam;
+    }
+  }
+  return "home";
+}
+
+function getInitialRole(): UserRole {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole;
+    if (saved === "seeker" || saved === "creator") return saved;
+  }
+  return "seeker";
+}
+
 export default function Home() {
-  const [currentView, setCurrentView] = useState<DashboardView>("home");
+  const [currentView, setCurrentView] = useState<DashboardView>(getInitialView);
+  const [activeRole, setActiveRole] = useState<UserRole>(getInitialRole);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const handleNavigate = useCallback((view: DashboardView) => {
+    setCurrentView(view);
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (view === "home") {
+        searchParams.delete("view");
+      } else {
+        searchParams.set("view", view);
+      }
+      const newQuery = searchParams.toString();
+      const newUrl = newQuery ? `?${newQuery}` : window.location.pathname;
+      window.history.pushState({ view }, "", newUrl);
+    }
+  }, []);
+
+  const handleRoleChange = (newRole: UserRole) => {
+    setActiveRole(newRole);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(ROLE_STORAGE_KEY, newRole);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const v = (params.get("view") as DashboardView) || "home";
+      setCurrentView(v);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // Business & Commerce Ledger state
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
@@ -135,15 +194,17 @@ export default function Home() {
     opportunityTitle?: string | null;
   } | null>(null);
   const [selectedDealRoomId, setSelectedDealRoomId] = useState<string | null>(null);
+  const [backendStatus, setBackendStatus] = useState<"checking" | "connected" | "offline">("checking");
+  const [globalSearch, setGlobalSearch] = useState("");
 
   const handleOpenDealRoomFromProposal = async (proposalId: string) => {
     try {
       const room = await createDealRoom(proposalId);
       setSelectedDealRoomId(room.id);
-      setCurrentView("deal-rooms");
+      handleNavigate("deal-rooms");
     } catch (err) {
       console.error("Failed to open Deal Room from proposal", err);
-      setCurrentView("deal-rooms");
+      handleNavigate("deal-rooms");
     }
   };
 
@@ -249,6 +310,16 @@ export default function Home() {
       setOppLoading(false);
     }
 
+    checkBackendHealth()
+      .then((res) => {
+        if (res && res.status === "healthy") {
+          setBackendStatus("connected");
+        } else {
+          setBackendStatus("offline");
+        }
+      })
+      .catch(() => setBackendStatus("offline"));
+
     window.addEventListener("paypilot:auth_changed", syncAuth);
     return () => window.removeEventListener("paypilot:auth_changed", syncAuth);
   }, []);
@@ -350,10 +421,12 @@ export default function Home() {
       <div className="hidden md:block">
         <AppSidebar
           currentView={currentView}
-          onNavigate={(view) => setCurrentView(view)}
+          onNavigate={handleNavigate}
           currentUser={currentUser}
           business={overview?.business}
-          onOpenProfile={() => setCurrentView("profile")}
+          activeRole={activeRole}
+          onRoleChange={handleRoleChange}
+          onOpenProfile={() => handleNavigate("profile")}
           onOpenAuth={() => setIsAuthOpen(true)}
           onSignOut={handleSignOut}
           onCreateOpportunity={() => handleOpenNewStudio()}
@@ -375,11 +448,13 @@ export default function Home() {
             <AppSidebar
               currentView={currentView}
               onNavigate={(view) => {
-                setCurrentView(view);
+                handleNavigate(view);
                 setIsMobileSidebarOpen(false);
               }}
               currentUser={currentUser}
               business={overview?.business}
+              activeRole={activeRole}
+              onRoleChange={handleRoleChange}
               onOpenProfile={() => {
                 setIsOnboardingOpen(true);
                 setIsMobileSidebarOpen(false);
@@ -414,27 +489,77 @@ export default function Home() {
               <Menu className="h-5 w-5" />
             </button>
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400">PayPilot AI</span>
+              <span className="text-xs font-bold text-slate-400">Opnly</span>
               <span className="text-xs text-slate-300">/</span>
               <span className="text-xs font-bold text-slate-800 capitalize">
                 {currentView === "home"
-                  ? "Home Dashboard"
+                  ? "Dashboard"
                   : currentView === "opportunities"
-                  ? "Opportunity Workspace"
+                  ? "My Opportunities"
                   : currentView === "browse"
-                  ? "Explore Network"
+                  ? activeRole === "seeker" ? "Find Opportunities" : "Discover Talent"
                   : currentView === "collaborations"
-                  ? "Connections & Proposals"
+                  ? activeRole === "seeker" ? "Applications & Proposals" : "Review Proposals"
                   : currentView === "deal-rooms"
                   ? "AI Deal Rooms"
                   : currentView === "profile"
                   ? "Profile System"
                   : "Payments & Earnings"}
               </span>
+              <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-extrabold text-indigo-700 border border-indigo-200">
+                {activeRole === "seeker" ? "Seeker Mode" : "Creator Mode"}
+              </span>
             </div>
           </div>
 
+          {/* Global Search Input */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (globalSearch.trim()) {
+                handleNavigate("browse");
+              }
+            }}
+            className="hidden md:flex flex-1 max-w-sm mx-4"
+          >
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={globalSearch}
+                onChange={(e) => {
+                  setGlobalSearch(e.target.value);
+                  if (currentView !== "browse") {
+                    handleNavigate("browse");
+                  }
+                }}
+                placeholder="Search opportunities, skills, solutions..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-2xs"
+              />
+            </div>
+          </form>
+
           <div className="flex items-center gap-3">
+            {/* Network Connectivity Status Badge */}
+            <div className="hidden lg:flex items-center">
+              {backendStatus === "connected" ? (
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200"
+                  title="Opportunity Network services connected"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Network Live</span>
+                </span>
+              ) : backendStatus === "offline" ? (
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 border border-slate-200"
+                  title="Local services disconnected. Verify backend server is running."
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                  <span>Network Standby</span>
+                </span>
+              ) : null}
+            </div>
             {overview?.business && currentView === "ledger" && (
               <div className="hidden lg:flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
                 <Building2 className="h-3.5 w-3.5 text-slate-400" />
@@ -446,7 +571,7 @@ export default function Home() {
 
             {/* Notification Bell */}
             <button
-              onClick={() => setCurrentView("browse")}
+              onClick={() => handleNavigate("browse")}
               className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
               aria-label="Notifications"
             >
@@ -475,8 +600,8 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Page Main Content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 space-y-6 max-w-7xl w-full mx-auto">
+        {/* Page Main Content - Full Fluid Width without excessive margins */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 space-y-6 w-full">
           {/* Success toast after saving */}
           {successToast && (
             <div
@@ -542,136 +667,70 @@ export default function Home() {
           {/* VIEW ROUTING */}
           {currentView === "home" ? (
             /* ========================================================================= */
-            /* REDESIGNED OPPORTUNITY-FIRST HOME EXPERIENCE                               */
+            /* STREAMLINED ACTION-FIRST OPPORTUNITY HOME EXPERIENCE                      */
             /* ========================================================================= */
-            <div className="space-y-6">
+            <div className="space-y-6 w-full">
               {/* 1. Opportunity Hero Banner */}
-              <section aria-label="Welcome and Vision">
+              <section aria-label="Action-First Hero">
                 <OpportunityHeroBanner
+                  role={activeRole}
+                  userName={currentUser?.full_name}
+                  onNavigate={handleNavigate}
                   onQuickAction={(intent) => handleOpenNewStudio(intent)}
+                  onCreateOpportunity={() => handleOpenNewStudio("OFFERING_SOLUTION")}
                 />
               </section>
 
-              {/* 2. How It Works (5-Stage Visual Journey) */}
-              <section aria-label="How It Works">
-                <HowItWorksSection onGetStarted={() => handleOpenNewStudio()} />
-              </section>
-
-              {/* 3. Main Network Exploration Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* Left: Quick Actions (Choose what you want to do) */}
-                <section className="lg:col-span-4" aria-label="Quick Actions">
-                  <OpportunityQuickActions
-                    onSelectAction={(intent) => handleOpenNewStudio(intent)}
+              {/* 2. Role-Tailored Core Section: Creator manages listings/drafts, Seeker explores recommendations */}
+              {activeRole === "creator" ? (
+                <section aria-label="Opportunity Drafts Workspace">
+                  <OpportunityDraftsList
+                    opportunities={opportunities}
+                    isLoading={oppLoading}
+                    error={oppError}
+                    onRetry={() => loadOpportunities(selectedOppStatus)}
+                    onSelectOpportunity={handleOpenExistingStudio}
+                    onCreateNew={() => handleOpenNewStudio()}
+                    selectedStatus={selectedOppStatus}
+                    onFilterChange={handleOppFilterChange}
+                    isAuthenticated={!!currentUser}
+                    onSignIn={() => setIsAuthOpen(true)}
+                    businesses={overview?.business ? [overview.business] : []}
                   />
                 </section>
-
-                {/* Middle & Right: Recommended Opportunities & Category Exploration with Sample Opps */}
-                <section className="lg:col-span-8" aria-label="Recommended Opportunities">
+              ) : (
+                <section aria-label="Recommended Opportunities">
                   <RecommendedOpportunitiesSection
                     currentUser={currentUser}
                     onSelectCategory={(category) =>
                       handleOpenNewStudio("SEEKING_SOLUTION", category)
                     }
-                    onExploreAll={() => setCurrentView("browse")}
+                    onExploreAll={() => handleNavigate("browse")}
                     onViewOpportunity={(oppId) => {
                       const opp = opportunities.find((o) => o.id === oppId);
                       if (opp) handleOpenExistingStudio(opp);
                     }}
                   />
                 </section>
-              </div>
-
-              {/* 4. Trust & Safeguards Section */}
-              <section aria-label="Trust and Security">
-                <TrustSecuritySection />
-              </section>
-
-              {/* 5. User Workspace or Consolidated Onboarding Card */}
-              {currentUser ? (
-                <div className="space-y-6">
-                  {/* Opportunity Overview Stats Bar */}
-                  <section aria-label="Opportunity Overview">
-                    <OpportunityStatsBar
-                      opportunities={opportunities}
-                      loading={oppLoading}
-                      onViewAll={() => setCurrentView("opportunities")}
-                      onFilterIntent={(intent) => {
-                        handleOpenNewStudio(intent);
-                      }}
-                    />
-                  </section>
-
-                  {/* Active Collaborations & Recent Activity */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                    <section className="lg:col-span-7" aria-label="Recent Activity">
-                      <RecentActivitySection
-                        opportunities={opportunities}
-                        onSelectOpportunity={handleOpenExistingStudio}
-                        onSeeAll={() => setCurrentView("opportunities")}
-                      />
-                    </section>
-
-                    <section className="lg:col-span-5" aria-label="Impact Network">
-                      <NetworkImpactBanner onExplore={() => handleOpenNewStudio("OFFERING_SOLUTION")} />
-                    </section>
-                  </div>
-
-                  {/* Opportunity Drafts Workspace */}
-                  <section aria-label="Opportunity Drafts Workspace">
-                    <OpportunityDraftsList
-                      opportunities={opportunities}
-                      isLoading={oppLoading}
-                      error={oppError}
-                      onRetry={() => loadOpportunities(selectedOppStatus)}
-                      onSelectOpportunity={handleOpenExistingStudio}
-                      onCreateNew={() => handleOpenNewStudio()}
-                      selectedStatus={selectedOppStatus}
-                      onFilterChange={handleOppFilterChange}
-                      isAuthenticated={!!currentUser}
-                      onSignIn={() => setIsAuthOpen(true)}
-                      businesses={overview?.business ? [overview.business] : []}
-                    />
-                  </section>
-                </div>
-              ) : (
-                /* Consolidated Onboarding Card for New Visitors */
-                <div className="rounded-3xl border border-dashed border-indigo-200 bg-gradient-to-r from-indigo-50/40 via-white to-violet-50/30 p-8 text-center space-y-4">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-100">
-                    <Rocket className="h-6 w-6" />
-                  </div>
-                  <div className="max-w-md mx-auto space-y-1.5">
-                    <h3 className="text-base font-bold text-slate-900">
-                      Welcome to the PayPilot Opportunity Network
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      Sign in to view your opportunity drafts and track your active collaborations across sessions.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    {!currentUser && (
-                      <button
-                        onClick={() => setIsAuthOpen(true)}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
-                      >
-                        Sign in to view your personalized dashboard
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleOpenNewStudio("SEEKING_SOLUTION")}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
-                    >
-                      Post a Request
-                    </button>
-                    <button
-                      onClick={() => handleOpenNewStudio("OFFERING_SOLUTION")}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
-                    >
-                      Create Opportunity
-                    </button>
-                  </div>
-                </div>
               )}
+
+              {/* 3. Balanced Activity & Collaborations Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                <section className="lg:col-span-7" aria-label="Recent Activity">
+                  <RecentActivitySection
+                    opportunities={opportunities}
+                    onSelectOpportunity={handleOpenExistingStudio}
+                    onSeeAll={() => handleNavigate(activeRole === "seeker" ? "browse" : "opportunities")}
+                  />
+                </section>
+
+                <section className="lg:col-span-5" aria-label="Active Collaborations">
+                  <ActiveCollaborationsSection
+                    onSeeAll={() => handleNavigate("collaborations")}
+                    onStartOpportunity={() => handleNavigate("browse")}
+                  />
+                </section>
+              </div>
             </div>
           ) : currentView === "opportunities" ? (
             /* ========================================================================= */
@@ -702,6 +761,7 @@ export default function Home() {
                 currentUser={currentUser}
                 initialIntent={studioInitialIntent}
                 initialCategory={studioInitialCategory}
+                initialQuery={globalSearch}
                 onOpenInStudio={(opp) =>
                   handleOpenExistingStudio(opp as unknown as Opportunity)
                 }
@@ -736,7 +796,7 @@ export default function Home() {
                 <DealRoomsListView
                   currentUser={currentUser}
                   onSelectRoom={(roomId) => setSelectedDealRoomId(roomId)}
-                  onOpenBrowse={() => setCurrentView("browse")}
+                  onOpenBrowse={() => handleNavigate("browse")}
                 />
               )}
             </div>
@@ -798,7 +858,7 @@ export default function Home() {
 
         <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
           <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p>© 2026 PayPilot AI — Two-Sided Idea-to-Business Opportunity Network.</p>
+            <p>© 2026 Opnly — Two-Sided Idea-to-Business Opportunity Network.</p>
             <p className="text-[11px] text-slate-400">
               Connecting ideas, capabilities, and verified commercial outcomes.
             </p>

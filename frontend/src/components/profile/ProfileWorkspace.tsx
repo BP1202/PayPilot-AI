@@ -274,7 +274,7 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
         <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-6">
           Manage your individual professional identity and organization
           capabilities. Your profile powers secure collaboration across the
-          PayPilot Opportunity Network.
+          Opnly Opportunity Network.
         </p>
         <button
           onClick={onOpenAuth}

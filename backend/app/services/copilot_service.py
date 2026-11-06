@@ -148,7 +148,7 @@ class CopilotService:
                 reply = "There are currently no pending payments in the commerce ledger. All customer orders are settled."
         else:
             reply = (
-                f"PayPilot Copilot Overview for {business.name}: Settled revenue is ${current_rev:,.2f} "
+                f"Opnly Copilot Overview for {business.name}: Settled revenue is ${current_rev:,.2f} "
                 f"({completed_count} completed orders). Pending receivables total ${pending_total:,.2f} "
                 f"({pending_count} pending order). You can review our recommended action to capture pending orders."
             )

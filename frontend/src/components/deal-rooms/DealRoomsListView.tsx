@@ -85,6 +85,11 @@ export const DealRoomsListView: React.FC<DealRoomsListViewProps> = ({
   }, []);
 
   const loadRooms = async () => {
+    if (!currentUser) {
+      setLoading(false);
+      setRooms([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -108,6 +113,30 @@ export const DealRoomsListView: React.FC<DealRoomsListViewProps> = ({
         r.opportunity_title.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesStatus && matchesSearch;
   });
+
+  if (!currentUser) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+          <Briefcase className="h-8 w-8" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-slate-900">
+            AI Deal Room Workspaces
+          </h2>
+          <p className="text-sm text-slate-500 mt-1 max-w-sm">
+            Sign in to access your collaboration workspaces, track milestones, and execute verified outcomes.
+          </p>
+        </div>
+        <button
+          onClick={onOpenBrowse}
+          className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition cursor-pointer"
+        >
+          Explore Opportunities
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

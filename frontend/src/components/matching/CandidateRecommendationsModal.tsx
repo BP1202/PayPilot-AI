@@ -119,7 +119,7 @@ export const CandidateRecommendationsModal: React.FC<
             <div className="flex flex-col items-center justify-center py-12 space-y-3">
               <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
               <p className="text-xs text-slate-500">
-                Analyzing complementary capabilities across the PayPilot network...
+                Analyzing complementary capabilities across the Opnly network...
               </p>
             </div>
           )}

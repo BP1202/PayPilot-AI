@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold tracking-tight text-slate-900">PayPilot AI</span>
+              <span className="text-xl font-bold tracking-tight text-slate-900">Opnly</span>
               <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200">
                 MVP Demo
               </span>

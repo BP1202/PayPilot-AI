@@ -302,7 +302,7 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
         {/* Modal Footer */}
         <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 flex items-center justify-between">
           <span className="text-xs text-slate-500">
-            PayPilot Opportunity Press Profile
+            Opnly Opportunity Press Profile
           </span>
 
           <div className="flex items-center space-x-3">

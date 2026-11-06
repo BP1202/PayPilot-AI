@@ -1,7 +1,7 @@
-# PayPilot AI
-## From Ideas to Real Businesses
+# Opnly
+## Where Ideas Find the Right People
 
-**PayPilot AI** is an AI-powered opportunity creation and business-building platform. It helps people transform raw ideas, business problems, skills, products and resources into structured business opportunities—and connects them with the people and capabilities needed to turn those opportunities into real commercial outcomes.
+**Opnly** is an AI-powered opportunity creation and business-building platform. It helps people transform raw ideas, business problems, skills, products and resources into structured business opportunities—and connects them with the people and capabilities needed to turn those opportunities into real commercial outcomes.
 
 Our vision is simple:
 
@@ -21,11 +21,11 @@ People with ideas often lack the resources or connections to execute them.
 
 These participants are spread across freelance marketplaces, professional networks, startup communities, business directories and private conversations.
 
-PayPilot aims to bring these opportunity participants together around actual business needs.
+Opnly aims to bring these opportunity participants together around actual business needs.
 
 ## 2. The Solution
 
-PayPilot turns an idea or problem into a structured, discoverable business opportunity.
+Opnly turns an idea or problem into a structured, discoverable business opportunity.
 
 The platform supports the complete journey:
 
@@ -89,7 +89,7 @@ Investors, distributors, larger enterprises and other participants can be introd
 
 ## 5. Product Differentiation
 
-PayPilot is not intended to be another:
+Opnly is not intended to be another:
 - Freelance job marketplace
 - Generic business directory
 - Startup listing website
@@ -126,7 +126,7 @@ Do not create an unnecessarily large agent swarm. Start with a reliable orchestr
 
 ## 7. PayPal Integration
 
-PayPal is the transaction infrastructure for the commercial relationships formed through PayPilot.
+PayPal is the transaction infrastructure for the commercial relationships formed through Opnly.
 
 The prototype should demonstrate a real PayPal Sandbox workflow where supported, such as creating an order or payment request, obtaining approval and recording the verified result.
 
@@ -198,7 +198,7 @@ A task is complete only when:
 
 ## 12. Long-Term Vision
 
-PayPilot aims to become an opportunity-to-business network where ideas, problems, skills, customers, resources, capital and commercial relationships can find one another.
+Opnly aims to become an opportunity-to-business network where ideas, problems, skills, customers, resources, capital and commercial relationships can find one another.
 
 It should help people move from:
 

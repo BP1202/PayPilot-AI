@@ -1,16 +1,16 @@
 ---
 name: ai-engineering
-description: Design, implement, integrate, and evaluate reliable AI features for PayPilot AI, including opportunity extraction, anti-hallucination validation, prompt engineering, structured outputs, matchmaking, and financial AI safeguards.
+description: Design, implement, integrate, and evaluate reliable AI features for Opnly, including opportunity extraction, anti-hallucination validation, prompt engineering, structured outputs, matchmaking, and financial AI safeguards.
 ---
 
 # AI Engineering Skill
 
 ## 1. Purpose
 
-Build AI features for PayPilot AI — the AI-powered Idea-to-Business Opportunity Network — that are reliable, secure, factual, transparent, and aligned with the 9-stage opportunity lifecycle:
+Build AI features for Opnly — the AI-powered Idea-to-Business Opportunity Network — that are reliable, secure, factual, transparent, and aligned with the 9-stage opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
-AI in PayPilot transforms raw ideas into structured opportunities, identifies commercial assumptions, generates publication drafts, and recommends compatible partners. It must solve real business problems without hallucinating data or overstepping human authority.
+AI in Opnly transforms raw ideas into structured opportunities, identifies commercial assumptions, generates publication drafts, and recommends compatible partners. It must solve real business problems without hallucinating data or overstepping human authority.
 
 ## 2. When to Use
 

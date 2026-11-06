@@ -69,7 +69,7 @@ export const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({ onGetStart
             Lifecycle Journey
           </span>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 mt-1">
-            How PayPilot Works
+            How Opnly Works
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             From raw idea to mutual agreement and verified milestone completion.

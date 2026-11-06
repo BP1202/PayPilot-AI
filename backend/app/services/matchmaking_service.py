@@ -27,7 +27,7 @@ from app.schemas.matching import (
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MATCHMAKING_PROMPT = """You are the PayPilot AI Matchmaking Intelligence Agent.
+GEMINI_MATCHMAKING_PROMPT = """You are the Opnly AI Matchmaking Intelligence Agent.
 Your responsibility is to explain and synthesize the alignment between an opportunity and a participant (or between two complementary opportunities).
 
 CRITICAL CONSTRAINTS:
@@ -328,7 +328,7 @@ class GeminiMatchmakingProvider:
 
 
 class MatchmakingService:
-    """High-level orchestration service for intelligent, explainable PayPilot recommendations."""
+    """High-level orchestration service for intelligent, explainable Opnly recommendations."""
 
     def __init__(self, db: Session, api_key: str | None = None):
         self.db = db

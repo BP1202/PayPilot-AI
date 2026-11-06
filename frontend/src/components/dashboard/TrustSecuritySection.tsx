@@ -45,7 +45,7 @@ export const TrustSecuritySection: React.FC = () => {
             Built for Commercial Confidence
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            How PayPilot keeps opportunities authentic, collaborations secure, and payouts protected.
+            How Opnly keeps opportunities authentic, collaborations secure, and payouts protected.
           </p>
         </div>
       </div>

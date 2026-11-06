@@ -116,7 +116,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
           <div>
             <h2 id="auth-modal-title" className="text-xl font-bold tracking-tight text-slate-900">
-              {mode === "login" ? "Sign In to PayPilot" : "Create Your Account"}
+              {mode === "login" ? "Sign In to Opnly" : "Create Your Account"}
             </h2>
             <p className="text-xs text-slate-500">
               {mode === "login"
@@ -270,7 +270,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Demo Account Quick-Fill */}
         <div className="mt-6 border-t border-slate-100 pt-4 text-center">
-          <p className="text-xs text-slate-500 mb-2">Testing or evaluating PayPilot?</p>
+          <p className="text-xs text-slate-500 mb-2">Testing or evaluating Opnly?</p>
           <button
             type="button"
             onClick={handleFillDemo}

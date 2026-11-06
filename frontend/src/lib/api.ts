@@ -85,12 +85,31 @@ export function getApiBaseUrl(): string {
   if (envUrl && envUrl.trim() !== "") {
     return envUrl.trim().replace(/\/+$/, "");
   }
+  if (typeof window !== "undefined" && !process.env.VITEST) {
+    return "/api/v1";
+  }
   return "http://127.0.0.1:8000/api/v1";
 }
 
 // ---------------------------------------------------------------------------
 // Cryptographic Token and Verified Session Management
 // ---------------------------------------------------------------------------
+
+export async function checkBackendHealth(): Promise<{
+  status: string;
+  application?: string;
+  environment?: string;
+} | null> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/health`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
 
 export const AUTH_STORAGE_KEY = "paypilot_access_token";
 export const USER_STORAGE_KEY = "paypilot_user_profile";

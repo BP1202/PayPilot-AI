@@ -8,7 +8,7 @@ applyTo: "backend/**/*payment*.py,backend/**/*paypal*.py,backend/**/*transaction
 
 ## 1. Product Context & Opportunity Commercial Settlements
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 Within the opportunity lifecycle (**Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**), payments represent the commercial execution stage:
 - Transactions settle approved commercial proposals and deliverables agreed upon in the **AI Deal Room**.
@@ -37,7 +37,7 @@ Payments are not a detached checkout counter; they represent the tangible commer
 - Integrate strictly using official PayPal REST API v2 endpoints (`/v2/checkout/orders`).
 - Keep all PayPal credentials (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`) securely loaded in backend environment variables. Never expose them to client bundles or browser storage.
 - Manage PayPal OAuth2 access tokens on the backend with appropriate caching and refresh before expiration.
-- Enforce idempotency on order creation and capture using unique transaction reference IDs (`PayPilot-tx-<id>`).
+- Enforce idempotency on order creation and capture using unique transaction reference IDs (`Opnly-tx-<id>`).
 - Always verify order details (amount, currency, status) via server-to-server calls to PayPal before updating application database records.
 - Strictly distinguish Sandbox environments (`api-m.sandbox.paypal.com`) from Live production (`api-m.paypal.com`). Never perform real live transactions during automated tests or local development.
 
@@ -55,14 +55,14 @@ Payments are not a detached checkout counter; they represent the tangible commer
   - Associated Opportunity ID and Milestone/Proposal ID.
   - Participating User/Entity IDs.
   - Deterministic Amount and ISO Currency Code.
-  - Internal PayPilot Transaction Reference ID.
+  - Internal Opnly Transaction Reference ID.
   - External Provider Reference ID (PayPal Order ID / Capture ID).
   - Verifiable Status (`PROPOSED`, `AUTHORIZED`, `CAPTURED`, `RELEASED`, `REFUNDED`, `FAILED`).
 - Wrap multi-table ledger and milestone updates in explicit database transactions (`async with session.begin()` / `with session.begin()`).
 
 ## 7. Security and Compliance
 
-- Never store prohibited cardholder data (PAN, CVV, PIN) in PayPilot databases.
+- Never store prohibited cardholder data (PAN, CVV, PIN) in Opnly databases.
 - Prevent replay attacks and race conditions on checkout flows through database row locks or optimistic concurrency controls.
 - Redact sensitive financial account details from server logs and exception traces.
 

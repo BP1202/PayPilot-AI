@@ -83,25 +83,38 @@ describe("Redesigned Opportunity Dashboard Components", () => {
   describe("OpportunityHeroBanner", () => {
     it("renders network title, value points, and triggers quick actions on click", () => {
       const onQuickAction = vi.fn();
-      render(<OpportunityHeroBanner onQuickAction={onQuickAction} />);
+      const onNavigate = vi.fn();
+      render(
+        <OpportunityHeroBanner
+          role="seeker"
+          onQuickAction={onQuickAction}
+          onNavigate={onNavigate}
+        />
+      );
 
-      expect(screen.getByText(/Idea-to-Business/i)).toBeInTheDocument();
+      expect(screen.getByText(/Turn Ideas Into Impact/i)).toBeInTheDocument();
       expect(screen.getAllByText(/Opportunity Network/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("Seek Solutions")).toBeInTheDocument();
-      expect(screen.getByText("Share Skills & Ideas")).toBeInTheDocument();
+      expect(screen.getByText("Find Opportunities")).toBeInTheDocument();
+      expect(screen.getByText("Apply Now")).toBeInTheDocument();
+      expect(screen.getByText("Track Progress")).toBeInTheDocument();
+      expect(screen.getByText("Build Profile")).toBeInTheDocument();
 
-      // Check the 4 value checklist points
-      expect(screen.getByText("Find matched partners")).toBeInTheDocument();
-      expect(screen.getByText("Collaborate securely")).toBeInTheDocument();
-      expect(screen.getByText("Get paid for real work")).toBeInTheDocument();
-      expect(screen.getByText("Grow together")).toBeInTheDocument();
+      // Check the Seeker value points
+      expect(screen.getByText("Discover verified commercial opportunities")).toBeInTheDocument();
+      expect(screen.getByText("Submit structured milestone proposals")).toBeInTheDocument();
+      expect(screen.getByText("Secure payments tied to delivered outcomes")).toBeInTheDocument();
+      expect(screen.getByText("Build verifiable on-chain/platform reputation")).toBeInTheDocument();
 
-      // Click Seek Solutions
-      fireEvent.click(screen.getByText("Seek Solutions"));
+      // Click Find Opportunities
+      fireEvent.click(screen.getByText("Find Opportunities"));
+      expect(onNavigate).toHaveBeenCalledWith("browse");
+
+      // Click Post a Request quick action
+      fireEvent.click(screen.getByText("Post a Request"));
       expect(onQuickAction).toHaveBeenCalledWith("SEEKING_SOLUTION");
 
-      // Click Share Skills
-      fireEvent.click(screen.getByText("Share Skills & Ideas"));
+      // Click Create Opportunity quick action
+      fireEvent.click(screen.getByText("Create Opportunity"));
       expect(onQuickAction).toHaveBeenCalledWith("OFFERING_SOLUTION");
     });
   });
@@ -206,14 +219,14 @@ describe("Redesigned Opportunity Dashboard Components", () => {
         />
       );
 
-      expect(screen.getByText("PayPilot AI")).toBeInTheDocument();
-      expect(screen.getByText("Connect · Collaborate · Grow")).toBeInTheDocument();
-      expect(screen.getByText("Home")).toBeInTheDocument();
-      expect(screen.getByText("My Opportunities")).toBeInTheDocument();
+      expect(screen.getByText("Opnly")).toBeInTheDocument();
+      expect(screen.getByText("Where Ideas Find the Right People")).toBeInTheDocument();
+      expect(screen.getByText("Dashboard")).toBeInTheDocument();
+      expect(screen.getByText("Find Opportunities")).toBeInTheDocument();
       expect(screen.getByText("Payments & Earnings")).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: /My Opportunities/i }));
-      expect(onNavigate).toHaveBeenCalledWith("opportunities");
+      fireEvent.click(screen.getByRole("button", { name: /Find Opportunities/i }));
+      expect(onNavigate).toHaveBeenCalledWith("browse");
 
       fireEvent.click(screen.getByRole("button", { name: /Payments & Earnings/i }));
       expect(onNavigate).toHaveBeenCalledWith("ledger");

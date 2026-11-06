@@ -22,7 +22,7 @@ describe("AuthModal Component", () => {
   it("renders sign in form by default when open", () => {
     render(<AuthModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-    expect(screen.getByRole("heading", { name: /sign in to paypilot/i })).toBeDefined();
+    expect(screen.getByRole("heading", { name: /sign in to opnly/i })).toBeDefined();
     expect(screen.getByLabelText(/email address/i)).toBeDefined();
     expect(screen.getByLabelText(/password/i)).toBeDefined();
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeDefined();

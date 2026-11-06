@@ -8,7 +8,7 @@ applyTo: "**/*test*.*,**/*spec*.*,backend/tests/**/*.py,frontend/tests/**/*"
 
 ## 1. Product Context & Opportunity Lifecycle Testing
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 Testing must validate real user journeys across the opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
@@ -53,7 +53,7 @@ QA verification covers each lifecycle stage:
 - Test forms for:
   - Editable fields for all AI-suggested attributes.
   - Explicit user confirmation before submission (no auto-saving without approval).
-  - Clean error states without technical jargon (e.g. no `"Unable to connect to PayPilot backend at http://127.0.0.1:8000/api/v1"`).
+  - Clean error states without technical jargon (e.g. no `"Unable to connect to Opnly backend at http://127.0.0.1:8000/api/v1"`).
   - Empty states, loading skeletons, and interactive feedback.
 - Test responsive layouts and WCAG accessibility standards across desktop and mobile viewports.
 

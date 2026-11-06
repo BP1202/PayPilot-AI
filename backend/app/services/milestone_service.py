@@ -224,7 +224,7 @@ class MilestoneService:
             return []
 
         # 3. Determine responsible worker and reviewer participants
-        # By convention in PayPilot collaborations:
+        # By convention in Opnly collaborations:
         # - Proposer / Executing partner is responsible for deliverables
         # - Counterpart / Recipient is reviewer
         # If there are 2 participants, p1 and p2:
@@ -762,7 +762,7 @@ class MilestoneService:
         if api_key and latest_evi:
             try:
                 system_prompt = (
-                    "You are the PayPilot AI Milestone Review Assistant. "
+                    "You are the Opnly AI Milestone Review Assistant. "
                     "Analyze the agreed deliverables against the submitted evidence description. "
                     "Output valid JSON with keys: completeness_score (int 0-100), observations (list of str), "
                     "review_checklist (list of str). Do NOT approve or reject work."
