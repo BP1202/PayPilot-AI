@@ -82,7 +82,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   }> = isSeeker
     ? [
         { id: "home", label: "Dashboard", icon: HomeIcon },
-        { id: "browse", label: "Find Opportunities", icon: Compass },
+        { id: "opportunities", label: "Opportunities", icon: Compass },
         { id: "collaborations", label: "My Applications & Proposals", icon: Handshake },
         { id: "deal-rooms", label: "Active Workspaces", icon: Briefcase },
         { id: "profile", label: "My Profile & Skills", icon: Building2 },
@@ -90,8 +90,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       ]
     : [
         { id: "home", label: "Dashboard", icon: HomeIcon },
-        { id: "opportunities", label: "My Opportunities", icon: Lightbulb },
-        { id: "browse", label: "Discover Talent", icon: Compass },
+        { id: "opportunities", label: "Opportunities", icon: Lightbulb },
         { id: "collaborations", label: "Review Proposals", icon: Handshake },
         { id: "deal-rooms", label: "AI Deal Rooms", icon: Briefcase },
         { id: "ledger", label: "Payments & Earnings", icon: Receipt },
@@ -160,7 +159,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         <nav aria-label="Main Navigation" className="space-y-1 pt-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentView === item.id;
+            const isActive =
+              currentView === item.id || (item.id === "opportunities" && currentView === "browse");
             return (
               <button
                 key={item.id}

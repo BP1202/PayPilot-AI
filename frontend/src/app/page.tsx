@@ -58,6 +58,8 @@ import {
   Building2,
   Menu,
   Rocket,
+  Compass,
+  Lightbulb,
 } from "lucide-react";
 
 function sanitizeErrorMessage(rawMessage?: string): string {
@@ -112,7 +114,7 @@ function getInitialView(): DashboardView {
       "profile",
     ];
     if (viewParam && validViews.includes(viewParam)) {
-      return viewParam;
+      return viewParam === "browse" ? "opportunities" : viewParam;
     }
   }
   return "home";
@@ -126,25 +128,65 @@ function getInitialRole(): UserRole {
   return "seeker";
 }
 
+function getInitialOppTab(): "explore" | "mine" {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab === "mine" || tab === "explore") return tab;
+    const v = params.get("view");
+    if (v === "browse") return "explore";
+    const role = localStorage.getItem(ROLE_STORAGE_KEY);
+    if (role === "creator") return "mine";
+  }
+  return "explore";
+}
+
 export default function Home() {
   const [currentView, setCurrentView] = useState<DashboardView>(getInitialView);
   const [activeRole, setActiveRole] = useState<UserRole>(getInitialRole);
+  const [activeOppTab, setActiveOppTab] = useState<"explore" | "mine">(getInitialOppTab);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  const handleNavigate = useCallback((view: DashboardView) => {
-    setCurrentView(view);
+  const handleNavigate = useCallback(
+    (view: DashboardView, tab?: "explore" | "mine") => {
+      const targetView = view === "browse" ? "opportunities" : view;
+      const targetTab = tab || (view === "browse" ? "explore" : undefined);
+
+      setCurrentView(targetView);
+      if (targetTab) {
+        setActiveOppTab(targetTab);
+      }
+
+      if (typeof window !== "undefined") {
+        const searchParams = new URLSearchParams(window.location.search);
+        if (targetView === "home") {
+          searchParams.delete("view");
+          searchParams.delete("tab");
+        } else {
+          searchParams.set("view", targetView);
+          if (targetTab) {
+            searchParams.set("tab", targetTab);
+          } else {
+            searchParams.delete("tab");
+          }
+        }
+        const newQuery = searchParams.toString();
+        const newUrl = newQuery ? `?${newQuery}` : window.location.pathname;
+        window.history.pushState({ view: targetView, tab: targetTab }, "", newUrl);
+      }
+    },
+    []
+  );
+
+  const handleOppTabChange = (tab: "explore" | "mine") => {
+    setActiveOppTab(tab);
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search);
-      if (view === "home") {
-        searchParams.delete("view");
-      } else {
-        searchParams.set("view", view);
-      }
-      const newQuery = searchParams.toString();
-      const newUrl = newQuery ? `?${newQuery}` : window.location.pathname;
-      window.history.pushState({ view }, "", newUrl);
+      searchParams.set("view", "opportunities");
+      searchParams.set("tab", tab);
+      window.history.pushState({ view: "opportunities", tab }, "", `?${searchParams.toString()}`);
     }
-  }, []);
+  };
 
   const handleRoleChange = (newRole: UserRole) => {
     setActiveRole(newRole);
@@ -157,7 +199,13 @@ export default function Home() {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const v = (params.get("view") as DashboardView) || "home";
-      setCurrentView(v);
+      setCurrentView(v === "browse" ? "opportunities" : v);
+      const t = params.get("tab") as "explore" | "mine" | null;
+      if (t === "mine" || t === "explore") {
+        setActiveOppTab(t);
+      } else if (v === "browse") {
+        setActiveOppTab("explore");
+      }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -494,12 +542,14 @@ export default function Home() {
               <span className="text-xs font-bold text-slate-800 capitalize">
                 {currentView === "home"
                   ? "Dashboard"
-                  : currentView === "opportunities"
-                  ? "My Opportunities"
-                  : currentView === "browse"
-                  ? activeRole === "seeker" ? "Find Opportunities" : "Discover Talent"
+                  : currentView === "opportunities" || currentView === "browse"
+                  ? activeOppTab === "explore"
+                    ? "Opportunities / Explore Network"
+                    : "Opportunities / My Workspace"
                   : currentView === "collaborations"
-                  ? activeRole === "seeker" ? "Applications & Proposals" : "Review Proposals"
+                  ? activeRole === "seeker"
+                    ? "Applications & Proposals"
+                    : "Review Proposals"
                   : currentView === "deal-rooms"
                   ? "AI Deal Rooms"
                   : currentView === "profile"
@@ -512,32 +562,33 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Global Search Input */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (globalSearch.trim()) {
-                handleNavigate("browse");
-              }
-            }}
-            className="hidden md:flex flex-1 max-w-sm mx-4"
-          >
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-              <input
-                type="text"
-                value={globalSearch}
-                onChange={(e) => {
-                  setGlobalSearch(e.target.value);
-                  if (currentView !== "browse") {
-                    handleNavigate("browse");
-                  }
-                }}
-                placeholder="Search opportunities, skills, solutions..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-2xs"
-              />
-            </div>
-          </form>
+          {/* Global Search Input (hidden on explore tab to eliminate duplicate stacked search bars) */}
+          {!((currentView === "opportunities" || currentView === "browse") && activeOppTab === "explore") ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (globalSearch.trim()) {
+                  handleNavigate("opportunities", "explore");
+                }
+              }}
+              className="hidden md:flex flex-1 max-w-sm mx-4"
+            >
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={globalSearch}
+                  onChange={(e) => {
+                    setGlobalSearch(e.target.value);
+                  }}
+                  placeholder="Search opportunities, skills, solutions..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-2xs"
+                />
+              </div>
+            </form>
+          ) : (
+            <div className="flex-1 max-w-sm mx-4 hidden md:block" />
+          )}
 
           <div className="flex items-center gap-3">
             {/* Network Connectivity Status Badge */}
@@ -732,43 +783,102 @@ export default function Home() {
                 </section>
               </div>
             </div>
-          ) : currentView === "opportunities" ? (
+          ) : currentView === "opportunities" || currentView === "browse" ? (
             /* ========================================================================= */
-            /* FULL OPPORTUNITY DRAFTS WORKSPACE VIEW                                    */
+            /* UNIFIED OPPORTUNITY NETWORK & WORKSPACE HUB                               */
             /* ========================================================================= */
-            <div className="space-y-6">
-              <section aria-label="Opportunity Drafts Workspace">
-                <OpportunityDraftsList
-                  opportunities={opportunities}
-                  isLoading={oppLoading}
-                  error={oppError}
-                  onRetry={() => loadOpportunities(selectedOppStatus)}
-                  onSelectOpportunity={handleOpenExistingStudio}
-                  onCreateNew={() => handleOpenNewStudio()}
-                  selectedStatus={selectedOppStatus}
-                  onFilterChange={handleOppFilterChange}
-                  isAuthenticated={!!currentUser}
-                  onSignIn={() => setIsAuthOpen(true)}
-                />
-              </section>
-            </div>
-          ) : currentView === "browse" ? (
-            /* ========================================================================= */
-            /* EXPLORE OPPORTUNITY NETWORK VIEW                                          */
-            /* ========================================================================= */
-            <div className="space-y-6">
-              <OpportunityDiscoveryFeed
-                currentUser={currentUser}
-                initialIntent={studioInitialIntent}
-                initialCategory={studioInitialCategory}
-                initialQuery={globalSearch}
-                onOpenInStudio={(opp) =>
-                  handleOpenExistingStudio(opp as unknown as Opportunity)
-                }
-                onCreateOpportunity={(intent, category) =>
-                  handleOpenNewStudio(intent, category)
-                }
-              />
+            <div className="space-y-6 w-full">
+              {/* Hub Segmented Tab Header */}
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                        <Compass className="h-4 w-4" />
+                      </div>
+                      <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">
+                        Opportunity Network & Workspace
+                      </h1>
+                      <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700 border border-indigo-200">
+                        {activeOppTab === "explore" ? "Network Feed" : "My Workspace"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {activeOppTab === "explore"
+                        ? "Search and explore verified commercial opportunities and capabilities across the network."
+                        : "Manage your captured ideas, structured drafts, and published commercial listings."}
+                    </p>
+                  </div>
+
+                  {/* Segmented Tab Switcher */}
+                  <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/80 shadow-2xs self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => handleOppTabChange("explore")}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        activeOppTab === "explore"
+                          ? "bg-white text-indigo-700 shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                      aria-pressed={activeOppTab === "explore"}
+                    >
+                      <Search className="h-3.5 w-3.5" />
+                      <span>Browse Opportunities</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOppTabChange("mine")}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        activeOppTab === "mine"
+                          ? "bg-white text-indigo-700 shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                      aria-pressed={activeOppTab === "mine"}
+                    >
+                      <Lightbulb className="h-3.5 w-3.5" />
+                      <span>My Opportunities</span>
+                      {opportunities.length > 0 && (
+                        <span className="ml-1 rounded-full bg-indigo-100 px-1.5 py-0.2 text-[10px] font-extrabold text-indigo-700">
+                          {opportunities.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Tab View */}
+              {activeOppTab === "explore" ? (
+                <section aria-label="Browse Opportunity Network">
+                  <OpportunityDiscoveryFeed
+                    currentUser={currentUser}
+                    initialIntent={studioInitialIntent}
+                    initialCategory={studioInitialCategory}
+                    initialQuery={globalSearch}
+                    onOpenInStudio={(opp) =>
+                      handleOpenExistingStudio(opp as unknown as Opportunity)
+                    }
+                    onCreateOpportunity={(intent, category) =>
+                      handleOpenNewStudio(intent, category)
+                    }
+                  />
+                </section>
+              ) : (
+                <section aria-label="Opportunity Drafts Workspace">
+                  <OpportunityDraftsList
+                    opportunities={opportunities}
+                    isLoading={oppLoading}
+                    error={oppError}
+                    onRetry={() => loadOpportunities(selectedOppStatus)}
+                    onSelectOpportunity={handleOpenExistingStudio}
+                    onCreateNew={() => handleOpenNewStudio()}
+                    selectedStatus={selectedOppStatus}
+                    onFilterChange={handleOppFilterChange}
+                    isAuthenticated={!!currentUser}
+                    onSignIn={() => setIsAuthOpen(true)}
+                  />
+                </section>
+              )}
             </div>
           ) : currentView === "collaborations" ? (
             /* ========================================================================= */

@@ -222,11 +222,11 @@ describe("Redesigned Opportunity Dashboard Components", () => {
       expect(screen.getByText("Opnly")).toBeInTheDocument();
       expect(screen.getByText("Where Ideas Find the Right People")).toBeInTheDocument();
       expect(screen.getByText("Dashboard")).toBeInTheDocument();
-      expect(screen.getByText("Find Opportunities")).toBeInTheDocument();
+      expect(screen.getByText("Opportunities")).toBeInTheDocument();
       expect(screen.getByText("Payments & Earnings")).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: /Find Opportunities/i }));
-      expect(onNavigate).toHaveBeenCalledWith("browse");
+      fireEvent.click(screen.getByRole("button", { name: /Opportunities/i }));
+      expect(onNavigate).toHaveBeenCalledWith("opportunities");
 
       fireEvent.click(screen.getByRole("button", { name: /Payments & Earnings/i }));
       expect(onNavigate).toHaveBeenCalledWith("ledger");
