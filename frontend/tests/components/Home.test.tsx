@@ -167,7 +167,7 @@ describe("Home Page Dashboard & Connectivity", () => {
       // Active role is displayed
       expect(screen.getAllByText("Seeker").length).toBeGreaterThanOrEqual(1);
       // Sample / demo opportunity
-      expect(screen.getByText("AI Automated Financial Reconciliation Engine")).toBeInTheDocument();
+      expect(screen.getByText("Automated Financial Reconciliation Engine")).toBeInTheDocument();
     });
 
     // Commerce Ledger, Copilot Chat, KPI cards, and repetitive marketing are NOT on homepage

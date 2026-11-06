@@ -38,7 +38,7 @@ interface RecommendedOpportunitiesSectionProps {
 const DEMO_OPPORTUNITIES = [
   {
     id: "demo-opp-1",
-    title: "AI Automated Financial Reconciliation Engine",
+    title: "Automated Financial Reconciliation Engine",
     intent: "SEEKING_SOLUTION",
     category: "FINTECH" as OpportunityCategory,
     location: "Remote",

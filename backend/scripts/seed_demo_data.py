@@ -217,7 +217,7 @@ def seed_demo_data() -> None:
             {
                 "id": "opp_demo_ai_recon",
                 "user_id": bob.id,
-                "title": "AI Financial Reconciliation Engine",
+                "title": "Financial Reconciliation Engine",
                 "submission_type": OpportunityType.PROBLEM.value,
                 "intent": OpportunityIntent.SEEKING_SOLUTION.value,
                 "category": OpportunityCategory.FINTECH.value,
@@ -440,7 +440,7 @@ def seed_demo_data() -> None:
                 recipient_id=bob.id,
                 status=ProposalStatus.ACCEPTED.value,
                 current_version=1,
-                title="AI Financial Reconciliation Core Service",
+                title="Financial Reconciliation Core Service",
                 description="Engineering agreement to architect, build, and deploy an automated financial reconciliation engine.",
                 scope_of_work="Architect, develop, and deliver a production-ready reconciliation engine that handles multi-currency transactions, bank feed ingestion, and automated discrepancy reporting.",
                 deliverables=[

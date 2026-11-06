@@ -18,7 +18,6 @@ import {
   RefreshCw,
   Send,
   ShieldCheck,
-  Sparkles,
   Trash2,
   Users,
   X,
@@ -31,7 +30,6 @@ import {
 import {
   DealRoom,
   DealRoomActivity,
-  DealRoomAIAnalysisResponse,
   DealRoomClarification,
   DealRoomDocument,
   DealRoomDocumentType,
@@ -53,7 +51,6 @@ import {
   createDealRoomDocument,
   deleteDealRoomDocument,
   fetchDealRoomActivities,
-  analyzeDealRoomAI,
 } from "@/lib/api";
 import { MilestoneExecutionWorkspace } from "./MilestoneExecutionWorkspace";
 
@@ -68,50 +65,7 @@ type WorkspaceTab =
   | "AGREED_TERMS"
   | "MILESTONES"
   | "DOCUMENTS"
-  | "NOTES_CLARIFICATIONS"
-  | "AI_COPILOT";
-
-const PROVENANCE_BADGES: Record<
-  string,
-  { label: string; bg: string; text: string; border: string }
-> = {
-  AGREED_TERM: {
-    label: "Agreed Term",
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    border: "border-emerald-200",
-  },
-  USER_RECORDED_FACT: {
-    label: "User Fact",
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    border: "border-blue-200",
-  },
-  VERIFIED_RECORD: {
-    label: "Verified Record",
-    bg: "bg-purple-50",
-    text: "text-purple-700",
-    border: "border-purple-200",
-  },
-  AI_SUGGESTION: {
-    label: "AI Suggestion",
-    bg: "bg-cyan-50",
-    text: "text-cyan-700",
-    border: "border-cyan-200",
-  },
-  AI_HYPOTHESIS: {
-    label: "AI Hypothesis",
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    border: "border-amber-200",
-  },
-  UNKNOWN_OR_MISSING: {
-    label: "Unknown / Missing",
-    bg: "bg-rose-50",
-    text: "text-rose-700",
-    border: "border-rose-200",
-  },
-};
+  | "NOTES_CLARIFICATIONS";
 
 export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
   roomId,
@@ -129,13 +83,6 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
   const [clarifications, setClarifications] = useState<DealRoomClarification[]>([]);
   const [documents, setDocuments] = useState<DealRoomDocument[]>([]);
   const [activities, setActivities] = useState<DealRoomActivity[]>([]);
-
-  // AI Copilot state
-  const [aiAnalysis, setAiAnalysis] = useState<DealRoomAIAnalysisResponse | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiAnalysisType, setAiAnalysisType] = useState<
-    "SUMMARY" | "RESPONSIBILITIES" | "RISKS" | "NEXT_ACTIONS"
-  >("SUMMARY");
 
   // Modals
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -198,8 +145,6 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
       } else if (tab === "OVERVIEW") {
         const aList = await fetchDealRoomActivities(roomId);
         setActivities(aList);
-      } else if (tab === "AI_COPILOT" && !aiAnalysis) {
-        runAICopilot("SUMMARY");
       }
     } catch (err) {
       console.error("Failed to load tab data", err);
@@ -307,21 +252,6 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
     }
   };
 
-  const runAICopilot = async (
-    type: "SUMMARY" | "RESPONSIBILITIES" | "RISKS" | "NEXT_ACTIONS"
-  ) => {
-    setAiLoading(true);
-    setAiAnalysisType(type);
-    try {
-      const res = await analyzeDealRoomAI(roomId, type);
-      setAiAnalysis(res);
-    } catch (err: unknown) {
-      console.error("AI Copilot error", err);
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-3 bg-white rounded-3xl border border-slate-200">
@@ -370,7 +300,7 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
                 {room.title}
               </h1>
               <span className="text-xs px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-extrabold border border-indigo-100">
-                Agreed Proposal v{room.accepted_proposal_version}
+                Agreed Proposal
               </span>
             </div>
             {room.opportunity_title && (
@@ -491,7 +421,6 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
             { id: "MILESTONES", label: "Deliverables & Milestones", icon: Calendar },
             { id: "DOCUMENTS", label: "Documents & References", icon: FileText },
             { id: "NOTES_CLARIFICATIONS", label: "Notes & Clarifications", icon: MessageSquare },
-            { id: "AI_COPILOT", label: "AI Copilot", icon: Sparkles },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -681,7 +610,7 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
             <div>
               <p className="font-bold">Immutable Agreement Record</p>
               <p className="text-slate-600 text-[11px]">
-                These terms reflect the mutually accepted Proposal v{room.accepted_proposal_version}.
+                These terms reflect the mutually accepted Proposal.
                 Terms are strictly read-only to preserve contractual integrity between parties.
               </p>
             </div>
@@ -1006,162 +935,6 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* TAB 6: AI DEAL ROOM COPILOT */}
-      {activeTab === "AI_COPILOT" && (
-        <div className="space-y-6">
-          <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 rounded-3xl p-6 text-white shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-indigo-200 text-xs font-bold">
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-                  <span>Deal Room Copilot</span>
-                </div>
-                <h3 className="text-xl font-extrabold tracking-tight">
-                  Agreement Intelligence & Provenance
-                </h3>
-                <p className="text-xs text-slate-300">
-                  Grounded strictly in proposal terms, shared notes, and resolved clarifications with transparent source tagging.
-                </p>
-              </div>
-
-              {/* Mode badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 text-[11px] font-bold text-indigo-200 border border-white/10">
-                <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                <span>Zero-Invention Guaranteed</span>
-              </div>
-            </div>
-
-            {/* Analysis Action Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pt-2">
-              {[
-                { type: "SUMMARY", label: "Executive Summary" },
-                { type: "RESPONSIBILITIES", label: "Responsibility Mapping" },
-                { type: "RISKS", label: "Risk & Schedule Analysis" },
-                { type: "NEXT_ACTIONS", label: "Operational Next Steps" },
-              ].map((item) => (
-                <button
-                  key={item.type}
-                  onClick={() =>
-                    runAICopilot(
-                      item.type as "SUMMARY" | "RESPONSIBILITIES" | "RISKS" | "NEXT_ACTIONS"
-                    )
-                  }
-                  disabled={aiLoading}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                    aiAnalysisType === item.type
-                      ? "bg-white text-slate-900 shadow-md"
-                      : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* AI Output Area */}
-          {aiLoading ? (
-            <div className="flex flex-col items-center justify-center p-16 space-y-3 bg-white rounded-3xl border border-slate-200">
-              <RefreshCw className="h-7 w-7 text-indigo-600 animate-spin" />
-              <p className="text-xs font-semibold text-slate-600">
-                Analyzing agreement terms and generating provenance breakdown...
-              </p>
-            </div>
-          ) : aiAnalysis ? (
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-6">
-              {/* Summary */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Executive Analysis Summary
-                  </h4>
-                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                    {aiAnalysis.mode} ({aiAnalysis.model})
-                  </span>
-                </div>
-                <p className="text-xs text-slate-800 leading-relaxed p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  {aiAnalysis.summary}
-                </p>
-              </div>
-
-              {/* Key Findings */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Key Findings
-                </h4>
-                <ul className="space-y-2">
-                  {aiAnalysis.key_findings.map((f, i) => (
-                    <li
-                      key={i}
-                      className="text-xs text-slate-700 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-2.5"
-                    >
-                      <CheckCircle2 className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Actionable Recommendations */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Actionable Recommendations
-                </h4>
-                <ul className="space-y-2">
-                  {aiAnalysis.actionable_recommendations.map((rec, i) => (
-                    <li
-                      key={i}
-                      className="text-xs text-slate-700 p-3 bg-indigo-50/40 rounded-xl border border-indigo-100 flex items-start gap-2.5"
-                    >
-                      <Sparkles className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-                      <span>{rec}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Provenance Breakdown Matrix */}
-              <div className="space-y-3 pt-4 border-t border-slate-100">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Transparent Provenance Categorization
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {Object.entries(aiAnalysis.provenance_breakdown).map(([catKey, items]) => {
-                    const badgeMeta = PROVENANCE_BADGES[catKey] || {
-                      label: catKey,
-                      bg: "bg-slate-50",
-                      text: "text-slate-700",
-                      border: "border-slate-200",
-                    };
-                    if (!items || items.length === 0) return null;
-
-                    return (
-                      <div
-                        key={catKey}
-                        className={`p-3.5 rounded-2xl border ${badgeMeta.bg} ${badgeMeta.border} space-y-2`}
-                      >
-                        <span
-                          className={`inline-block text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${badgeMeta.text}`}
-                        >
-                          {badgeMeta.label}
-                        </span>
-                        <ul className="space-y-1 text-xs text-slate-700">
-                          {items.map((itemStr, idx) => (
-                            <li key={idx} className="line-clamp-2">
-                              • {itemStr}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          ) : null}
         </div>
       )}
 

@@ -176,7 +176,7 @@ describe("Deal Rooms Frontend Module", () => {
     );
 
     expect(await screen.findByText("AI Payment Core Collaboration")).toBeInTheDocument();
-    expect(screen.getByText("Agreed Proposal v1")).toBeInTheDocument();
+    expect(screen.getByText("Agreed Proposal")).toBeInTheDocument();
 
     // Verify key metrics from Overview
     expect(screen.getByText("$15,000.00")).toBeInTheDocument();
@@ -193,28 +193,23 @@ describe("Deal Rooms Frontend Module", () => {
     expect(screen.getByText("API Specs")).toBeInTheDocument();
   });
 
-  it("executes AI Deal Room Copilot with grounded provenance tags", async () => {
+  it("switches to Notes & Clarifications tab and displays conversation threads", async () => {
     vi.mocked(api.fetchDealRoomById).mockResolvedValueOnce(sampleRoom);
     vi.mocked(api.fetchDealRoomOverview).mockResolvedValueOnce(sampleOverview);
-    vi.mocked(api.analyzeDealRoomAI).mockResolvedValueOnce({
-      analysis_type: "SUMMARY",
-      summary: "AI Payment Core Collaboration has 3 agreed deliverables and 2 milestones totaling $15,000.00 USD.",
-      key_findings: [
-        "Status is ACTIVE with 2 authorized participants.",
-        "Budget is $15,000.00 USD.",
-      ],
-      actionable_recommendations: [
-        "Kickoff architectural review of Milestone 1.",
-      ],
-      provenance_breakdown: {
-        AGREED_TERM: ["Agreed budget of $15,000.00 USD", "3 explicit deliverable(s) defined"],
-        AI_SUGGESTION: ["Kickoff architectural review of Milestone 1."],
-        VERIFIED_RECORD: ["Deal Room room_123456 in ACTIVE status"],
+    vi.mocked(api.fetchDealRoomNotes).mockResolvedValueOnce([
+      {
+        id: "note_1",
+        room_id: "room_123456",
+        author_id: "usr_alice",
+        author_name: "Alice Architect",
+        title: "API Contracts & Schemas",
+        content: "OpenAPI specifications ready for review.",
+        is_pinned: true,
+        created_at: "2026-11-02T00:00:00Z",
+        updated_at: "2026-11-02T00:00:00Z",
       },
-      mode: "DETERMINISTIC_FALLBACK",
-      provider: "deterministic-engine",
-      model: "deterministic-rule-engine",
-    });
+    ]);
+    vi.mocked(api.fetchDealRoomClarifications).mockResolvedValueOnce([]);
 
     render(
       <DealRoomWorkspaceView
@@ -226,14 +221,12 @@ describe("Deal Rooms Frontend Module", () => {
 
     await screen.findByText("AI Payment Core Collaboration");
 
-    // Click AI Copilot Tab
-    const aiTabBtn = screen.getByRole("button", { name: /ai copilot/i });
-    fireEvent.click(aiTabBtn);
+    // Click Notes & Clarifications Tab
+    const notesTabBtn = screen.getByRole("button", { name: /notes & clarifications/i });
+    fireEvent.click(notesTabBtn);
 
-    expect(await screen.findByText(/AI Payment Core Collaboration has 3 agreed deliverables/)).toBeInTheDocument();
-    expect(screen.getByText("Status is ACTIVE with 2 authorized participants.")).toBeInTheDocument();
-    expect(screen.getByText("Kickoff architectural review of Milestone 1.")).toBeInTheDocument();
-    expect(screen.getByText("Agreed Term")).toBeInTheDocument();
+    expect(await screen.findByText("API Contracts & Schemas")).toBeInTheDocument();
+    expect(screen.getByText("OpenAPI specifications ready for review.")).toBeInTheDocument();
   });
 
   it("ProposalDetailModal renders Open Deal Room button when accepted", () => {
