@@ -618,7 +618,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     : "bg-emerald-50 text-emerald-700 border-emerald-200"
                 }`}
               >
-                {activeRole === "seeker" ? "Seeker (Blue Mode)" : "Creator (Green Mode)"}
+                {activeRole === "seeker" ? "Seeker Workspace" : "Creator Workspace"}
               </span>
             </div>
           </div>
@@ -811,7 +811,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                       >
                         <Sparkles className="h-4 w-4" />
                         <span>
-                          Switch to {activeRole === "seeker" ? "Creator (Green)" : "Seeker (Blue)"}
+                          Switch to {activeRole === "seeker" ? "Creator Workspace" : "Seeker Workspace"}
                         </span>
                       </button>
 

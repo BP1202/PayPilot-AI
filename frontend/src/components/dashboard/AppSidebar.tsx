@@ -257,7 +257,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   isSeeker ? "text-blue-600" : "text-emerald-600"
                 }`}
               >
-                {isSeeker ? "Seeker (Blue Mode)" : "Creator (Green Mode)"}
+                {isSeeker ? "Seeker Workspace" : "Creator Workspace"}
               </span>
             </div>
             <button

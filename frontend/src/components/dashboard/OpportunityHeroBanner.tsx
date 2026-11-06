@@ -211,7 +211,7 @@ export const OpportunityHeroBanner: React.FC<OpportunityHeroBannerProps> = ({
                     : "bg-emerald-50 text-emerald-700 border-emerald-200"
                 }`}
               >
-                {isSeeker ? "Blue: Seeking Solutions" : "Green: Sharing Skills"}
+                {isSeeker ? "Seeking Solutions" : "Sharing Capabilities"}
               </span>
             </div>
 
@@ -314,7 +314,7 @@ export const OpportunityHeroBanner: React.FC<OpportunityHeroBannerProps> = ({
                     : "bg-emerald-50 text-emerald-700 border-emerald-200"
                 }`}
               >
-                {isSeeker ? "Blue Mode" : "Green Mode"}
+                {isSeeker ? "Seeker Role" : "Creator Role"}
               </span>
             </div>
 

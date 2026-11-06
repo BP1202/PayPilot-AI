@@ -141,7 +141,7 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({
                   : "bg-emerald-50 text-emerald-700 border-emerald-200"
               }`}
             >
-              {isSeeker ? "Seeker (Blue Mode)" : "Creator (Green Mode)"}
+              {isSeeker ? "Seeker Workspace" : "Creator Workspace"}
             </span>
           </div>
         )}

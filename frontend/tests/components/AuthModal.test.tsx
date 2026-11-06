@@ -153,10 +153,10 @@ describe("AuthModal Component", () => {
     // Verify both role cards are rendered
     expect(screen.getByText("Seek Solutions")).toBeInTheDocument();
     expect(screen.getByText("Share Skills")).toBeInTheDocument();
-    expect(screen.getByText("Blue Mode")).toBeInTheDocument();
-    expect(screen.getByText("Green Mode")).toBeInTheDocument();
+    expect(screen.getByText("Seeker Focus")).toBeInTheDocument();
+    expect(screen.getByText("Creator Focus")).toBeInTheDocument();
 
-    // Select Green Mode (Creator)
+    // Select Creator
     fireEvent.click(screen.getByText("Share Skills"));
 
     // Fill credentials and submit

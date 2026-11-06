@@ -223,7 +223,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </p>
               </div>
               <span className="mt-2 inline-block text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 w-fit">
-                Blue Mode
+                Seeker Focus
               </span>
             </button>
 
@@ -251,7 +251,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </p>
               </div>
               <span className="mt-2 inline-block text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 w-fit">
-                Green Mode
+                Creator Focus
               </span>
             </button>
           </div>
