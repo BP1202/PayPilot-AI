@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -48,11 +50,24 @@ class BusinessRepository:
             industry=business_in.industry,
             business_type=business_in.business_type,
             country=business_in.country,
+            location=business_in.location,
             website=business_in.website,
             description=business_in.description,
             user_id=business_in.user_id,
+            visibility=business_in.visibility or "PRIVATE",
+            skills=business_in.skills or [],
+            experience=business_in.experience or [],
+            services=business_in.services or [],
+            resources=business_in.resources or [],
+            interests=business_in.interests or [],
         )
         self.db.add(business)
+        self.db.commit()
+        self.db.refresh(business)
+        return business
+
+    def update(self, business: Business) -> Business:
+        business.updated_at = datetime.now(UTC)
         self.db.commit()
         self.db.refresh(business)
         return business
@@ -66,8 +81,34 @@ class BusinessRepository:
         country: str = "United States",
         website: str = "https://apexgearworks.demo",
         description: str = "Specialized CNC precision machining and custom gearing demo company.",
-        user_id: str = "default_user",
+        user_id: str | None = None,
     ) -> Business:
+        if user_id:
+            user_biz = self.get_by_user_id(user_id)
+            if user_biz:
+                return user_biz
+
+            business = Business(
+                name=name,
+                currency=currency,
+                industry=industry,
+                business_type=business_type,
+                country=country,
+                website=website,
+                description=description,
+                user_id=user_id,
+                visibility="PRIVATE",
+                skills=[],
+                experience=[],
+                services=[],
+                resources=[],
+                interests=[],
+            )
+            self.db.add(business)
+            self.db.commit()
+            self.db.refresh(business)
+            return business
+
         existing = self.get_by_name(name)
         if existing:
             return existing
@@ -80,7 +121,13 @@ class BusinessRepository:
             country=country,
             website=website,
             description=description,
-            user_id=user_id,
+            user_id="default_user",
+            visibility="PRIVATE",
+            skills=[],
+            experience=[],
+            services=[],
+            resources=[],
+            interests=[],
         )
         self.db.add(business)
         self.db.commit()

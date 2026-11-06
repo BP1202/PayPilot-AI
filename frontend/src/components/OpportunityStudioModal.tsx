@@ -16,20 +16,39 @@ import {
   ArrowRight,
   Shield,
   FileText,
+  Target,
+  Rocket,
+  CreditCard,
+  Code2,
+  Briefcase,
+  MapPin,
+  Globe,
+  Lock,
+  Eye,
+  Archive,
+  Ban,
+  Users,
 } from "lucide-react";
 import {
   Opportunity,
   OpportunityType,
+  OpportunityIntent,
+  OpportunityCategory,
   OpportunityStatus,
   OpportunityVisibility,
   OpportunityAnalysisData,
   ProvenanceCategory,
 } from "@/types";
 import {
+  ApiError,
   analyzeOpportunity,
   createOpportunity,
   updateOpportunity,
   reanalyzeOpportunity,
+  publishOpportunity,
+  unpublishOpportunity,
+  closeOpportunity,
+  updateOpportunityVisibility,
 } from "@/lib/api";
 
 interface OpportunityStudioModalProps {
@@ -38,6 +57,9 @@ interface OpportunityStudioModalProps {
   onSuccess: (opportunity: Opportunity, message: string) => void;
   existingOpportunity?: Opportunity | null;
   businessId?: number | null;
+  initialIntent?: OpportunityIntent;
+  initialCategory?: OpportunityCategory;
+  onFindCollaborators?: (opp: Opportunity) => void;
 }
 
 export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
@@ -46,13 +68,24 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
   onSuccess,
   existingOpportunity,
   businessId,
+  initialIntent,
+  initialCategory,
+  onFindCollaborators,
 }) => {
   // Step 1: Capture (input & type), Step 2: Understand & Review
   const [step, setStep] = useState<"capture" | "review">("capture");
   const [submissionType, setSubmissionType] = useState<OpportunityType>("IDEA");
+  const [intent, setIntent] = useState<OpportunityIntent>(initialIntent || "SEEKING_SOLUTION");
+  const [category, setCategory] = useState<OpportunityCategory>(initialCategory || "BUSINESS");
   const [descriptionInput, setDescriptionInput] = useState("");
+  const [oppStatus, setOppStatus] = useState<OpportunityStatus>("DRAFT");
+  const [visibility, setVisibility] = useState<OpportunityVisibility>("PRIVATE");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isUnpublishing, setIsUnpublishing] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Analysis metadata & engine mode
@@ -88,6 +121,10 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
   useEffect(() => {
     if (existingOpportunity) {
       setSubmissionType(existingOpportunity.submission_type);
+      setIntent(existingOpportunity.intent || "SEEKING_SOLUTION");
+      setCategory(existingOpportunity.category || "BUSINESS");
+      setOppStatus(existingOpportunity.status || "DRAFT");
+      setVisibility(existingOpportunity.visibility || "PRIVATE");
       setDescriptionInput(existingOpportunity.original_description);
       setTitle(existingOpportunity.title);
       setIndustry(existingOpportunity.industry || "");
@@ -106,10 +143,17 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
       setAiMode(existingOpportunity.ai_metadata?.mode || "DETERMINISTIC_FALLBACK");
       setAiProvider(existingOpportunity.ai_metadata?.provider || null);
       setAiModel(existingOpportunity.ai_metadata?.model || null);
+      setAiConfidence(existingOpportunity.ai_metadata?.confidence ?? 0.85);
+      setAiBannerMessage(existingOpportunity.ai_metadata?.message || "");
       setStep("review");
     } else {
       setStep("capture");
       setSubmissionType("IDEA");
+      setIntent(initialIntent || "SEEKING_SOLUTION");
+      setCategory(initialCategory || "BUSINESS");
+      setOppStatus("DRAFT");
+      setVisibility("PRIVATE");
+      setValidationErrors([]);
       setDescriptionInput("");
       setTitle("");
       setIndustry("");
@@ -127,12 +171,14 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
       setProvenanceMap({});
       setErrorMessage(null);
     }
-  }, [existingOpportunity, isOpen]);
+  }, [existingOpportunity, isOpen, initialIntent, initialCategory]);
 
   if (!isOpen) return null;
 
   const handleUseIdeaExample = () => {
     setSubmissionType("IDEA");
+    setIntent("OFFERING_SOLUTION");
+    setCategory("TECH");
     setDescriptionInput(
       "A decentralized freight tracking and cargo coordination platform for small fleet operators. Truckers install an IoT OBD sensor, and dispatchers track location, temperature, and maintenance alerts in real-time."
     );
@@ -140,6 +186,8 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
 
   const handleUseProblemExample = () => {
     setSubmissionType("PROBLEM");
+    setIntent("SEEKING_SOLUTION");
+    setCategory("BUSINESS");
     setDescriptionInput(
       "Independent clinics spend 15+ hours weekly manually reconciling medical billing codes and chasing delayed insurance claims with spreadsheets and phone calls."
     );
@@ -171,7 +219,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
     setAiMode(mode);
     setAiProvider(provider || null);
     setAiModel(model || null);
-    setAiConfidence(confidence || 0.85);
+    setAiConfidence(confidence ?? 0.85);
     setAiBannerMessage(message || "");
   };
 
@@ -288,6 +336,8 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
       if (existingOpportunity) {
         const updated = await updateOpportunity(existingOpportunity.id, {
           title: title.trim(),
+          intent,
+          category,
           original_description: descriptionInput.trim(),
           industry: industry.trim(),
           problem_statement: problemStatement.trim(),
@@ -302,14 +352,16 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
           missing_information: missingInfo,
           suggested_follow_up_questions: followUpQuestions,
           provenance: provenanceMap,
-          status: "ANALYSED" as OpportunityStatus,
-          visibility: "PRIVATE" as OpportunityVisibility,
+          status: oppStatus === "CLOSED" ? ("CLOSED" as OpportunityStatus) : oppStatus === "PUBLISHED" ? ("PUBLISHED" as OpportunityStatus) : ("ANALYSED" as OpportunityStatus),
+          visibility: visibility as OpportunityVisibility,
         });
 
         onSuccess(updated, `Opportunity draft "${updated.title}" updated.`);
       } else {
         const created = await createOpportunity({
           submission_type: submissionType,
+          intent,
+          category,
           title: title.trim(),
           original_description: descriptionInput.trim(),
           industry: industry.trim(),
@@ -336,15 +388,14 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
           visibility: "PRIVATE" as OpportunityVisibility,
         });
 
-        onSuccess(created, `Opportunity draft "${created.title}" successfully saved.`);
+        onSuccess(created, `Opportunity draft "${created.title}" successfully created!`);
       }
-
       onClose();
     } catch (err: unknown) {
       const msg =
         err instanceof Error
           ? err.message
-          : "We couldn't save your opportunity draft right now. Please try again.";
+          : "Unable to save your opportunity draft. Please try again.";
       if (
         msg.toLowerCase().includes("credentials") ||
         msg.toLowerCase().includes("authentication") ||
@@ -360,12 +411,177 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
     }
   };
 
+  const handlePublish = async () => {
+    setValidationErrors([]);
+    setErrorMessage(null);
+
+    const errs: string[] = [];
+    if (title.trim().length < 5) {
+      errs.push("Title must be at least 5 characters long.");
+    }
+    if (!industry.trim() || industry.trim().length < 2) {
+      errs.push("Opportunity must belong to a specific industry.");
+    }
+    const substance = [proposedSolution.trim(), problemStatement.trim(), descriptionInput.trim()].join(" ");
+    if (substance.trim().length < 10) {
+      errs.push("Opportunity must provide substantial description or solution details (at least 10 characters).");
+    }
+    if (targetCustomerSegments.length === 0 && requiredSkills.length === 0 && !valueProposition.trim()) {
+      errs.push("Must define at least one target segment, required skill, or value proposition.");
+    }
+    if (errs.length > 0) {
+      setValidationErrors(errs);
+      return;
+    }
+
+    try {
+      setIsPublishing(true);
+      let oppId = existingOpportunity?.id;
+
+      if (!oppId) {
+        const created = await createOpportunity({
+          submission_type: submissionType,
+          intent,
+          category,
+          title: title.trim(),
+          original_description: descriptionInput.trim(),
+          industry: industry.trim(),
+          problem_statement: problemStatement.trim(),
+          proposed_solution: proposedSolution.trim(),
+          value_proposition: valueProposition.trim(),
+          target_customer_segments: targetCustomerSegments,
+          customer_pain_points: customerPainPoints,
+          required_skills_and_resources: requiredSkills,
+          potential_business_models: businessModels,
+          key_assumptions: keyAssumptions,
+          risks_and_uncertainties: risks,
+          missing_information: missingInfo,
+          suggested_follow_up_questions: followUpQuestions,
+          provenance: provenanceMap,
+          ai_metadata: {
+            mode: aiMode,
+            provider: aiProvider,
+            model: aiModel,
+            confidence: aiConfidence,
+          },
+          business_id: businessId || undefined,
+          status: "DRAFT" as OpportunityStatus,
+          visibility: visibility || "PRIVATE",
+        });
+        oppId = created.id;
+      } else {
+        await updateOpportunity(oppId, {
+          title: title.trim(),
+          intent,
+          category,
+          original_description: descriptionInput.trim(),
+          industry: industry.trim(),
+          problem_statement: problemStatement.trim(),
+          proposed_solution: proposedSolution.trim(),
+          value_proposition: valueProposition.trim(),
+          target_customer_segments: targetCustomerSegments,
+          customer_pain_points: customerPainPoints,
+          required_skills_and_resources: requiredSkills,
+          potential_business_models: businessModels,
+          key_assumptions: keyAssumptions,
+          risks_and_uncertainties: risks,
+          missing_information: missingInfo,
+          suggested_follow_up_questions: followUpQuestions,
+          provenance: provenanceMap,
+        });
+      }
+
+      const published = await publishOpportunity(oppId, {
+        visibility: visibility === "PRIVATE" ? "PUBLIC" : visibility,
+      });
+
+      setOppStatus("PUBLISHED");
+      setVisibility(published.visibility);
+      onSuccess(published, `Opportunity "${published.title}" is now published (${published.visibility})!`);
+      onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to publish opportunity.";
+      const errorData = err instanceof ApiError ? (err.data as Record<string, any> | undefined) : undefined;
+      if (errorData && errorData.detail) {
+        const detail = errorData.detail;
+        if (Array.isArray(detail)) {
+          setValidationErrors(detail.map((d: any) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))));
+        } else if (typeof detail === "string") {
+          setValidationErrors([detail]);
+        } else {
+          setErrorMessage(msg);
+        }
+      } else {
+        setErrorMessage(msg);
+      }
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!existingOpportunity) return;
+    try {
+      setIsUnpublishing(true);
+      setErrorMessage(null);
+      const unpublished = await unpublishOpportunity(existingOpportunity.id);
+      setOppStatus("DRAFT");
+      setVisibility("PRIVATE");
+      onSuccess(unpublished, `Opportunity "${unpublished.title}" has been unpublished and returned to private drafts.`);
+      onClose();
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to unpublish opportunity.");
+    } finally {
+      setIsUnpublishing(false);
+    }
+  };
+
+  const handleCloseOpportunity = async () => {
+    if (!existingOpportunity) return;
+    try {
+      setIsClosing(true);
+      setErrorMessage(null);
+      const closed = await closeOpportunity(existingOpportunity.id);
+      setOppStatus("CLOSED");
+      onSuccess(closed, `Opportunity "${closed.title}" is now closed.`);
+      onClose();
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to close opportunity.");
+    } finally {
+      setIsClosing(false);
+    }
+  };
+
+  // Helper functions for array manipulations
+  const addTag = (
+    value: string,
+    list: string[],
+    setList: React.Dispatch<React.SetStateAction<string[]>>,
+    setInput: React.Dispatch<React.SetStateAction<string>>,
+    fieldName: string
+  ) => {
+    if (!value.trim()) return;
+    if (!list.includes(value.trim())) {
+      setList([...list, value.trim()]);
+      setProvenanceMap((prev) => ({ ...prev, [fieldName]: "USER_PROVIDED" }));
+    }
+    setInput("");
+  };
+
+  const removeTag = (
+    index: number,
+    list: string[],
+    setList: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    setList(list.filter((_, i) => i !== index));
+  };
+
   const getProvenanceBadge = (fieldKey: string) => {
     const prov = provenanceMap[fieldKey];
     if (prov === "USER_PROVIDED") {
       return (
-        <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200">
-          <CheckCircle2 className="h-3 w-3" /> User Fact
+        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+          User Fact
         </span>
       );
     }
@@ -410,11 +626,11 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                   {existingOpportunity ? "Edit Opportunity Draft" : "Idea Capture & Opportunity Studio"}
                 </h2>
                 <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-800">
-                  Stage 1 & 2
+                  Two-Sided Opportunity Network
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Capture raw ideas or problems, then structure them into a validated commercial opportunity.
+                Structure your needs or offerings into a validated commercial opportunity.
               </p>
             </div>
           </div>
@@ -444,69 +660,154 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
             /* STAGE 1: CAPTURE STUDIO                                                   */
             /* ========================================================================= */
             <div className="space-y-6">
+              {/* TWO-SIDED INTENT SELECTION */}
               <div>
                 <label className="block text-sm font-semibold text-slate-900 mb-2">
-                  What are you submitting today?
+                  What is your primary intent?
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     type="button"
-                    onClick={() => setSubmissionType("IDEA")}
+                    onClick={() => setIntent("SEEKING_SOLUTION")}
                     className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
-                      submissionType === "IDEA"
-                        ? "border-indigo-600 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-600"
+                      intent === "SEEKING_SOLUTION"
+                        ? "border-indigo-600 bg-indigo-50/60 shadow-sm ring-1 ring-indigo-600"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                        submissionType === "IDEA"
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                        intent === "SEEKING_SOLUTION"
                           ? "bg-indigo-600 text-white"
                           : "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      <Lightbulb className="h-4 w-4" />
+                      <Target className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-900">I have an Idea</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold text-slate-900">I need something</p>
+                        <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100/70 px-1.5 py-0.5 rounded">
+                          Seek Solutions
+                        </span>
+                      </div>
                       <p className="text-xs text-slate-500 mt-1">
-                        You have a solution, product concept, or business initiative you want to build and monetize.
+                        Find developers, funding, specialized partners, or commercial solutions for your problem or idea.
                       </p>
                     </div>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setSubmissionType("PROBLEM")}
+                    onClick={() => setIntent("OFFERING_SOLUTION")}
                     className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
-                      submissionType === "PROBLEM"
-                        ? "border-indigo-600 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-600"
+                      intent === "OFFERING_SOLUTION"
+                        ? "border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-600"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                        submissionType === "PROBLEM"
-                          ? "bg-indigo-600 text-white"
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                        intent === "OFFERING_SOLUTION"
+                          ? "bg-emerald-600 text-white"
                           : "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      <AlertCircle className="h-4 w-4" />
+                      <Rocket className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-900">I have a Problem</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold text-slate-900">I can offer something</p>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded">
+                          Share Skills & Ideas
+                        </span>
+                      </div>
                       <p className="text-xs text-slate-500 mt-1">
-                        You or your business face an acute pain point or inefficiency that needs a commercial solution.
+                        Share your technical skills, commercial services, product ideas, startup capabilities, or resources.
                       </p>
                     </div>
                   </button>
                 </div>
               </div>
 
+              {/* CATEGORY SELECTOR */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  Select Opportunity Category:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { key: "FINTECH", label: "Fintech", icon: CreditCard, color: "text-blue-600" },
+                    { key: "TECH", label: "Tech", icon: Code2, color: "text-indigo-600" },
+                    { key: "BUSINESS", label: "Business", icon: Briefcase, color: "text-emerald-600" },
+                    { key: "LOCAL", label: "Local", icon: MapPin, color: "text-amber-600" },
+                  ].map((cat) => {
+                    const Icon = cat.icon;
+                    const isSelected = category === cat.key;
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        onClick={() => setCategory(cat.key as OpportunityCategory)}
+                        className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition ${
+                          isSelected
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-900 ring-1 ring-indigo-600 shadow-sm"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 ${isSelected ? "text-indigo-600" : cat.color}`} />
+                        <span>{cat.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* IDEA VS PROBLEM FORMAT */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  Submission Format:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSubmissionType("IDEA")}
+                    className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-left transition ${
+                      submissionType === "IDEA"
+                        ? "border-indigo-500 bg-indigo-50/40 text-slate-900 ring-1 ring-indigo-400"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                    }`}
+                  >
+                    <Lightbulb className="h-4 w-4 text-amber-500" />
+                    <div>
+                      <p className="text-xs font-bold">I have an Idea</p>
+                      <p className="text-[11px] text-slate-500">Solution, innovation, or capability you want to develop</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSubmissionType("PROBLEM")}
+                    className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-left transition ${
+                      submissionType === "PROBLEM"
+                        ? "border-indigo-500 bg-indigo-50/40 text-slate-900 ring-1 ring-indigo-400"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                    }`}
+                  >
+                    <AlertCircle className="h-4 w-4 text-rose-500" />
+                    <div>
+                      <p className="text-xs font-bold">I have a Problem</p>
+                      <p className="text-[11px] text-slate-500">Inefficiency, friction, or challenge needing a solution</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* DESCRIPTION TEXT */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label htmlFor="opp-desc" className="text-sm font-semibold text-slate-900">
-                    Describe your {submissionType === "IDEA" ? "idea" : "problem"} in plain language:
+                    Describe your {intent === "SEEKING_SOLUTION" ? "request / problem" : "offering / idea"} in plain language:
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -540,12 +841,12 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
               <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/50 to-white p-4">
                 <div className="flex items-center gap-2 text-xs font-bold text-indigo-900 mb-1">
                   <Shield className="h-4 w-4 text-indigo-600" />
-                  <span>Confidentiality & Anti-Hallucination Guarantees</span>
+                  <span>Two-Sided Network Guarantees</span>
                 </div>
                 <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                  <li>Your submission remains completely private in Draft mode.</li>
-                  <li>AI will never fabricate unverified market traction, customer revenue, or fake investors.</li>
-                  <li>You review, edit, and approve every hypothesis before anything is persisted.</li>
+                  <li>Your drafts remain private until you explicitly approve publishing.</li>
+                  <li>You can seek solutions for one project and offer capabilities for another freely.</li>
+                  <li>AI structures hypotheses for review without inventing fake metrics or phantom investors.</li>
                 </ul>
               </div>
             </div>
@@ -597,6 +898,150 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 </button>
               </div>
 
+              {/* Lifecycle Status & Visibility Controls */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-700">Lifecycle Status:</span>
+                    <span
+                      data-testid="lifecycle-status-badge"
+                      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold ${
+                        oppStatus === "PUBLISHED"
+                          ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          : oppStatus === "CLOSED"
+                          ? "bg-slate-100 text-slate-700 border border-slate-300"
+                          : "bg-amber-50 text-amber-800 border border-amber-200"
+                      }`}
+                    >
+                      {oppStatus === "PUBLISHED" ? (
+                        <Globe className="h-3.5 w-3.5" />
+                      ) : oppStatus === "CLOSED" ? (
+                        <Lock className="h-3.5 w-3.5" />
+                      ) : (
+                        <FileText className="h-3.5 w-3.5" />
+                      )}
+                      <span>{oppStatus === "PUBLISHED" ? "PUBLISHED" : oppStatus === "CLOSED" ? "CLOSED" : "DRAFT"}</span>
+                    </span>
+                  </div>
+
+                  {oppStatus !== "CLOSED" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-600">Visibility:</span>
+                      <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("PRIVATE")}
+                          className={`rounded-md px-2 py-0.5 font-bold transition cursor-pointer ${
+                            visibility === "PRIVATE"
+                              ? "bg-white text-indigo-700 shadow-xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          Private
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("AUTHENTICATED")}
+                          className={`rounded-md px-2 py-0.5 font-bold transition cursor-pointer ${
+                            visibility === "AUTHENTICATED"
+                              ? "bg-white text-indigo-700 shadow-xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          Members Only
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("PUBLIC")}
+                          className={`rounded-md px-2 py-0.5 font-bold transition cursor-pointer ${
+                            visibility === "PUBLIC"
+                              ? "bg-white text-indigo-700 shadow-xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          Public
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {oppStatus === "CLOSED" && (
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-600 flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span>This opportunity is closed. Historical records are preserved, but it cannot be republished.</span>
+                  </div>
+                )}
+
+                {validationErrors.length > 0 && (
+                  <div
+                    data-testid="validation-errors-box"
+                    className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 space-y-1"
+                  >
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                      <span>Required for Network Publication:</span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-0.5 pl-1 text-[11px] text-rose-700">
+                      {validationErrors.map((err, idx) => (
+                        <li key={idx}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Intent & Category Review Selectors */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Network Intent</label>
+                  <div className="flex rounded-lg border border-slate-300 bg-white p-1">
+                    <button
+                      type="button"
+                      onClick={() => setIntent("SEEKING_SOLUTION")}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-bold transition ${
+                        intent === "SEEKING_SOLUTION"
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Seeking Solution
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIntent("OFFERING_SOLUTION")}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-bold transition ${
+                        intent === "OFFERING_SOLUTION"
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Offering Solution
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Category</label>
+                  <div className="grid grid-cols-4 gap-1 rounded-lg border border-slate-300 bg-white p-1 text-center">
+                    {(["FINTECH", "TECH", "BUSINESS", "LOCAL"] as OpportunityCategory[]).map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategory(cat)}
+                        className={`rounded-md py-1.5 text-[11px] font-bold transition ${
+                          category === cat
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {/* Core Opportunity Attributes */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
@@ -632,7 +1077,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-bold text-slate-800">Submission Type</label>
-                    <span className="text-[11px] font-semibold text-slate-500">Fixed</span>
+                    <span className="text-[11px] font-semibold text-slate-500">Format</span>
                   </div>
                   <input
                     type="text"
@@ -697,45 +1142,59 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                     {getProvenanceBadge("target_customer_segments")}
                   </div>
                   <div className="space-y-2">
-                    {targetCustomerSegments.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-800"
-                      >
-                        <span>{item}</span>
-                        <button
-                          type="button"
-                          onClick={() => setTargetCustomerSegments(targetCustomerSegments.filter((_, i) => i !== idx))}
-                          className="text-slate-400 hover:text-rose-600 transition"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                    <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                      {targetCustomerSegments.length === 0 ? (
+                        <span className="text-xs text-slate-400 italic">No segments identified</span>
+                      ) : (
+                        targetCustomerSegments.map((segment, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium text-slate-800 shadow-2xs"
+                          >
+                            <span>{segment}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTag(idx, targetCustomerSegments, setTargetCustomerSegments)}
+                              className="text-slate-400 hover:text-rose-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={newSegment}
                         onChange={(e) => setNewSegment(e.target.value)}
-                        placeholder="Add customer segment..."
-                        className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && newSegment.trim()) {
+                          if (e.key === "Enter") {
                             e.preventDefault();
-                            setTargetCustomerSegments([...targetCustomerSegments, newSegment.trim()]);
-                            setNewSegment("");
+                            addTag(
+                              newSegment,
+                              targetCustomerSegments,
+                              setTargetCustomerSegments,
+                              setNewSegment,
+                              "target_customer_segments"
+                            );
                           }
                         }}
+                        placeholder="Add candidate segment..."
+                        className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none"
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          if (newSegment.trim()) {
-                            setTargetCustomerSegments([...targetCustomerSegments, newSegment.trim()]);
-                            setNewSegment("");
-                          }
-                        }}
-                        className="rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                        onClick={() =>
+                          addTag(
+                            newSegment,
+                            targetCustomerSegments,
+                            setTargetCustomerSegments,
+                            setNewSegment,
+                            "target_customer_segments"
+                          )
+                        }
+                        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -749,45 +1208,59 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                     {getProvenanceBadge("customer_pain_points")}
                   </div>
                   <div className="space-y-2">
-                    {customerPainPoints.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-800"
-                      >
-                        <span>{item}</span>
-                        <button
-                          type="button"
-                          onClick={() => setCustomerPainPoints(customerPainPoints.filter((_, i) => i !== idx))}
-                          className="text-slate-400 hover:text-rose-600 transition"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                    <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                      {customerPainPoints.length === 0 ? (
+                        <span className="text-xs text-slate-400 italic">No pain points identified</span>
+                      ) : (
+                        customerPainPoints.map((pain, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium text-slate-800 shadow-2xs"
+                          >
+                            <span>{pain}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTag(idx, customerPainPoints, setCustomerPainPoints)}
+                              className="text-slate-400 hover:text-rose-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={newPainPoint}
                         onChange={(e) => setNewPainPoint(e.target.value)}
-                        placeholder="Add pain point..."
-                        className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && newPainPoint.trim()) {
+                          if (e.key === "Enter") {
                             e.preventDefault();
-                            setCustomerPainPoints([...customerPainPoints, newPainPoint.trim()]);
-                            setNewPainPoint("");
+                            addTag(
+                              newPainPoint,
+                              customerPainPoints,
+                              setCustomerPainPoints,
+                              setNewPainPoint,
+                              "customer_pain_points"
+                            );
                           }
                         }}
+                        placeholder="Add pain point..."
+                        className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none"
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          if (newPainPoint.trim()) {
-                            setCustomerPainPoints([...customerPainPoints, newPainPoint.trim()]);
-                            setNewPainPoint("");
-                          }
-                        }}
-                        className="rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                        onClick={() =>
+                          addTag(
+                            newPainPoint,
+                            customerPainPoints,
+                            setCustomerPainPoints,
+                            setNewPainPoint,
+                            "customer_pain_points"
+                          )
+                        }
+                        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -796,7 +1269,7 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 </div>
               </div>
 
-              {/* Skills & Monetization Models */}
+              {/* Skills and Business Models Lists */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -804,45 +1277,59 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                     {getProvenanceBadge("required_skills_and_resources")}
                   </div>
                   <div className="space-y-2">
-                    {requiredSkills.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-800"
-                      >
-                        <span>{item}</span>
-                        <button
-                          type="button"
-                          onClick={() => setRequiredSkills(requiredSkills.filter((_, i) => i !== idx))}
-                          className="text-slate-400 hover:text-rose-600 transition"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                    <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                      {requiredSkills.length === 0 ? (
+                        <span className="text-xs text-slate-400 italic">No required capabilities specified</span>
+                      ) : (
+                        requiredSkills.map((skill, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium text-slate-800 shadow-2xs"
+                          >
+                            <span>{skill}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTag(idx, requiredSkills, setRequiredSkills)}
+                              className="text-slate-400 hover:text-rose-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={newSkill}
                         onChange={(e) => setNewSkill(e.target.value)}
-                        placeholder="Add skill or resource..."
-                        className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && newSkill.trim()) {
+                          if (e.key === "Enter") {
                             e.preventDefault();
-                            setRequiredSkills([...requiredSkills, newSkill.trim()]);
-                            setNewSkill("");
+                            addTag(
+                              newSkill,
+                              requiredSkills,
+                              setRequiredSkills,
+                              setNewSkill,
+                              "required_skills_and_resources"
+                            );
                           }
                         }}
+                        placeholder="Add required skill or asset..."
+                        className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none"
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          if (newSkill.trim()) {
-                            setRequiredSkills([...requiredSkills, newSkill.trim()]);
-                            setNewSkill("");
-                          }
-                        }}
-                        className="rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                        onClick={() =>
+                          addTag(
+                            newSkill,
+                            requiredSkills,
+                            setRequiredSkills,
+                            setNewSkill,
+                            "required_skills_and_resources"
+                          )
+                        }
+                        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -856,45 +1343,59 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                     {getProvenanceBadge("potential_business_models")}
                   </div>
                   <div className="space-y-2">
-                    {businessModels.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-800"
-                      >
-                        <span>{item}</span>
-                        <button
-                          type="button"
-                          onClick={() => setBusinessModels(businessModels.filter((_, i) => i !== idx))}
-                          className="text-slate-400 hover:text-rose-600 transition"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                    <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                      {businessModels.length === 0 ? (
+                        <span className="text-xs text-slate-400 italic">No business models identified</span>
+                      ) : (
+                        businessModels.map((model, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium text-slate-800 shadow-2xs"
+                          >
+                            <span>{model}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTag(idx, businessModels, setBusinessModels)}
+                              className="text-slate-400 hover:text-rose-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={newModel}
                         onChange={(e) => setNewModel(e.target.value)}
-                        placeholder="Add business model..."
-                        className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && newModel.trim()) {
+                          if (e.key === "Enter") {
                             e.preventDefault();
-                            setBusinessModels([...businessModels, newModel.trim()]);
-                            setNewModel("");
+                            addTag(
+                              newModel,
+                              businessModels,
+                              setBusinessModels,
+                              setNewModel,
+                              "potential_business_models"
+                            );
                           }
                         }}
+                        placeholder="Add monetization approach..."
+                        className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none"
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          if (newModel.trim()) {
-                            setBusinessModels([...businessModels, newModel.trim()]);
-                            setNewModel("");
-                          }
-                        }}
-                        className="rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                        onClick={() =>
+                          addTag(
+                            newModel,
+                            businessModels,
+                            setBusinessModels,
+                            setNewModel,
+                            "potential_business_models"
+                          )
+                        }
+                        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -903,55 +1404,77 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 </div>
               </div>
 
-              {/* Assumptions & Missing Info Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-amber-900">Key Hypotheses to Validate</span>
+              {/* Assumptions & Risks Accordion / Section */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-800">
+                      Unverified Assumptions (Validate with market data)
+                    </label>
                     {getProvenanceBadge("key_assumptions")}
                   </div>
-                  <ul className="text-xs text-amber-950 space-y-1.5 list-disc list-inside">
-                    {keyAssumptions.map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
+                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                    {keyAssumptions.length === 0 ? (
+                      <li className="italic text-slate-400 list-none">No assumptions extracted.</li>
+                    ) : (
+                      keyAssumptions.map((item, i) => <li key={i}>{item}</li>)
+                    )}
                   </ul>
                 </div>
 
-                <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-sky-900">Missing Information</span>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-800">
+                      Execution Risks & Uncertainties
+                    </label>
+                    {getProvenanceBadge("risks_and_uncertainties")}
+                  </div>
+                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                    {risks.length === 0 ? (
+                      <li className="italic text-slate-400 list-none">No risks identified.</li>
+                    ) : (
+                      risks.map((item, i) => <li key={i}>{item}</li>)
+                    )}
+                  </ul>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-800">
+                      Missing Information & Context Needed
+                    </label>
                     {getProvenanceBadge("missing_information")}
                   </div>
-                  <ul className="text-xs text-sky-950 space-y-1.5 list-disc list-inside">
-                    {missingInfo.map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
+                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                    {missingInfo.length === 0 ? (
+                      <li className="italic text-slate-400 list-none">No critical information gaps identified.</li>
+                    ) : (
+                      missingInfo.map((item, i) => <li key={i}>{item}</li>)
+                    )}
                   </ul>
                 </div>
-              </div>
 
-              {/* Strategic Follow-Up Prompts */}
-              {followUpQuestions.length > 0 && (
-                <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-indigo-900">Strategic Questions for Next Stage</span>
-                    {getProvenanceBadge("suggested_follow_up_questions")}
+                {followUpQuestions.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-indigo-900">
+                        Suggested Deepening Questions
+                      </label>
+                      {getProvenanceBadge("suggested_follow_up_questions")}
+                    </div>
+                    <ul className="text-xs text-indigo-700 space-y-1 list-decimal list-inside">
+                      {followUpQuestions.map((q, i) => (
+                        <li key={i}>{q}</li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-indigo-950">
-                    {followUpQuestions.map((q, idx) => (
-                      <div key={idx} className="flex items-start gap-2 bg-white/80 p-2.5 rounded-lg border border-indigo-100">
-                        <span className="font-bold text-indigo-600">{idx + 1}.</span>
-                        <span>{q}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Modal Footer Actions */}
+        {/* Modal Footer */}
         <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/80 px-6 py-4">
           {step === "capture" ? (
             <>
@@ -965,8 +1488,8 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
               <button
                 type="button"
                 onClick={handleAnalyze}
-                disabled={isAnalyzing || !descriptionInput.trim()}
-                className="flex items-center space-x-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition"
+                disabled={isAnalyzing || descriptionInput.trim().length < 10}
+                className="flex items-center space-x-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition cursor-pointer"
               >
                 {isAnalyzing ? (
                   <>
@@ -1003,32 +1526,90 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-y-2">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  Close
+                  Cancel
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSaveDraft}
-                  disabled={isSaving || !title.trim()}
-                  className="flex items-center space-x-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Saving Draft...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>Save Opportunity Draft</span>
-                    </>
-                  )}
-                </button>
+
+                {oppStatus === "PUBLISHED" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleUnpublish}
+                      disabled={isUnpublishing}
+                      className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isUnpublishing ? "Unpublishing..." : "Unpublish to Draft"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloseOpportunity}
+                      disabled={isClosing}
+                      className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800 hover:bg-rose-100 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isClosing ? "Closing..." : "Close Opportunity"}
+                    </button>
+                    {onFindCollaborators && existingOpportunity && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onFindCollaborators(existingOpportunity);
+                        }}
+                        className="flex items-center space-x-1.5 rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-purple-200 hover:bg-purple-700 transition cursor-pointer"
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Find Collaborators</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={isSaving || !title.trim()}
+                      className="flex items-center space-x-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                      <span>Save Changes</span>
+                    </button>
+                  </>
+                ) : oppStatus === "CLOSED" ? (
+                  <span className="text-xs font-bold text-slate-500 py-2 px-3 bg-slate-100 rounded-lg">
+                    Opportunity Closed
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={isSaving || !title.trim()}
+                      className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isSaving ? "Saving..." : "Save Opportunity Draft"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePublish}
+                      disabled={isPublishing || !title.trim()}
+                      className="flex items-center space-x-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-200 hover:bg-emerald-700 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      {isPublishing ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Publishing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="h-3.5 w-3.5" />
+                          <span>Publish Opportunity</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -1037,4 +1618,3 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
     </div>
   );
 };
-

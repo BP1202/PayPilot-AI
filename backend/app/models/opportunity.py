@@ -14,6 +14,18 @@ class OpportunityType(str, enum.Enum):
     PROBLEM = "PROBLEM"
 
 
+class OpportunityIntent(str, enum.Enum):
+    SEEKING_SOLUTION = "SEEKING_SOLUTION"
+    OFFERING_SOLUTION = "OFFERING_SOLUTION"
+
+
+class OpportunityCategory(str, enum.Enum):
+    FINTECH = "FINTECH"
+    TECH = "TECH"
+    BUSINESS = "BUSINESS"
+    LOCAL = "LOCAL"
+
+
 class OpportunityStatus(str, enum.Enum):
     DRAFT = "DRAFT"
     ANALYSED = "ANALYSED"
@@ -24,12 +36,14 @@ class OpportunityStatus(str, enum.Enum):
     GROWING = "GROWING"
     COMPLETED = "COMPLETED"
     ARCHIVED = "ARCHIVED"
+    CLOSED = "CLOSED"
 
 
 class OpportunityVisibility(str, enum.Enum):
     PRIVATE = "PRIVATE"
-    SHARED = "SHARED"
+    AUTHENTICATED = "AUTHENTICATED"
     PUBLIC = "PUBLIC"
+    SHARED = "SHARED"
 
 
 class ProvenanceCategory(str, enum.Enum):
@@ -53,11 +67,32 @@ class Opportunity(Base):
     submission_type: Mapped[str] = mapped_column(
         String(20), nullable=False, default=OpportunityType.IDEA.value
     )
+    intent: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default=OpportunityIntent.SEEKING_SOLUTION.value,
+        index=True,
+    )
+    category: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default=OpportunityCategory.BUSINESS.value,
+        index=True,
+    )
     status: Mapped[str] = mapped_column(
         String(30), nullable=False, default=OpportunityStatus.DRAFT.value, index=True
     )
     visibility: Mapped[str] = mapped_column(
-        String(20), nullable=False, default=OpportunityVisibility.PRIVATE.value
+        String(30),
+        nullable=False,
+        default=OpportunityVisibility.PRIVATE.value,
+        index=True,
+    )
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)

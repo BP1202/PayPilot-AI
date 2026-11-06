@@ -6,9 +6,38 @@ import {
   DashboardOverview,
   CopilotRecommendation,
   LedgerListResponse,
+  OpportunityListResponse,
+  Opportunity,
+  User,
 } from "@/types";
 
-vi.mock("@/lib/api");
+vi.mock("@/lib/api", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
+  return {
+    ...actual,
+    fetchDashboardOverview: vi.fn(),
+    fetchCopilotRecommendation: vi.fn(),
+    fetchLedgerTransactions: vi.fn(),
+    fetchUserOpportunities: vi.fn(),
+    fetchOpportunityById: vi.fn(),
+    fetchCurrentUser: vi.fn(),
+    loginUser: vi.fn(),
+    registerUser: vi.fn(),
+    logoutUser: vi.fn(),
+    getAccessToken: vi.fn(),
+    getStoredUser: vi.fn(),
+    clearAccessToken: vi.fn(),
+  };
+});
+
+const mockUser: User = {
+  id: "usr_alice123",
+  email: "alice@example.com",
+  full_name: "Alice Builder",
+  is_active: true,
+  created_at: "2026-11-01T10:00:00Z",
+  updated_at: "2026-11-01T10:00:00Z",
+};
 
 const mockOverview: DashboardOverview = {
   business: {
@@ -74,9 +103,47 @@ const mockLedger: LedgerListResponse = {
   total: 1,
 };
 
+const mockOpportunity1: Opportunity = {
+  id: "opp_alpha",
+  user_id: "usr_alice123",
+  submission_type: "IDEA",
+  status: "ANALYSED",
+  visibility: "PRIVATE",
+  title: "Automated Drone Fleet Logistics",
+  original_description: "Real-time dispatch system for suburban package delivery drones.",
+  proposed_solution: "Autonomous ground-based charging pads with mesh networking.",
+  problem_statement: "High battery turn times stall rapid suburban delivery.",
+  industry: "Aviation & Logistics",
+  value_proposition: "Cuts turnaround time by 60%.",
+  target_customer_segments: ["Last-mile delivery operators"],
+  customer_pain_points: ["Battery charge bottlenecks"],
+  required_skills_and_resources: ["Drone avionics", "Software architecture"],
+  potential_business_models: ["SaaS charging network"],
+  key_assumptions: ["Municipal flight permits granted"],
+  risks_and_uncertainties: ["Inclement weather"],
+  missing_information: ["Fleet size"],
+  suggested_follow_up_questions: ["What is the range per charge?"],
+  provenance: {},
+  ai_metadata: { mode: "DETERMINISTIC_FALLBACK" },
+  created_at: "2026-11-04T00:00:00Z",
+  updated_at: "2026-11-04T00:00:00Z",
+};
+
+const mockOppList: OpportunityListResponse = {
+  items: [mockOpportunity1],
+  total: 1,
+};
+
 describe("Home Page Dashboard & Connectivity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(api.getStoredUser).mockReturnValue(null);
+    vi.mocked(api.getAccessToken).mockReturnValue(null);
+    vi.mocked(api.fetchDashboardOverview).mockResolvedValue(mockOverview);
+    vi.mocked(api.fetchCopilotRecommendation).mockResolvedValue(mockRecommendation);
+    vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(mockLedger);
+    vi.mocked(api.fetchUserOpportunities).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
   });
 
   it("renders loading skeleton state while requests are in flight", () => {
@@ -90,16 +157,14 @@ describe("Home Page Dashboard & Connectivity", () => {
   });
 
   it("renders data successfully when API requests resolve", async () => {
-    vi.mocked(api.fetchDashboardOverview).mockResolvedValue(mockOverview);
-    vi.mocked(api.fetchCopilotRecommendation).mockResolvedValue(mockRecommendation);
-    vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(mockLedger);
-
     render(<Home />);
 
     await waitFor(() => {
       expect(screen.getByText("Apex Precision Gearworks")).toBeInTheDocument();
       expect(screen.getAllByText("$10,135.75").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("Working Capital Acceleration: Capture Order from Stratos Dynamics")).toBeInTheDocument();
+      expect(
+        screen.getByText("Working Capital Acceleration: Capture Order from Stratos Dynamics")
+      ).toBeInTheDocument();
       expect(screen.getByText("TXN-DEMO-202611-001")).toBeInTheDocument();
     });
   });
@@ -108,8 +173,6 @@ describe("Home Page Dashboard & Connectivity", () => {
     vi.mocked(api.fetchDashboardOverview).mockRejectedValue(
       new Error("We're having trouble connecting to your financial records right now. Please check your internet connection or try again.")
     );
-    vi.mocked(api.fetchCopilotRecommendation).mockResolvedValue(mockRecommendation);
-    vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(mockLedger);
 
     render(<Home />);
 
@@ -120,7 +183,6 @@ describe("Home Page Dashboard & Connectivity", () => {
       expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
     });
 
-    // When an error occurs and totals are unavailable, financial metrics must not fabricate "$0.00"
     expect(screen.queryByText("$0.00")).not.toBeInTheDocument();
   });
 
@@ -128,20 +190,16 @@ describe("Home Page Dashboard & Connectivity", () => {
     vi.mocked(api.fetchDashboardOverview).mockRejectedValue(
       new Error("Unable to connect to PayPilot backend at http://127.0.0.1:8000/api/v1. Status 500.")
     );
-    vi.mocked(api.fetchCopilotRecommendation).mockResolvedValue(mockRecommendation);
-    vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(mockLedger);
 
     render(<Home />);
 
     await waitFor(() => {
-      // Must NOT contain technical URL or backend terms
       expect(screen.queryByText(/127\.0\.0\.1/)).not.toBeInTheDocument();
       expect(screen.queryByText(/8000/)).not.toBeInTheDocument();
       expect(screen.queryByText(/backend/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/api/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/status 500/i)).not.toBeInTheDocument();
 
-      // Must display friendly user copy
       expect(
         screen.getByText(/trouble connecting to your financial records/i)
       ).toBeInTheDocument();
@@ -150,7 +208,6 @@ describe("Home Page Dashboard & Connectivity", () => {
   });
 
   it("retries fetching data when Try again button is clicked", async () => {
-    // 1st attempt fails, subsequent attempts succeed
     vi.mocked(api.fetchDashboardOverview)
       .mockRejectedValueOnce(new Error("Unable to connect to backend server"))
       .mockResolvedValue(mockOverview);
@@ -181,9 +238,6 @@ describe("Home Page Dashboard & Connectivity", () => {
 
   it("distinguishes empty ledger state from error state", async () => {
     const emptyLedger: LedgerListResponse = { items: [], total: 0 };
-
-    vi.mocked(api.fetchDashboardOverview).mockResolvedValue(mockOverview);
-    vi.mocked(api.fetchCopilotRecommendation).mockResolvedValue(mockRecommendation);
     vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(emptyLedger);
 
     render(<Home />);
@@ -192,5 +246,142 @@ describe("Home Page Dashboard & Connectivity", () => {
       expect(screen.getByText("No transactions match the selected filter.")).toBeInTheDocument();
       expect(screen.queryByText("Connection issue")).not.toBeInTheDocument();
     });
+  });
+});
+
+describe("Opportunity Drafts Visibility for Authenticated Users", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.getStoredUser).mockReturnValue(mockUser);
+    vi.mocked(api.getAccessToken).mockReturnValue("mock_valid_token");
+    vi.mocked(api.fetchDashboardOverview).mockResolvedValue(mockOverview);
+    vi.mocked(api.fetchCopilotRecommendation).mockResolvedValue(mockRecommendation);
+    vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(mockLedger);
+    vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
+    vi.mocked(api.fetchUserOpportunities).mockResolvedValue(mockOppList);
+  });
+
+  it("loads and displays authenticated user's opportunities when user has active session", async () => {
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Automated Drone Fleet Logistics")).toBeInTheDocument();
+      expect(screen.getByText("Aviation & Logistics")).toBeInTheDocument();
+      expect(screen.getByText("1 Total")).toBeInTheDocument();
+    });
+
+    expect(api.fetchUserOpportunities).toHaveBeenCalled();
+  });
+
+  it("shows unauthenticated state prompting sign in when no active session exists", async () => {
+    vi.mocked(api.getStoredUser).mockReturnValue(null);
+    vi.mocked(api.getAccessToken).mockReturnValue(null);
+
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Sign in to view your opportunity drafts")
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Automated Drone Fleet Logistics")).not.toBeInTheDocument();
+  });
+
+  it("reopens opportunity draft using persisted backend data from fetchOpportunityById", async () => {
+    const persistedFullOpp: Opportunity = {
+      ...mockOpportunity1,
+      title: "Automated Drone Fleet Logistics (Persisted V2)",
+      value_proposition: "Authoritative persisted value proposition from PostgreSQL database.",
+    };
+    vi.mocked(api.fetchOpportunityById).mockResolvedValue(persistedFullOpp);
+
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Automated Drone Fleet Logistics")).toBeInTheDocument();
+    });
+
+    // Click on opportunity card to reopen
+    const cardTitle = screen.getByText("Automated Drone Fleet Logistics");
+    fireEvent.click(cardTitle);
+
+    await waitFor(() => {
+      expect(api.fetchOpportunityById).toHaveBeenCalledWith("opp_alpha");
+      expect(
+        screen.getByText("Edit Opportunity Draft")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByDisplayValue("Automated Drone Fleet Logistics (Persisted V2)")
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("clears user-specific opportunity data immediately when user signs out", async () => {
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Automated Drone Fleet Logistics")).toBeInTheDocument();
+      expect(screen.getByText("Sign Out")).toBeInTheDocument();
+    });
+
+    // Click sign out
+    const signOutBtn = screen.getByText("Sign Out");
+    fireEvent.click(signOutBtn);
+
+    await waitFor(() => {
+      expect(api.logoutUser).toHaveBeenCalled();
+      expect(screen.queryByText("Automated Drone Fleet Logistics")).not.toBeInTheDocument();
+      expect(
+        screen.getByText("Sign in to view your opportunity drafts")
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("handles expired sessions gracefully by clearing stale private data", async () => {
+    // When session expires, fetchCurrentUser and fetchUserOpportunities return 401
+    vi.mocked(api.fetchCurrentUser).mockRejectedValue(
+      new api.ApiError("Authentication token has expired. Please log in again.", 401)
+    );
+    vi.mocked(api.fetchUserOpportunities).mockRejectedValue(
+      new api.ApiError("Authentication token has expired. Please log in again.", 401)
+    );
+
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(api.clearAccessToken).toHaveBeenCalled();
+      expect(screen.queryByText("Automated Drone Fleet Logistics")).not.toBeInTheDocument();
+      expect(
+        screen.getByText("Sign in to view your opportunity drafts")
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("displays proper error state in opportunity drafts list when request fails and recovers on retry", async () => {
+    // First attempt fails with network error, second attempt succeeds
+    vi.mocked(api.fetchUserOpportunities)
+      .mockRejectedValueOnce(new Error("Unable to connect to opportunity service"))
+      .mockResolvedValue(mockOppList);
+
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unable to load opportunities")).toBeInTheDocument();
+      expect(
+        screen.getByText("We couldn't load your opportunity drafts right now. Please check your connection or try again.")
+      ).toBeInTheDocument();
+    });
+
+    // Click retry
+    const retryBtn = screen.getAllByRole("button", { name: /try again/i })[0];
+    fireEvent.click(retryBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Automated Drone Fleet Logistics")).toBeInTheDocument();
+      expect(screen.queryByText("Unable to load opportunities")).not.toBeInTheDocument();
+    });
+
+    expect(api.fetchUserOpportunities).toHaveBeenCalledTimes(2);
   });
 });

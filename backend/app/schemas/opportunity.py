@@ -4,6 +4,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.opportunity import (
+    OpportunityCategory,
+    OpportunityIntent,
     OpportunityStatus,
     OpportunityType,
     OpportunityVisibility,
@@ -22,6 +24,8 @@ class OpportunityAnalyzeRequest(BaseModel):
     business_id: int | None = Field(
         default=None, description="Optional linked business profile ID."
     )
+    intent: OpportunityIntent = OpportunityIntent.SEEKING_SOLUTION
+    category: OpportunityCategory = OpportunityCategory.BUSINESS
 
 
 class OpportunityAnalysisData(BaseModel):
@@ -101,10 +105,14 @@ class OpportunityAnalyzeResponse(BaseModel):
         default="",
         description="Transparent summary of analysis provenance and human review advice.",
     )
+    intent: OpportunityIntent = OpportunityIntent.SEEKING_SOLUTION
+    category: OpportunityCategory = OpportunityCategory.BUSINESS
 
 
 class OpportunityCreate(BaseModel):
     submission_type: OpportunityType = OpportunityType.IDEA
+    intent: OpportunityIntent = OpportunityIntent.SEEKING_SOLUTION
+    category: OpportunityCategory = OpportunityCategory.BUSINESS
     title: str = Field(..., min_length=2, max_length=255)
     original_description: str = Field(..., min_length=10)
 
@@ -132,6 +140,8 @@ class OpportunityCreate(BaseModel):
 class OpportunityUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=2, max_length=255)
     original_description: str | None = Field(default=None, min_length=10)
+    intent: OpportunityIntent | None = None
+    category: OpportunityCategory | None = None
     problem_statement: str | None = None
     proposed_solution: str | None = None
     industry: str | None = None
@@ -158,6 +168,8 @@ class OpportunityResponse(BaseModel):
     user_id: str
     business_id: int | None = None
     submission_type: str
+    intent: str = OpportunityIntent.SEEKING_SOLUTION.value
+    category: str = OpportunityCategory.BUSINESS.value
     status: str
     visibility: str
     title: str
@@ -179,6 +191,8 @@ class OpportunityResponse(BaseModel):
 
     provenance: dict[str, Any] = Field(default_factory=dict)
     ai_metadata: dict[str, Any] = Field(default_factory=dict)
+    published_at: datetime | None = None
+    closed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -196,7 +210,69 @@ class OpportunityReanalyzeRequest(BaseModel):
         description="Optional updated description. If omitted, uses stored original_description.",
     )
     submission_type: OpportunityType | None = None
+    intent: OpportunityIntent | None = None
+    category: OpportunityCategory | None = None
     preserve_user_edits: bool = Field(
         default=True,
         description="If True, keeps custom user-edited fields and merges new analytical suggestions.",
     )
+
+
+class OpportunityPublishRequest(BaseModel):
+    visibility: OpportunityVisibility = Field(
+        default=OpportunityVisibility.PUBLIC,
+        description="Target publication visibility: PUBLIC or AUTHENTICATED.",
+    )
+
+
+class OpportunityVisibilityUpdateRequest(BaseModel):
+    visibility: OpportunityVisibility = Field(
+        ...,
+        description="Target visibility: PRIVATE, AUTHENTICATED, or PUBLIC.",
+    )
+
+
+class OpportunityCloseRequest(BaseModel):
+    reason: str | None = Field(
+        default=None, max_length=500, description="Optional closure rationale."
+    )
+
+
+class OpportunityPublicResponse(BaseModel):
+    id: str
+    business_id: int | None = None
+    business_name: str | None = None
+    submission_type: str
+    intent: str
+    category: str
+    status: str
+    visibility: str
+    title: str
+
+    problem_statement: str | None = None
+    proposed_solution: str | None = None
+    industry: str | None = None
+    value_proposition: str | None = None
+
+    target_customer_segments: list[str] = Field(default_factory=list)
+    customer_pain_points: list[str] = Field(default_factory=list)
+    required_skills_and_resources: list[str] = Field(default_factory=list)
+    potential_business_models: list[str] = Field(default_factory=list)
+    key_assumptions: list[str] = Field(default_factory=list)
+    risks_and_uncertainties: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    suggested_follow_up_questions: list[str] = Field(default_factory=list)
+
+    published_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OpportunityDiscoveryResponse(BaseModel):
+    items: list[OpportunityPublicResponse]
+    total: int
+    page: int
+    limit: int
+    pages: int

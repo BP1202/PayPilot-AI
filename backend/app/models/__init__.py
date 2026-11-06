@@ -1,4 +1,28 @@
 from app.models.business import Business
+from app.models.collaboration_activity import CollaborationActivity
+from app.models.connection import Connection, ConnectionIntent, ConnectionStatus
+from app.models.deal_room import (
+    DealRoom,
+    DealRoomActivity,
+    DealRoomActivityType,
+    DealRoomClarification,
+    DealRoomClarificationStatus,
+    DealRoomDocument,
+    DealRoomDocumentType,
+    DealRoomNote,
+    DealRoomParticipant,
+    DealRoomStatus,
+)
+from app.models.milestone_execution import (
+    EvidenceReviewStatus,
+    MilestoneEvidence,
+    MilestoneEvidenceType,
+    MilestoneExecution,
+    MilestoneExecutionStatus,
+    MilestoneReview,
+    MilestoneReviewDecision,
+    PaymentReadinessStatus,
+)
 from app.models.opportunity import (
     Opportunity,
     OpportunityStatus,
@@ -6,15 +30,45 @@ from app.models.opportunity import (
     OpportunityVisibility,
     ProvenanceCategory,
 )
+from app.models.profile import IndividualProfile, ProfileVisibility
+from app.models.proposal import Proposal, ProposalStatus
+from app.models.proposal_revision import ProposalRevision
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.models.user import User
 
 __all__ = [
     "Business",
+    "CollaborationActivity",
+    "Connection",
+    "ConnectionIntent",
+    "ConnectionStatus",
+    "DealRoom",
+    "DealRoomActivity",
+    "DealRoomActivityType",
+    "DealRoomClarification",
+    "DealRoomClarificationStatus",
+    "DealRoomDocument",
+    "DealRoomDocumentType",
+    "DealRoomNote",
+    "DealRoomParticipant",
+    "DealRoomStatus",
+    "EvidenceReviewStatus",
+    "IndividualProfile",
+    "MilestoneEvidence",
+    "MilestoneEvidenceType",
+    "MilestoneExecution",
+    "MilestoneExecutionStatus",
+    "MilestoneReview",
+    "MilestoneReviewDecision",
     "Opportunity",
     "OpportunityStatus",
     "OpportunityType",
     "OpportunityVisibility",
+    "PaymentReadinessStatus",
+    "ProfileVisibility",
+    "Proposal",
+    "ProposalRevision",
+    "ProposalStatus",
     "ProvenanceCategory",
     "Transaction",
     "TransactionStatus",

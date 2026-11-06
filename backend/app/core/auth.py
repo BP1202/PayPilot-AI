@@ -95,3 +95,10 @@ def get_optional_user(
     if not authorization or not authorization.strip():
         return None
     return get_current_user(db=db, authorization=authorization)
+
+
+def get_optional_user_id(
+    optional_user: Annotated[User | None, Depends(get_optional_user)],
+) -> str | None:
+    """Returns the verified user ID from optional identity, or None if guest."""
+    return optional_user.id if optional_user else None

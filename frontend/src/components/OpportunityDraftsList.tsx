@@ -5,30 +5,53 @@ import {
   Lightbulb,
   AlertCircle,
   Clock,
-  Sparkles,
   ArrowRight,
   PlusCircle,
-  FileText,
+  RotateCw,
+  Target,
+  Rocket,
+  Building2,
+  Globe,
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
 } from "lucide-react";
-import { Opportunity, OpportunityStatus } from "@/types";
+import { Opportunity, OpportunityStatus, Business } from "@/types";
 
 interface OpportunityDraftsListProps {
   opportunities: Opportunity[];
   isLoading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   onSelectOpportunity: (opportunity: Opportunity) => void;
   onCreateNew: () => void;
   selectedStatus?: OpportunityStatus;
   onFilterChange: (status?: OpportunityStatus) => void;
+  isAuthenticated?: boolean;
+  onSignIn?: () => void;
+  businesses?: Business[];
 }
 
 export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
   opportunities,
   isLoading,
+  error,
+  onRetry,
   onSelectOpportunity,
   onCreateNew,
   selectedStatus,
   onFilterChange,
+  isAuthenticated = true,
+  onSignIn,
+  businesses = [],
 }) => {
+  const businessMap = React.useMemo(() => {
+    const map: Record<number, string> = {};
+    for (const b of businesses) {
+      map[b.id] = b.name;
+    }
+    return map;
+  }, [businesses]);
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -55,16 +78,6 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
               All
             </button>
             <button
-              onClick={() => onFilterChange("ANALYSED")}
-              className={`rounded-md px-2.5 py-1 font-medium transition ${
-                selectedStatus === "ANALYSED"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Analysed
-            </button>
-            <button
               onClick={() => onFilterChange("DRAFT")}
               className={`rounded-md px-2.5 py-1 font-medium transition ${
                 selectedStatus === "DRAFT"
@@ -73,6 +86,36 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
               }`}
             >
               Drafts
+            </button>
+            <button
+              onClick={() => onFilterChange("PUBLISHED")}
+              className={`rounded-md px-2.5 py-1 font-medium transition ${
+                selectedStatus === "PUBLISHED"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Published
+            </button>
+            <button
+              onClick={() => onFilterChange("CLOSED")}
+              className={`rounded-md px-2.5 py-1 font-medium transition ${
+                selectedStatus === "CLOSED"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Closed
+            </button>
+            <button
+              onClick={() => onFilterChange("ANALYSED")}
+              className={`rounded-md px-2.5 py-1 font-medium transition ${
+                selectedStatus === "ANALYSED"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Analysed
             </button>
           </div>
 
@@ -95,6 +138,52 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
                 <div className="h-3 w-2/3 bg-slate-200 rounded" />
               </div>
             ))}
+          </div>
+        ) : error ? (
+          <div role="alert" className="rounded-xl border border-amber-200/80 bg-amber-50/90 p-6 text-center shadow-xs">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 mb-3">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-bold text-amber-950">Unable to load opportunities</h3>
+            <p className="text-xs text-amber-800/90 max-w-sm mx-auto mt-1 mb-4">
+              {error}
+            </p>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-800 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-amber-900 transition cursor-pointer"
+              >
+                <RotateCw className="h-3.5 w-3.5" />
+                <span>Try again</span>
+              </button>
+            )}
+          </div>
+        ) : !isAuthenticated ? (
+          <div className="rounded-xl border border-dashed border-indigo-200 p-8 text-center bg-indigo-50/30">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 mb-3">
+              <Lightbulb className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">Sign in to view your opportunity drafts</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-4">
+              Sign in or create an account to access your saved opportunity drafts and structure them into commercial opportunities across your sessions.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              {onSignIn && (
+                <button
+                  onClick={onSignIn}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-100 hover:bg-indigo-700 transition cursor-pointer"
+                >
+                  <span>Sign In / Register</span>
+                </button>
+              )}
+              <button
+                onClick={onCreateNew}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span>Capture an Opportunity</span>
+              </button>
+            </div>
           </div>
         ) : opportunities.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center bg-slate-50/50">
@@ -123,22 +212,105 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                        opp.submission_type === "PROBLEM"
-                          ? "bg-amber-50 text-amber-800 border border-amber-200"
-                          : "bg-indigo-50 text-indigo-800 border border-indigo-200"
-                      }`}
-                    >
-                      {opp.submission_type === "PROBLEM" ? (
-                        <AlertCircle className="h-3 w-3" />
-                      ) : (
-                        <Lightbulb className="h-3 w-3" />
-                      )}
-                      <span>{opp.submission_type}</span>
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Two-sided Intent Badge */}
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                          opp.intent === "OFFERING_SOLUTION"
+                            ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                            : "bg-indigo-50 text-indigo-800 border border-indigo-200"
+                        }`}
+                      >
+                        {opp.intent === "OFFERING_SOLUTION" ? (
+                          <Rocket className="h-3 w-3" />
+                        ) : (
+                          <Target className="h-3 w-3" />
+                        )}
+                        <span>{opp.intent === "OFFERING_SOLUTION" ? "Offering" : "Seeking"}</span>
+                      </span>
 
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                      {/* Category Badge */}
+                      <span className="inline-flex items-center rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+                        {opp.category || "BUSINESS"}
+                      </span>
+
+                      {/* Linked Organization Badge */}
+                      {opp.business_id && (
+                        <span
+                          data-testid="linked-org-badge"
+                          className="inline-flex items-center gap-1 rounded-md bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700"
+                        >
+                          <Building2 className="h-3 w-3" />
+                          <span>{businessMap[opp.business_id] || `Org #${opp.business_id}`}</span>
+                        </span>
+                      )}
+
+                      {/* Format Badge */}
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                          opp.submission_type === "PROBLEM"
+                            ? "bg-amber-50 text-amber-800 border border-amber-200"
+                            : "bg-blue-50 text-blue-800 border border-blue-200"
+                        }`}
+                      >
+                        {opp.submission_type}
+                      </span>
+
+                      {/* Lifecycle Status Badge */}
+                      {opp.status === "PUBLISHED" ? (
+                        <span
+                          data-testid="status-badge-published"
+                          className="inline-flex items-center gap-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[11px] font-bold"
+                        >
+                          <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                          <span>Published</span>
+                        </span>
+                      ) : opp.status === "CLOSED" ? (
+                        <span
+                          data-testid="status-badge-closed"
+                          className="inline-flex items-center gap-1 rounded-md bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 text-[11px] font-bold"
+                        >
+                          <Lock className="h-3 w-3 text-slate-500" />
+                          <span>Closed</span>
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="status-badge-draft"
+                          className="inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 text-[11px] font-bold"
+                        >
+                          <span>{opp.status === "ANALYSED" ? "Analysed" : "Draft"}</span>
+                        </span>
+                      )}
+
+                      {/* Visibility Badge */}
+                      {opp.visibility === "PUBLIC" ? (
+                        <span
+                          data-testid="visibility-badge-public"
+                          className="inline-flex items-center gap-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 text-[11px] font-semibold"
+                        >
+                          <Globe className="h-3 w-3 text-blue-600" />
+                          <span>Public</span>
+                        </span>
+                      ) : opp.visibility === "AUTHENTICATED" ? (
+                        <span
+                          data-testid="visibility-badge-authenticated"
+                          className="inline-flex items-center gap-1 rounded-md bg-violet-50 text-violet-700 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold"
+                        >
+                          <ShieldCheck className="h-3 w-3 text-violet-600" />
+                          <span>Members Only</span>
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="visibility-badge-private"
+                          className="inline-flex items-center gap-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 text-[11px] font-semibold"
+                        >
+                          <Lock className="h-3 w-3 text-slate-500" />
+                          <span>Private</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 shrink-0">
                       <Clock className="h-3 w-3" />
                       {new Date(opp.updated_at).toLocaleDateString(undefined, {
                         month: "short",
@@ -174,4 +346,3 @@ export const OpportunityDraftsList: React.FC<OpportunityDraftsListProps> = ({
     </div>
   );
 };
-

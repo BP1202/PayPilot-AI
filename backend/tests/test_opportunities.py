@@ -378,3 +378,252 @@ def test_user_can_edit_and_reanalyze_opportunity(client_with_db):
     # Refreshed analytical arrays
     assert len(reanalyzed["key_assumptions"]) > 0
     assert len(reanalyzed["potential_business_models"]) > 0
+
+
+def test_unauthenticated_opportunity_endpoints_return_401(client_with_db):
+    # 1. Listing without auth
+    list_res = client_with_db.get("/api/v1/opportunities")
+    assert list_res.status_code == 401
+
+    # 2. Creating draft without auth
+    create_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "title": "Unauthorized Idea",
+            "original_description": "A description text for test",
+        },
+    )
+    assert create_res.status_code == 401
+
+    # 3. Getting opportunity without auth
+    get_res = client_with_db.get("/api/v1/opportunities/opp_nonexistent")
+    assert get_res.status_code == 401
+
+    # 4. Updating opportunity without auth
+    put_res = client_with_db.put(
+        "/api/v1/opportunities/opp_nonexistent",
+        json={"title": "Updated Title"},
+    )
+    assert put_res.status_code == 401
+
+
+def test_expired_session_token_rejected_with_401(client_with_db):
+    from datetime import timedelta
+
+    from app.core.security import create_access_token
+
+    user_id, _ = make_auth_user(
+        client_with_db, "expired_user@demo.test", "Expired User"
+    )
+    expired_token = create_access_token(
+        user_id=user_id,
+        email="expired_user@demo.test",
+        expires_delta=timedelta(minutes=-30),
+    )
+    expired_headers = {"Authorization": f"Bearer {expired_token}"}
+
+    res = client_with_db.get("/api/v1/opportunities", headers=expired_headers)
+    assert res.status_code == 401
+    assert "expired" in res.json()["detail"].lower()
+
+
+def test_multitenant_opportunities_isolation_and_reopen(client_with_db):
+    _user_a, headers_a = make_auth_user(
+        client_with_db, "tenant_a@demo.test", "Tenant A"
+    )
+    _user_b, headers_b = make_auth_user(
+        client_with_db, "tenant_b@demo.test", "Tenant B"
+    )
+
+    # User A creates opportunity
+    opp_a_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "IDEA",
+            "title": "Tenant A Secret Initiative",
+            "original_description": "Exclusive business opportunity for Tenant A only.",
+            "industry": "Aerospace",
+        },
+        headers=headers_a,
+    )
+    assert opp_a_res.status_code == 201
+    opp_a_id = opp_a_res.json()["id"]
+
+    # User B creates opportunity
+    opp_b_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "PROBLEM",
+            "title": "Tenant B Supply Bottleneck",
+            "original_description": "Exclusive operational challenge for Tenant B only.",
+            "industry": "Agriculture",
+        },
+        headers=headers_b,
+    )
+    assert opp_b_res.status_code == 201
+    opp_b_id = opp_b_res.json()["id"]
+
+    # User A lists opportunities: sees ONLY their own
+    list_a = client_with_db.get("/api/v1/opportunities", headers=headers_a).json()
+    assert any(item["id"] == opp_a_id for item in list_a["items"])
+    assert not any(item["id"] == opp_b_id for item in list_a["items"])
+
+    # User B lists opportunities: sees ONLY their own
+    list_b = client_with_db.get("/api/v1/opportunities", headers=headers_b).json()
+    assert any(item["id"] == opp_b_id for item in list_b["items"])
+    assert not any(item["id"] == opp_a_id for item in list_b["items"])
+
+    # User A reopens their opportunity using persisted backend data
+    reopened = client_with_db.get(
+        f"/api/v1/opportunities/{opp_a_id}", headers=headers_a
+    ).json()
+    assert reopened["id"] == opp_a_id
+    assert reopened["title"] == "Tenant A Secret Initiative"
+    assert reopened["industry"] == "Aerospace"
+
+    # User B attempting to reopen User A's opportunity receives 403 Forbidden
+    unauthorized_reopen = client_with_db.get(
+        f"/api/v1/opportunities/{opp_a_id}", headers=headers_b
+    )
+    assert unauthorized_reopen.status_code == 403
+
+
+def test_two_sided_opportunity_creation_and_filtering(client_with_db):
+    _user, headers = make_auth_user(
+        client_with_db, "twoside@demo.test", "Two Sided User"
+    )
+
+    # 1. User seeks a solution (Seeking Opportunity) in TECH
+    seeking_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "PROBLEM",
+            "intent": "SEEKING_SOLUTION",
+            "category": "TECH",
+            "title": "Need Full-Stack Developer for AI Platform",
+            "original_description": "We are looking for a senior full-stack engineer to build our web app.",
+            "industry": "Software",
+        },
+        headers=headers,
+    )
+    assert seeking_res.status_code == 201
+    seeking_data = seeking_res.json()
+    assert seeking_data["intent"] == "SEEKING_SOLUTION"
+    assert seeking_data["category"] == "TECH"
+    seeking_id = seeking_data["id"]
+
+    # 2. Same user offers a solution (Offering Opportunity) in FINTECH
+    offering_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "IDEA",
+            "intent": "OFFERING_SOLUTION",
+            "category": "FINTECH",
+            "title": "Automated Reconciliation Engine for Freelancers",
+            "original_description": "I have developed an automated ledger reconciliation algorithm for microbusinesses.",
+            "industry": "Finance",
+        },
+        headers=headers,
+    )
+    assert offering_res.status_code == 201
+    offering_data = offering_res.json()
+    assert offering_data["intent"] == "OFFERING_SOLUTION"
+    assert offering_data["category"] == "FINTECH"
+    offering_id = offering_data["id"]
+
+    # 3. Filter by intent=SEEKING_SOLUTION
+    res_seeking = client_with_db.get(
+        "/api/v1/opportunities?intent=SEEKING_SOLUTION", headers=headers
+    ).json()
+    assert any(item["id"] == seeking_id for item in res_seeking["items"])
+    assert not any(item["id"] == offering_id for item in res_seeking["items"])
+
+    # 4. Filter by intent=OFFERING_SOLUTION
+    res_offering = client_with_db.get(
+        "/api/v1/opportunities?intent=OFFERING_SOLUTION", headers=headers
+    ).json()
+    assert any(item["id"] == offering_id for item in res_offering["items"])
+    assert not any(item["id"] == seeking_id for item in res_offering["items"])
+
+    # 5. Filter by category=TECH
+    res_tech = client_with_db.get(
+        "/api/v1/opportunities?category=TECH", headers=headers
+    ).json()
+    assert any(item["id"] == seeking_id for item in res_tech["items"])
+    assert not any(item["id"] == offering_id for item in res_tech["items"])
+
+    # 6. Filter by category=FINTECH
+    res_fintech = client_with_db.get(
+        "/api/v1/opportunities?category=FINTECH", headers=headers
+    ).json()
+    assert any(item["id"] == offering_id for item in res_fintech["items"])
+    assert not any(item["id"] == seeking_id for item in res_fintech["items"])
+
+
+def test_opportunity_categories_and_validation(client_with_db):
+    _user, headers = make_auth_user(
+        client_with_db, "categories@demo.test", "Categories User"
+    )
+
+    # Verify all 4 categories can be created: FINTECH, TECH, BUSINESS, LOCAL
+    for cat in ["FINTECH", "TECH", "BUSINESS", "LOCAL"]:
+        res = client_with_db.post(
+            "/api/v1/opportunities",
+            json={
+                "submission_type": "IDEA",
+                "intent": "OFFERING_SOLUTION",
+                "category": cat,
+                "title": f"Opportunity in {cat}",
+                "original_description": f"Valid description for category testing in {cat}.",
+            },
+            headers=headers,
+        )
+        assert res.status_code == 201
+        assert res.json()["category"] == cat
+
+    # Test invalid intent returns 422
+    invalid_intent_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "IDEA",
+            "intent": "INVALID_INTENT",
+            "category": "TECH",
+            "title": "Invalid Intent Test",
+            "original_description": "Valid description text for schema testing.",
+        },
+        headers=headers,
+    )
+    assert invalid_intent_res.status_code == 422
+
+    # Test invalid category returns 422
+    invalid_cat_res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "IDEA",
+            "intent": "SEEKING_SOLUTION",
+            "category": "UNKNOWN_CATEGORY",
+            "title": "Invalid Category Test",
+            "original_description": "Valid description text for schema testing.",
+        },
+        headers=headers,
+    )
+    assert invalid_cat_res.status_code == 422
+
+
+def test_legacy_payload_defaults_to_seeking_and_business(client_with_db):
+    _user, headers = make_auth_user(client_with_db, "legacy@demo.test", "Legacy User")
+
+    # Omit intent and category
+    res = client_with_db.post(
+        "/api/v1/opportunities",
+        json={
+            "submission_type": "PROBLEM",
+            "title": "Legacy Draft Without Intent",
+            "original_description": "Original description without any new intent or category fields.",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 201
+    data = res.json()
+    assert data["intent"] == "SEEKING_SOLUTION"
+    assert data["category"] == "BUSINESS"

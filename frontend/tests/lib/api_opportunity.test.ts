@@ -6,6 +6,11 @@ import {
   fetchOpportunityById,
   updateOpportunity,
   reanalyzeOpportunity,
+  publishOpportunity,
+  unpublishOpportunity,
+  closeOpportunity,
+  updateOpportunityVisibility,
+  fetchPublishedOpportunities,
 } from "@/lib/api";
 import {
   Opportunity,
@@ -155,5 +160,134 @@ describe("Opportunity Lifecycle API client", () => {
       analyzeOpportunity("IDEA", "Testing database failure resilience")
     ).rejects.toThrow(/We couldn't analyze your opportunity submission/i);
   });
-});
 
+  it("publishOpportunity sends POST with target visibility", async () => {
+    const mockPublishedOpp = {
+      id: "opp_pub_1",
+      user_id: "user_123",
+      title: "Clean Energy Microgrid",
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      published_at: "2026-11-05T00:00:00Z",
+    };
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockPublishedOpp,
+    } as unknown as Response);
+
+    const res = await publishOpportunity("opp_pub_1", { visibility: "PUBLIC" });
+    expect(res.id).toBe("opp_pub_1");
+    expect(res.status).toBe("PUBLISHED");
+    expect(res.visibility).toBe("PUBLIC");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/opportunities/opp_pub_1/publish"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ visibility: "PUBLIC" }),
+      })
+    );
+  });
+
+  it("unpublishOpportunity sends POST and returns draft", async () => {
+    const mockUnpublishedOpp = {
+      id: "opp_pub_1",
+      user_id: "user_123",
+      title: "Clean Energy Microgrid",
+      status: "DRAFT",
+      visibility: "PRIVATE",
+    };
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockUnpublishedOpp,
+    } as unknown as Response);
+
+    const res = await unpublishOpportunity("opp_pub_1");
+    expect(res.status).toBe("DRAFT");
+    expect(res.visibility).toBe("PRIVATE");
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/opportunities/opp_pub_1/unpublish"),
+      expect.objectContaining({
+        method: "POST",
+      })
+    );
+  });
+
+  it("closeOpportunity sends POST and returns closed status", async () => {
+    const mockClosedOpp = {
+      id: "opp_pub_1",
+      user_id: "user_123",
+      title: "Clean Energy Microgrid",
+      status: "CLOSED",
+      closed_at: "2026-11-05T01:00:00Z",
+    };
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockClosedOpp,
+    } as unknown as Response);
+
+    const res = await closeOpportunity("opp_pub_1", "Completed pilot");
+    expect(res.status).toBe("CLOSED");
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/opportunities/opp_pub_1/close"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ reason: "Completed pilot" }),
+      })
+    );
+  });
+
+  it("updateOpportunityVisibility sends PUT with new visibility", async () => {
+    const mockUpdatedOpp = {
+      id: "opp_pub_1",
+      user_id: "user_123",
+      title: "Clean Energy Microgrid",
+      visibility: "AUTHENTICATED",
+    };
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockUpdatedOpp,
+    } as unknown as Response);
+
+    const res = await updateOpportunityVisibility("opp_pub_1", "AUTHENTICATED");
+    expect(res.visibility).toBe("AUTHENTICATED");
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/opportunities/opp_pub_1/visibility"),
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ visibility: "AUTHENTICATED" }),
+      })
+    );
+  });
+
+  it("fetchPublishedOpportunities requests /opportunities/published with filters", async () => {
+    const mockPublishedList = {
+      items: [
+        {
+          id: "opp_pub_1",
+          title: "Public Clean Energy",
+          status: "PUBLISHED",
+          visibility: "PUBLIC",
+        },
+      ],
+      total: 1,
+    };
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockPublishedList,
+    } as unknown as Response);
+
+    const res = await fetchPublishedOpportunities("SEEKING_SOLUTION", "TECH");
+    expect(res.total).toBe(1);
+    expect(res.items[0].status).toBe("PUBLISHED");
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/opportunities/published?intent=SEEKING_SOLUTION&category=TECH"),
+      expect.any(Object)
+    );
+  });
+});

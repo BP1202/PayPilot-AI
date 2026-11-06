@@ -62,6 +62,7 @@ describe("OpportunityDraftsList Component", () => {
         onSelectOpportunity={vi.fn()}
         onCreateNew={onCreateNew}
         onFilterChange={vi.fn()}
+        isAuthenticated={true}
       />
     );
 
@@ -69,6 +70,71 @@ describe("OpportunityDraftsList Component", () => {
     const btn = screen.getByRole("button", { name: /Capture an Opportunity/i });
     fireEvent.click(btn);
     expect(onCreateNew).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders unauthenticated prompt when user is not signed in", () => {
+    const onSignIn = vi.fn();
+    const onCreateNew = vi.fn();
+    render(
+      <OpportunityDraftsList
+        opportunities={[]}
+        isLoading={false}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={onCreateNew}
+        onFilterChange={vi.fn()}
+        isAuthenticated={false}
+        onSignIn={onSignIn}
+      />
+    );
+
+    expect(
+      screen.getByText("Sign in to view your opportunity drafts")
+    ).toBeInTheDocument();
+    const signInBtn = screen.getByRole("button", { name: /Sign In \/ Register/i });
+    fireEvent.click(signInBtn);
+    expect(onSignIn).toHaveBeenCalledTimes(1);
+
+    const captureBtn = screen.getByRole("button", { name: /Capture an Opportunity/i });
+    fireEvent.click(captureBtn);
+    expect(onCreateNew).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders error state and handles retry button click", () => {
+    const onRetry = vi.fn();
+    render(
+      <OpportunityDraftsList
+        opportunities={[]}
+        isLoading={false}
+        error="We couldn't load your opportunity drafts right now."
+        onRetry={onRetry}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Unable to load opportunities")).toBeInTheDocument();
+    expect(
+      screen.getByText("We couldn't load your opportunity drafts right now.")
+    ).toBeInTheDocument();
+    const retryBtn = screen.getByRole("button", { name: /Try again/i });
+    fireEvent.click(retryBtn);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders loading skeleton state when isLoading is true", () => {
+    const { container } = render(
+      <OpportunityDraftsList
+        opportunities={[]}
+        isLoading={true}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    const pulses = container.querySelectorAll(".animate-pulse");
+    expect(pulses.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders opportunities list and handles card clicks", () => {
@@ -91,5 +157,90 @@ describe("OpportunityDraftsList Component", () => {
     fireEvent.click(screen.getByText("FreightPilot Pro"));
     expect(onSelect).toHaveBeenCalledWith(mockOpportunities[0]);
   });
-});
 
+  it("displays linked organization name when business_id is present", () => {
+    const oppWithOrg = {
+      ...mockOpportunities[0],
+      business_id: 101,
+    };
+    const mockBusinesses = [
+      {
+        id: 101,
+        name: "Apex Precision Gearworks",
+        currency: "USD",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ];
+
+    render(
+      <OpportunityDraftsList
+        opportunities={[oppWithOrg]}
+        businesses={mockBusinesses}
+        isLoading={false}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("linked-org-badge")).toBeInTheDocument();
+    expect(screen.getByText("Apex Precision Gearworks")).toBeInTheDocument();
+  });
+
+  it("renders lifecycle status badges and visibility badges correctly", () => {
+    const opps = [
+      {
+        ...mockOpportunities[0],
+        status: "PUBLISHED" as const,
+        visibility: "PUBLIC" as const,
+      },
+      {
+        ...mockOpportunities[1],
+        status: "CLOSED" as const,
+        visibility: "AUTHENTICATED" as const,
+      },
+    ];
+
+    render(
+      <OpportunityDraftsList
+        opportunities={opps}
+        isLoading={false}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("status-badge-published")).toHaveTextContent("Published");
+    expect(screen.getByTestId("visibility-badge-public")).toHaveTextContent("Public");
+
+    expect(screen.getByTestId("status-badge-closed")).toHaveTextContent("Closed");
+    expect(screen.getByTestId("visibility-badge-authenticated")).toHaveTextContent("Members Only");
+  });
+
+  it("handles status filter changes for Published and Closed tabs", () => {
+    const onFilterChange = vi.fn();
+    render(
+      <OpportunityDraftsList
+        opportunities={mockOpportunities}
+        isLoading={false}
+        onSelectOpportunity={vi.fn()}
+        onCreateNew={vi.fn()}
+        onFilterChange={onFilterChange}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Published" }));
+    expect(onFilterChange).toHaveBeenCalledWith("PUBLISHED");
+
+    fireEvent.click(screen.getByRole("button", { name: "Closed" }));
+    expect(onFilterChange).toHaveBeenCalledWith("CLOSED");
+
+    fireEvent.click(screen.getByRole("button", { name: "Drafts" }));
+    expect(onFilterChange).toHaveBeenCalledWith("DRAFT");
+
+    fireEvent.click(screen.getByRole("button", { name: "All" }));
+    expect(onFilterChange).toHaveBeenCalledWith(undefined);
+  });
+});
