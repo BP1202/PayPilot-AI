@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
-import { Filter, CheckCircle, Clock, AlertCircle } from "lucide-react";
-import { Transaction, TransactionStatus } from "@/types";
+import React, { useState } from "react";
+import { Filter, CheckCircle, Clock, AlertCircle, Receipt, FileText } from "lucide-react";
+import { Transaction, TransactionStatus, Business, User } from "@/types";
+import { InvoiceModal } from "./invoicing/InvoiceModal";
 
 interface CommerceLedgerProps {
   transactions: Transaction[];
@@ -10,6 +11,8 @@ interface CommerceLedgerProps {
   error?: string | null;
   selectedStatus?: TransactionStatus | undefined;
   onFilterChange: (status?: TransactionStatus) => void;
+  business?: Business | null;
+  currentUser?: User | null;
 }
 
 export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
@@ -18,7 +21,11 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
   error,
   selectedStatus,
   onFilterChange,
+  business,
+  currentUser,
 }) => {
+  const [selectedInvoiceTx, setSelectedInvoiceTx] = useState<Transaction | null>(null);
+
   const formatCurrency = (val: string, currency: string = "USD") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -42,9 +49,9 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Payments & Earnings</h2>
+          <h2 className="text-lg font-bold text-slate-900">Milestone Payouts & Invoices</h2>
           <p className="text-xs text-slate-500">
-            Verified transaction history, milestone payouts, and payment records
+            Verified commercial milestone settlements, received earnings, and official invoices
           </p>
         </div>
 
@@ -96,7 +103,8 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
               <th className="pb-3 font-semibold">Customer & Description</th>
               <th className="pb-3 font-semibold">Payment Rail</th>
               <th className="pb-3 font-semibold">Status</th>
-              <th className="pb-3 pr-1 text-right font-semibold">Amount</th>
+              <th className="pb-3 font-semibold text-right">Amount</th>
+              <th className="pb-3 pr-1 text-center font-semibold">Invoice</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -108,18 +116,19 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
                   <td className="py-4"><div className="h-4 w-48 bg-slate-200 rounded"></div></td>
                   <td className="py-4"><div className="h-4 w-24 bg-slate-200 rounded"></div></td>
                   <td className="py-4"><div className="h-4 w-16 bg-slate-200 rounded"></div></td>
-                  <td className="py-4 pr-1 text-right"><div className="h-4 w-20 bg-slate-200 rounded ml-auto"></div></td>
+                  <td className="py-4 text-right"><div className="h-4 w-20 bg-slate-200 rounded ml-auto"></div></td>
+                  <td className="py-4 pr-1 text-center"><div className="h-4 w-16 bg-slate-200 rounded mx-auto"></div></td>
                 </tr>
               ))
             ) : error ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-500">
+                <td colSpan={7} className="py-8 text-center text-slate-500">
                   We couldn&apos;t load your transaction history right now. Please check your connection and try again.
                 </td>
               </tr>
             ) : transactions.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400">
+                <td colSpan={7} className="py-8 text-center text-slate-400">
                   No transactions match the selected filter.
                 </td>
               </tr>
@@ -157,8 +166,19 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
                       </span>
                     )}
                   </td>
-                  <td className="py-3.5 pr-1 text-right font-mono font-bold text-slate-900">
+                  <td className="py-3.5 text-right font-mono font-bold text-slate-900">
                     {formatCurrency(tx.amount, tx.currency)}
+                  </td>
+                  <td className="py-3.5 pr-1 text-center">
+                    <button
+                      onClick={() => setSelectedInvoiceTx(tx)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold border border-indigo-200 transition cursor-pointer"
+                      title="View Commercial Invoice"
+                      aria-label={`View invoice for ${tx.transaction_ref}`}
+                    >
+                      <Receipt className="h-3 w-3" />
+                      <span>Invoice</span>
+                    </button>
                   </td>
                 </tr>
               ))
@@ -166,6 +186,15 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Invoice Modal */}
+      <InvoiceModal
+        isOpen={Boolean(selectedInvoiceTx)}
+        onClose={() => setSelectedInvoiceTx(null)}
+        transaction={selectedInvoiceTx}
+        business={business}
+        currentUser={currentUser}
+      />
     </div>
   );
 };

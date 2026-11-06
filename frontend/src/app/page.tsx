@@ -66,6 +66,8 @@ import {
   ChevronDown,
   LogOut,
   Sparkles,
+  Receipt,
+  Briefcase,
 } from "lucide-react";
 
 function sanitizeErrorMessage(rawMessage?: string): string {
@@ -1102,6 +1104,32 @@ export default function Home() {
             /* PAYMENTS & EARNINGS WORKSPACE (COMMERCE LEDGER & FINANCIAL TOOLS)          */
             /* ========================================================================= */
             <div className="space-y-6">
+              {/* Milestone Payouts & Invoicing Overview Banner */}
+              <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-bold text-indigo-200">
+                    <Receipt className="h-3.5 w-3.5 text-indigo-400" />
+                    <span>Commercial Invoicing & Milestone Settlement</span>
+                  </div>
+                  <h3 className="text-lg font-extrabold tracking-tight">
+                    Milestone Earnings & Official Invoices
+                  </h3>
+                  <p className="text-xs text-slate-300 max-w-xl">
+                    Track your personal milestone releases, download official commercial invoices, and verify settled payouts. Fixed scope agreements remain managed inside their respective Deal Rooms.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleNavigate("deal-rooms")}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold transition cursor-pointer shadow-sm"
+                  >
+                    <Briefcase className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>View Deal Rooms</span>
+                  </button>
+                </div>
+              </div>
+
               <section aria-label="Business Metrics">
                 <DashboardStats totals={overview?.totals} loading={loading} />
               </section>
@@ -1122,6 +1150,8 @@ export default function Home() {
                     error={error}
                     selectedStatus={selectedStatus}
                     onFilterChange={handleFilterChange}
+                    business={overview?.business}
+                    currentUser={currentUser}
                   />
                 </section>
 
