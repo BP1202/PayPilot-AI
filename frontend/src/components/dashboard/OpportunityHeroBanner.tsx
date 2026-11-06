@@ -83,8 +83,8 @@ export const OpportunityHeroBanner: React.FC<OpportunityHeroBannerProps> = ({
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
             {isSeeker
-              ? "Discover verified commercial initiatives, submit structured milestone proposals, and get paid for verified outcomes in secure AI Deal Rooms."
-              : "Publish your capabilities and business problems, evaluate candidate proposals, and coordinate verified milestone execution in structured AI Deal Rooms."}
+              ? "Discover verified commercial initiatives, submit structured milestone proposals, and get paid for verified outcomes in secure Deal Rooms."
+              : "Publish your capabilities and business problems, evaluate candidate proposals, and coordinate verified milestone execution in structured Deal Rooms."}
           </p>
 
           {/* Action-First Controls */}
@@ -299,7 +299,7 @@ export const OpportunityHeroBanner: React.FC<OpportunityHeroBannerProps> = ({
               : [
                   "Structure complex ideas into commercial drafts",
                   "Match with specialized independent professionals",
-                  "Negotiate terms in private AI Deal Rooms",
+                  "Negotiate terms in private Deal Rooms",
                   "Release milestone funds upon verified approvals",
                 ]
             ).map((item, idx) => (

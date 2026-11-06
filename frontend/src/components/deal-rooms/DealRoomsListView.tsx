@@ -122,7 +122,7 @@ export const DealRoomsListView: React.FC<DealRoomsListViewProps> = ({
         </div>
         <div>
           <h2 className="text-base font-bold text-slate-900">
-            AI Deal Room Workspaces
+            Deal Room Workspaces
           </h2>
           <p className="text-sm text-slate-500 mt-1 max-w-sm">
             Sign in to access your collaboration workspaces, track milestones, and execute verified outcomes.
@@ -145,7 +145,7 @@ export const DealRoomsListView: React.FC<DealRoomsListViewProps> = ({
         <div className="relative z-10 max-w-2xl space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-md text-indigo-200 border border-white/10">
             <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-            <span>AI Deal Room Workspaces</span>
+            <span>Deal Room Workspaces</span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
             Collaboration Workspaces

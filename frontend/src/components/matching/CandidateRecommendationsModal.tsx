@@ -109,7 +109,7 @@ export const CandidateRecommendationsModal: React.FC<
             <strong className="font-semibold">Advisory Recommendations:</strong>{" "}
             Candidates are suggested based on verified skills and declared services.
             Proposal drafting, negotiations, and milestone agreements will be managed in
-            the upcoming <em>AI Deal Room</em>.
+            the upcoming <em>Deal Room</em>.
           </p>
         </div>
 

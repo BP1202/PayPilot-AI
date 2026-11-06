@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   HelpCircle,
   Edit3,
+  ArrowLeft,
 } from "lucide-react";
 import { OpportunityPublic } from "@/types";
 
@@ -51,70 +52,95 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex flex-col bg-slate-50 w-screen h-screen overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Opportunity Details"
       data-testid="opportunity-detail-modal"
       aria-labelledby="opportunity-detail-title"
     >
-      <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden my-8 max-h-[90vh] flex flex-col">
-        {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-slate-100 bg-slate-50/80 px-6 py-5">
-          <div className="space-y-2 pr-6">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                  opportunity.intent === "OFFERING_SOLUTION"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-amber-100 text-amber-800"
-                }`}
-              >
-                {opportunity.intent === "OFFERING_SOLUTION"
-                  ? "Offering Solution"
-                  : "Seeking Solution"}
-              </span>
+      {/* Full View Header Bar */}
+      <header className="shrink-0 z-20 border-b border-slate-200/90 bg-white px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+            aria-label="Back to opportunities"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back</span>
+          </button>
 
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                {opportunity.category}
-              </span>
+          <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 
-              <span
-                className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                  opportunity.visibility === "PUBLIC"
-                    ? "bg-sky-50 text-sky-700 border border-sky-100"
-                    : "bg-purple-50 text-purple-700 border border-purple-100"
-                }`}
-              >
-                {opportunity.visibility === "PUBLIC" ? (
-                  <>
-                    <Globe className="h-3 w-3 mr-1" />
-                    <span>Public</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-3 w-3 mr-1" />
-                    <span>Members Only</span>
-                  </>
-                )}
-              </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                opportunity.intent === "OFFERING_SOLUTION"
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-blue-100 text-blue-800"
+              }`}
+            >
+              {opportunity.intent === "OFFERING_SOLUTION"
+                ? "Offering Solution"
+                : "Seeking Solution"}
+            </span>
 
-              {opportunity.business_name && (
-                <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                  <Building2 className="h-3 w-3 mr-1 text-slate-500" />
-                  <span>{opportunity.business_name}</span>
-                </span>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+              {opportunity.category}
+            </span>
+
+            <span
+              className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                opportunity.visibility === "PUBLIC"
+                  ? "bg-sky-50 text-sky-700 border border-sky-100"
+                  : "bg-purple-50 text-purple-700 border border-purple-100"
+              }`}
+            >
+              {opportunity.visibility === "PUBLIC" ? (
+                <>
+                  <Globe className="h-3 w-3 mr-1" />
+                  <span>Public</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="h-3 w-3 mr-1" />
+                  <span>Members Only</span>
+                </>
               )}
-            </div>
+            </span>
 
+            {opportunity.business_name && (
+              <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                <Building2 className="h-3 w-3 mr-1 text-slate-500" />
+                <span>{opportunity.business_name}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+          aria-label="Close dialog"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </header>
+
+      {/* Full View Content Canvas */}
+      <main className="flex-1 overflow-y-auto bg-slate-50/70 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs space-y-3">
             <h2
               id="opportunity-detail-title"
-              className="text-xl font-extrabold text-slate-900 tracking-tight"
+              className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight"
             >
               {opportunity.title}
             </h2>
 
-            <div className="flex items-center space-x-3 text-xs text-slate-500">
+            <div className="flex items-center space-x-3 text-xs text-slate-500 pt-1">
               {opportunity.industry && (
                 <span className="font-medium text-slate-600">
                   Industry: {opportunity.industry}
@@ -122,24 +148,13 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
               )}
               {opportunity.industry && <span>•</span>}
               <span className="flex items-center">
-                <Calendar className="h-3 w-3 mr-1 text-slate-400" />
+                <Calendar className="h-3.5 w-3.5 mr-1 text-slate-400" />
                 {formatDate(opportunity.published_at || opportunity.created_at)}
               </span>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-            aria-label="Close dialog"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <div className="px-6 py-6 overflow-y-auto space-y-6 flex-1 text-slate-700 text-sm">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs space-y-6 text-slate-700 text-sm">
           {/* Value Proposition Hero Box */}
           {opportunity.value_proposition && (
             <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 p-4">
@@ -296,12 +311,15 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
                   </ul>
                 </div>
               )}
+            </div>
           </div>
         </div>
+      </main>
 
-        {/* Modal Footer */}
-        <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 flex items-center justify-between">
-          <span className="text-xs text-slate-500">
+      {/* Full View Footer Bar */}
+      <footer className="shrink-0 z-20 border-t border-slate-200/90 bg-white px-4 sm:px-8 py-3.5 shadow-2xs">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <span className="text-xs text-slate-500 font-medium">
             Opnly Opportunity Press Profile
           </span>
 
@@ -329,7 +347,7 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
             </button>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

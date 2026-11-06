@@ -92,7 +92,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: "home", label: "Dashboard", icon: HomeIcon },
         { id: "opportunities", label: "Opportunities", icon: Lightbulb },
         { id: "collaborations", label: "Review Proposals", icon: Handshake },
-        { id: "deal-rooms", label: "AI Deal Rooms", icon: Briefcase },
+        { id: "deal-rooms", label: "Deal Rooms", icon: Briefcase },
         { id: "ledger", label: "Payments & Earnings", icon: Receipt },
         { id: "profile", label: "Organization Profile", icon: Building2 },
       ];

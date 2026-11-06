@@ -15,6 +15,7 @@ import {
   Calendar,
   Layers,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   Building2,
   User,
@@ -108,150 +109,195 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
       setActionPrompt(null);
       setPromptNote("");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to update proposal status";
-      setActionError(msg);
+      const raw = err instanceof Error ? err.message : "";
+      let friendlyMsg = "Unable to update agreement status right now. Please try again.";
+      if (
+        raw.toLowerCase().includes("credential") ||
+        raw.toLowerCase().includes("unauthorized") ||
+        raw.toLowerCase().includes("log in")
+      ) {
+        friendlyMsg = "Please sign in or verify permissions to update agreement status.";
+      } else if (
+        raw &&
+        !raw.includes("500") &&
+        !raw.includes("object") &&
+        !raw.includes("SQL") &&
+        !raw.includes("status code")
+      ) {
+        friendlyMsg = raw;
+      }
+      setActionError(friendlyMsg);
     } finally {
       setActionLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-gradient-to-r from-slate-50/50 via-white to-indigo-50/30">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span
-                className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
-                  STATUS_BADGE[proposal.status].className
-                }`}
-              >
-                {STATUS_BADGE[proposal.status].label}
-              </span>
-              <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                v{proposal.current_version}
-              </span>
-              {proposal.opportunity_title && (
-                <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-                  {proposal.opportunity_title}
-                </span>
-              )}
-            </div>
-            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-              {proposal.title}
-            </h2>
-            <div className="flex items-center gap-4 text-xs text-slate-500">
-              <span className="flex items-center gap-1">
-                <User className="h-3.5 w-3.5 text-slate-400" />
-                By {proposal.proposer.full_name || "Proposer"}
-              </span>
-              <span>→</span>
-              <span className="flex items-center gap-1">
-                <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                For {proposal.recipient.full_name || "Recipient"}
-              </span>
-              <span>·</span>
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                {new Date(proposal.created_at).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-slate-50 w-screen h-screen overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="proposal-title"
+    >
+      {/* Full View Header Bar */}
+      <header className="shrink-0 z-20 border-b border-slate-200/90 bg-white px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
+            aria-label="Back to dashboard"
           >
-            <X className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to Proposals</span>
           </button>
-        </div>
 
-        {/* Action Error Banner */}
-        {actionError && (
-          <div className="p-4 bg-rose-50 border-b border-rose-100 flex items-center gap-2 text-sm text-rose-800">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
-            <p>{actionError}</p>
-          </div>
-        )}
+          <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 
-        {/* Mutual Acceptance Banner */}
-        {isAccepted && (
-          <div className="p-4 bg-emerald-50 border-b border-emerald-100 flex items-start gap-3">
-            <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-emerald-900">
-                Collaboration Agreement Accepted (v{proposal.accepted_version || proposal.current_version})
-              </p>
-              <p className="text-xs text-emerald-800 leading-relaxed">
-                Both parties have explicitly agreed to these terms. This records mutual agreement within Opnly to advance to Stage 7: AI Deal Room for formalization. It does not execute an automated legal contract or disburse payments.
-              </p>
-              <div className="flex items-center gap-4 pt-1 text-[11px] text-emerald-700 font-medium">
-                {proposal.proposer_accepted_at && (
-                  <span>
-                    Proposer confirmed: {new Date(proposal.proposer_accepted_at).toLocaleString()}
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-200">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 id="proposal-title" className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                  {proposal.title}
+                </h2>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                    STATUS_BADGE[proposal.status].className
+                  }`}
+                >
+                  {STATUS_BADGE[proposal.status].label}
+                </span>
+                {proposal.current_version > 1 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                    Revision {proposal.current_version}
                   </span>
                 )}
-                {proposal.recipient_accepted_at && (
-                  <span>
-                    Recipient confirmed: {new Date(proposal.recipient_accepted_at).toLocaleString()}
+                {proposal.opportunity_title && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    {proposal.opportunity_title}
                   </span>
                 )}
               </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                <span className="flex items-center gap-1">
+                  <User className="h-3.5 w-3.5 text-slate-400" />
+                  By {proposal.proposer.full_name || "Proposer"}
+                </span>
+                <span>→</span>
+                <span className="flex items-center gap-1">
+                  <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                  For {proposal.recipient.full_name || "Recipient"}
+                </span>
+                <span>·</span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                  {new Date(proposal.created_at).toLocaleDateString()}
+                </span>
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Revision Requested Notice */}
-        {proposal.status === "REVISION_REQUESTED" && proposal.revision_requested_note && (
-          <div className="p-4 bg-amber-50 border-b border-amber-100 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-amber-900">Revision Requested</p>
-              <p className="text-xs text-amber-800 italic">
-                &ldquo;{proposal.revision_requested_note}&rdquo;
-              </p>
+        <button
+          onClick={onClose}
+          className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+          aria-label="Close modal"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </header>
+
+      {/* Full View Content Canvas */}
+      <main className="flex-1 overflow-y-auto bg-slate-50/70 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto space-y-6">
+          {/* Action Error Banner */}
+          {actionError && (
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2 text-sm text-rose-800 shadow-2xs">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+              <p>{actionError}</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-slate-100 bg-slate-50/50 px-6 gap-2">
-          <button
-            onClick={() => setActiveTab("terms")}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
-              activeTab === "terms"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <FileText className="h-4 w-4" />
-            Scope & Terms
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
-              activeTab === "history"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <History className="h-4 w-4" />
-            Revision History ({proposal.revisions?.length || 1})
-          </button>
+          {/* Mutual Acceptance Banner without raw tech jargon */}
           {isAccepted && (
+            <div className="p-5 bg-emerald-50/90 border border-emerald-200 rounded-2xl flex items-start gap-3 shadow-2xs">
+              <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-emerald-900">
+                  Collaboration Agreement Accepted
+                </p>
+                <p className="text-xs text-emerald-800 leading-relaxed">
+                  Both parties have explicitly agreed to these terms. This records mutual agreement within Opnly to advance to Stage 7: Deal Room for formalization. It does not execute an automated legal contract or disburse payments.
+                </p>
+                <div className="flex items-center gap-4 pt-1 text-[11px] text-emerald-700 font-medium">
+                  {proposal.proposer_accepted_at && (
+                    <span>
+                      Proposer confirmed: {new Date(proposal.proposer_accepted_at).toLocaleString()}
+                    </span>
+                  )}
+                  {proposal.recipient_accepted_at && (
+                    <span>
+                      Recipient confirmed: {new Date(proposal.recipient_accepted_at).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Revision Requested Notice */}
+          {proposal.status === "REVISION_REQUESTED" && proposal.revision_requested_note && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 shadow-2xs">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-amber-900">Revision Requested</p>
+                <p className="text-xs text-amber-800 italic">
+                  &ldquo;{proposal.revision_requested_note}&rdquo;
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Tab Navigation */}
+          <div className="flex border-b border-slate-200 bg-white rounded-2xl px-4 gap-2 shadow-2xs">
             <button
-              onClick={() => setActiveTab("agreement")}
-              className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
-                activeTab === "agreement"
-                  ? "border-emerald-600 text-emerald-600"
+              onClick={() => setActiveTab("terms")}
+              className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === "terms"
+                  ? "border-blue-600 text-blue-700"
                   : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
-              <ShieldCheck className="h-4 w-4" />
-              Deal Room Readiness
+              <FileText className="h-4 w-4" />
+              Scope & Terms
             </button>
-          )}
-        </div>
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === "history"
+                  ? "border-blue-600 text-blue-700"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <History className="h-4 w-4" />
+              Revision History ({proposal.revisions?.length || 1})
+            </button>
+            {isAccepted && (
+              <button
+                onClick={() => setActiveTab("agreement")}
+                className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === "agreement"
+                    ? "border-emerald-600 text-emerald-700"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Deal Room Readiness
+              </button>
+            )}
+          </div>
 
         {/* Tab Content */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-slate-700">
@@ -489,13 +535,13 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
               <div className="p-5 bg-gradient-to-tr from-indigo-50 via-white to-violet-50 rounded-3xl border border-indigo-100/80 space-y-3">
                 <div className="flex items-center gap-2 text-indigo-900 font-bold">
                   <Layers className="h-5 w-5 text-indigo-600" />
-                  <h4>Stage 7: AI Deal Room Transition</h4>
+                  <h4>Stage 7: Deal Room Transition</h4>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Now that both parties have explicitly agreed to version {proposal.accepted_version || proposal.current_version}, the project terms, milestones, and deliverables are locked into an auditable collaboration agreement.
                 </p>
                 <div className="p-3 bg-white/80 rounded-xl border border-indigo-100 text-xs text-indigo-950 space-y-1">
-                  <div className="font-bold">Next Automated Capabilities in Deal Room:</div>
+                  <div className="font-bold">Next Capabilities in Deal Room:</div>
                   <ul className="list-disc list-inside space-y-0.5 text-slate-600">
                     <li>Generate bilateral commercial milestone escrow contracts</li>
                     <li>Connect approved deliverable milestones to verified PayPal settlements</li>
@@ -506,10 +552,13 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
             </div>
           )}
         </div>
+      </div>
+    </main>
 
-        {/* Action Prompt Dialog (Inline) */}
-        {actionPrompt && (
-          <div className="p-4 bg-slate-100 border-t border-slate-200 space-y-3 animate-in fade-in duration-150">
+      {/* Action Prompt Dialog (Inline) */}
+      {actionPrompt && (
+        <div className="shrink-0 z-20 border-t border-slate-200 bg-slate-100 p-4 shadow-2xs">
+          <div className="max-w-5xl mx-auto space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                 {actionPrompt === "ACCEPT" && "Confirm Proposal Acceptance"}
@@ -519,7 +568,7 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
               </span>
               <button
                 onClick={() => setActionPrompt(null)}
-                className="text-xs text-slate-400 hover:text-slate-600"
+                className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 Cancel
               </button>
@@ -527,7 +576,7 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
             {actionPrompt === "ACCEPT" ? (
               <p className="text-xs text-slate-600">
                 You are agreeing to version {proposal.current_version} with budget $
-                {Number(proposal.budget_amount || 0).toLocaleString()} {proposal.currency}. This records mutual acceptance for the AI Deal Room.
+                {Number(proposal.budget_amount || 0).toLocaleString()} {proposal.currency}. This records mutual acceptance for the Deal Room.
               </p>
             ) : (
               <textarea
@@ -547,14 +596,14 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setActionPrompt(null)}
-                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg"
+                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleAction(actionPrompt)}
                 disabled={actionLoading}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg text-white flex items-center gap-1.5 ${
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg text-white flex items-center gap-1.5 cursor-pointer ${
                   actionPrompt === "ACCEPT"
                     ? "bg-emerald-600 hover:bg-emerald-700"
                     : actionPrompt === "REQUEST_REVISION"
@@ -567,14 +616,17 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Footer Action Bar */}
-        {!actionPrompt && (
-          <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-            <span className="text-xs text-slate-400">
-              Proposal ID: {proposal.id}
-            </span>
+      {/* Full View Footer Bar */}
+      {!actionPrompt && (
+        <footer className="shrink-0 z-20 border-t border-slate-200/90 bg-white px-4 sm:px-8 py-3.5 shadow-2xs">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <span>Commercial Agreement Workspace</span>
+            </div>
             <div className="flex items-center gap-2">
               {/* Recipient Actions */}
               {isRecipient &&
@@ -583,19 +635,19 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
                   <>
                     <button
                       onClick={() => setActionPrompt("REJECT")}
-                      className="px-3.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl transition-all"
+                      className="px-3.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl transition-all cursor-pointer"
                     >
                       Decline
                     </button>
                     <button
                       onClick={() => setActionPrompt("REQUEST_REVISION")}
-                      className="px-3.5 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 border border-amber-200 rounded-xl transition-all"
+                      className="px-3.5 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 border border-amber-200 rounded-xl transition-all cursor-pointer"
                     >
                       Request Changes
                     </button>
                     <button
                       onClick={() => setActionPrompt("ACCEPT")}
-                      className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all flex items-center gap-1"
+                      className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all flex items-center gap-1 cursor-pointer"
                     >
                       <CheckCircle2 className="h-4 w-4" />
                       Accept Terms
@@ -610,7 +662,7 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
                 proposal.status !== "REJECTED" && (
                   <button
                     onClick={() => setActionPrompt("WITHDRAW")}
-                    className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200/80 border border-slate-300 rounded-xl transition-all"
+                    className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200/80 border border-slate-300 rounded-xl transition-all cursor-pointer"
                   >
                     Withdraw
                   </button>
@@ -626,20 +678,20 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
                   className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 rounded-xl shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Briefcase className="h-4 w-4" />
-                  <span>Open AI Deal Room</span>
+                  <span>Open Deal Room</span>
                 </button>
               )}
 
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
               >
                 Close
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </footer>
+      )}
     </div>
   );
 };

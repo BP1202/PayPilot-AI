@@ -12,7 +12,7 @@ export const TrustSecuritySection: React.FC = () => {
       badge: "Identity Grounding",
     },
     {
-      title: "Secure AI Deal Rooms",
+      title: "Secure Deal Rooms",
       desc: "Private multi-stakeholder workspaces. Access-controlled document review and confidentiality by design before contracts are formed.",
       icon: Lock,
       badge: "Confidentiality First",

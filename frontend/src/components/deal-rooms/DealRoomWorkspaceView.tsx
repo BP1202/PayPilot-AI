@@ -1017,7 +1017,7 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-indigo-200 text-xs font-bold">
                   <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-                  <span>AI Deal Room Copilot</span>
+                  <span>Deal Room Copilot</span>
                 </div>
                 <h3 className="text-xl font-extrabold tracking-tight">
                   Agreement Intelligence & Provenance

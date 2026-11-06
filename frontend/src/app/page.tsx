@@ -566,7 +566,7 @@ export default function Home() {
                     ? "Applications & Proposals"
                     : "Review Proposals"
                   : currentView === "deal-rooms"
-                  ? "AI Deal Rooms"
+                  ? "Deal Rooms"
                   : currentView === "profile"
                   ? "Profile System"
                   : "Payments & Earnings"}

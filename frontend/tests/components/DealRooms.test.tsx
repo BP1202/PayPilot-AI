@@ -236,7 +236,7 @@ describe("Deal Rooms Frontend Module", () => {
     expect(screen.getByText("Agreed Term")).toBeInTheDocument();
   });
 
-  it("ProposalDetailModal renders Open AI Deal Room button when accepted", () => {
+  it("ProposalDetailModal renders Open Deal Room button when accepted", () => {
     const acceptedProposal: Proposal = {
       id: "prop_accepted_1",
       connection_id: "conn_1",
@@ -278,7 +278,7 @@ describe("Deal Rooms Frontend Module", () => {
       />
     );
 
-    const dealRoomBtn = screen.getByRole("button", { name: /open ai deal room/i });
+    const dealRoomBtn = screen.getByRole("button", { name: /open (ai )?deal room/i });
     expect(dealRoomBtn).toBeInTheDocument();
     fireEvent.click(dealRoomBtn);
     expect(onOpenDealRoom).toHaveBeenCalledWith("prop_accepted_1");

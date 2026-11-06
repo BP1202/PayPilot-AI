@@ -34,7 +34,7 @@ export const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({ onGetStart
     },
     {
       step: "03",
-      title: "AI Deal Room",
+      title: "Deal Room",
       desc: "Collaborate in a private room. Negotiate proposals, scope, responsibilities, and timeline in one place.",
       icon: Briefcase,
       color: "text-purple-600",
