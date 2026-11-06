@@ -117,12 +117,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </div>
         </div>
 
-        {/* Role Switcher Pill: Seeker vs. Opportunity Creator */}
+        {/* Role Switcher Pill: Blue for Seeker vs. Green for Share Skills */}
         <div className="space-y-1.5 px-1">
           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
             <span>Active Role</span>
-            <span className="text-indigo-600 font-extrabold">
-              {isSeeker ? "Seeking" : "Creating"}
+            <span
+              className={
+                isSeeker
+                  ? "text-blue-600 font-extrabold"
+                  : "text-emerald-600 font-extrabold"
+              }
+            >
+              {isSeeker ? "Seeking Solutions" : "Sharing Skills"}
             </span>
           </div>
           <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200/80 shadow-2xs">
@@ -131,7 +137,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               onClick={() => onRoleChange?.("seeker")}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 isSeeker
-                  ? "bg-white text-indigo-700 shadow-xs"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "text-slate-500 hover:text-slate-900"
               }`}
               aria-pressed={isSeeker}
@@ -144,7 +150,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               onClick={() => onRoleChange?.("creator")}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 !isSeeker
-                  ? "bg-white text-indigo-700 shadow-xs"
+                  ? "bg-emerald-600 text-white shadow-xs"
                   : "text-slate-500 hover:text-slate-900"
               }`}
               aria-pressed={!isSeeker}
@@ -167,7 +173,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 onClick={() => onNavigate(item.id)}
                 className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition cursor-pointer ${
                   isActive
-                    ? "bg-indigo-600 text-white shadow-xs shadow-indigo-200"
+                    ? isSeeker
+                      ? "bg-blue-600 text-white shadow-xs shadow-blue-200"
+                      : "bg-emerald-600 text-white shadow-xs shadow-emerald-200"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
               >
@@ -209,8 +217,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   {currentUser.full_name || currentUser.email.split("@")[0]}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.2 text-[9px] font-extrabold text-indigo-700 border border-indigo-200">
-                    {isSeeker ? "Seeker" : "Opportunity Creator"}
+                  <span
+                    className={`inline-flex items-center rounded-md px-1.5 py-0.2 text-[9px] font-extrabold border ${
+                      isSeeker
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    }`}
+                  >
+                    {isSeeker ? "Seeker · Seeking Solutions" : "Creator · Sharing Skills & Ideas"}
                   </span>
                 </div>
               </div>
@@ -228,13 +242,19 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 font-semibold">
               <span>Current Mode:</span>
-              <span className="font-bold text-indigo-600">
-                {isSeeker ? "Seeker" : "Creator"}
+              <span
+                className={`font-bold ${
+                  isSeeker ? "text-blue-600" : "text-emerald-600"
+                }`}
+              >
+                {isSeeker ? "Seeker (Blue Mode)" : "Creator (Green Mode)"}
               </span>
             </div>
             <button
               onClick={onOpenAuth}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition cursor-pointer"
+              className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white shadow-sm transition cursor-pointer ${
+                isSeeker ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
             >
               <span>Sign In / Register</span>
             </button>

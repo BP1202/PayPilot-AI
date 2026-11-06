@@ -368,12 +368,27 @@ export default function Home() {
       })
       .catch(() => setBackendStatus("offline"));
 
+    const syncRole = () => {
+      const saved = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole;
+      if (saved === "seeker" || saved === "creator") {
+        setActiveRole(saved);
+      }
+    };
+
     window.addEventListener("paypilot:auth_changed", syncAuth);
-    return () => window.removeEventListener("paypilot:auth_changed", syncAuth);
+    window.addEventListener("opnly:role_changed", syncRole);
+    return () => {
+      window.removeEventListener("paypilot:auth_changed", syncAuth);
+      window.removeEventListener("opnly:role_changed", syncRole);
+    };
   }, []);
 
   const handleAuthSuccess = (user: User) => {
     setCurrentUser(user);
+    const saved = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole;
+    if (saved === "seeker" || saved === "creator") {
+      handleRoleChange(saved);
+    }
     setSuccessToast(`Welcome, ${user.full_name || user.email}!`);
     if (currentView === "ledger") {
       loadData(selectedStatus);
@@ -556,8 +571,14 @@ export default function Home() {
                   ? "Profile System"
                   : "Payments & Earnings"}
               </span>
-              <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-extrabold text-indigo-700 border border-indigo-200">
-                {activeRole === "seeker" ? "Seeker Mode" : "Creator Mode"}
+              <span
+                className={`ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold border ${
+                  activeRole === "seeker"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                }`}
+              >
+                {activeRole === "seeker" ? "Seeker (Blue Mode)" : "Creator (Green Mode)"}
               </span>
             </div>
           </div>
@@ -636,14 +657,22 @@ export default function Home() {
             {currentUser ? (
               <button
                 onClick={handleSignOut}
-                className="rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition cursor-pointer ${
+                  activeRole === "seeker"
+                    ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200"
+                    : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+                }`}
               >
                 Sign Out
               </button>
             ) : (
               <button
                 onClick={() => setIsAuthOpen(true)}
-                className="rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition cursor-pointer ${
+                  activeRole === "seeker"
+                    ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200"
+                    : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+                }`}
               >
                 Sign In
               </button>
@@ -727,8 +756,15 @@ export default function Home() {
                   role={activeRole}
                   userName={currentUser?.full_name}
                   onNavigate={handleNavigate}
-                  onQuickAction={(intent) => handleOpenNewStudio(intent)}
-                  onCreateOpportunity={() => handleOpenNewStudio("OFFERING_SOLUTION")}
+                  onRoleChange={handleRoleChange}
+                  onQuickAction={(intent) => {
+                    handleRoleChange(intent === "SEEKING_SOLUTION" ? "seeker" : "creator");
+                    handleOpenNewStudio(intent);
+                  }}
+                  onCreateOpportunity={() => {
+                    handleRoleChange("creator");
+                    handleOpenNewStudio("OFFERING_SOLUTION");
+                  }}
                 />
               </section>
 

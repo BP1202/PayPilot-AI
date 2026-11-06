@@ -130,4 +130,47 @@ describe("AuthModal Component", () => {
       expect(mockOnSuccess).toHaveBeenCalledWith(mockUser);
     });
   });
+
+  it("allows selecting role workspace (Seek Solutions vs Share Skills) and saves choice", async () => {
+    const mockUser = {
+      id: "usr_789",
+      email: "creator@opnly.demo",
+      full_name: "Opnly Creator",
+      is_active: true,
+      created_at: "2026-11-04T00:00:00Z",
+      updated_at: "2026-11-04T00:00:00Z",
+    };
+
+    vi.spyOn(api, "loginUser").mockResolvedValueOnce({
+      access_token: "jwt_token_789",
+      token_type: "bearer",
+      expires_in: 86400,
+      user: mockUser,
+    });
+
+    render(<AuthModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+    // Verify both role cards are rendered
+    expect(screen.getByText("Seek Solutions")).toBeInTheDocument();
+    expect(screen.getByText("Share Skills")).toBeInTheDocument();
+    expect(screen.getByText("Blue Mode")).toBeInTheDocument();
+    expect(screen.getByText("Green Mode")).toBeInTheDocument();
+
+    // Select Green Mode (Creator)
+    fireEvent.click(screen.getByText("Share Skills"));
+
+    // Fill credentials and submit
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: "creator@opnly.demo" },
+    });
+    fireEvent.change(screen.getByLabelText(/password/i), {
+      target: { value: "Password123!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    await waitFor(() => {
+      expect(localStorage.getItem("opnly_active_role")).toBe("creator");
+      expect(mockOnSuccess).toHaveBeenCalledWith(mockUser);
+    });
+  });
 });
