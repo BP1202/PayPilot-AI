@@ -86,7 +86,7 @@ describe("Redesigned Opportunity Dashboard Components", () => {
       render(<OpportunityHeroBanner onQuickAction={onQuickAction} />);
 
       expect(screen.getByText(/Idea-to-Business/i)).toBeInTheDocument();
-      expect(screen.getByText(/Opportunity Network/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Opportunity Network/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("Seek Solutions")).toBeInTheDocument();
       expect(screen.getByText("Share Skills & Ideas")).toBeInTheDocument();
 
@@ -210,12 +210,12 @@ describe("Redesigned Opportunity Dashboard Components", () => {
       expect(screen.getByText("Connect · Collaborate · Grow")).toBeInTheDocument();
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("My Opportunities")).toBeInTheDocument();
-      expect(screen.getByText("Commerce Ledger")).toBeInTheDocument();
+      expect(screen.getByText("Payments & Earnings")).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: /My Opportunities/i }));
       expect(onNavigate).toHaveBeenCalledWith("opportunities");
 
-      fireEvent.click(screen.getByRole("button", { name: /Commerce Ledger/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Payments & Earnings/i }));
       expect(onNavigate).toHaveBeenCalledWith("ledger");
     });
   });

@@ -146,18 +146,37 @@ describe("Home Page Dashboard & Connectivity", () => {
     vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
   });
 
-  it("renders loading skeleton state while requests are in flight", () => {
-    vi.mocked(api.fetchDashboardOverview).mockImplementation(() => new Promise(() => {}));
-    vi.mocked(api.fetchCopilotRecommendation).mockImplementation(() => new Promise(() => {}));
-    vi.mocked(api.fetchLedgerTransactions).mockImplementation(() => new Promise(() => {}));
+  it("renders opportunity network hero, how it works, and recommended sample opportunities on homepage", async () => {
+    render(<Home />);
 
-    const { container } = render(<Home />);
-    const pulses = container.querySelectorAll(".animate-pulse");
-    expect(pulses.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      // Hero headline
+      expect(screen.getAllByText(/Turn Ideas Into Impact/i).length).toBeGreaterThanOrEqual(1);
+      // Primary CTAs
+      expect(screen.getAllByText("Post a Request").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("Create Opportunity").length).toBeGreaterThanOrEqual(1);
+      // How It Works section
+      expect(screen.getByText("How PayPilot Works")).toBeInTheDocument();
+      expect(screen.getByText("01")).toBeInTheDocument();
+      expect(screen.getByText("Capture & Structure")).toBeInTheDocument();
+      // Trust section
+      expect(screen.getByText("Built for Commercial Confidence")).toBeInTheDocument();
+      // Sample / demo opportunity
+      expect(screen.getByText("AI Automated Financial Reconciliation Engine")).toBeInTheDocument();
+    });
+
+    // Commerce Ledger, Copilot Chat, and KPI cards are NOT on homepage
+    expect(screen.queryByText("Commerce Ledger")).not.toBeInTheDocument();
+    expect(screen.queryByText("Copilot Business Assistant")).not.toBeInTheDocument();
+    expect(screen.queryByText("Settled Revenue")).not.toBeInTheDocument();
   });
 
-  it("renders data successfully when API requests resolve", async () => {
+  it("renders data successfully when navigating to Payments & Earnings view", async () => {
     render(<Home />);
+
+    // Click Payments & Earnings in sidebar
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
       expect(screen.getByText("Apex Precision Gearworks")).toBeInTheDocument();
@@ -169,12 +188,29 @@ describe("Home Page Dashboard & Connectivity", () => {
     });
   });
 
+  it("renders loading skeleton state in Payments & Earnings while requests are in flight", () => {
+    vi.mocked(api.fetchDashboardOverview).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(api.fetchCopilotRecommendation).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(api.fetchLedgerTransactions).mockImplementation(() => new Promise(() => {}));
+
+    const { container } = render(<Home />);
+
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    fireEvent.click(ledgerBtn);
+
+    const pulses = container.querySelectorAll(".animate-pulse");
+    expect(pulses.length).toBeGreaterThan(0);
+  });
+
   it("displays understandable non-technical error banner and does not fabricate $0.00 financial metrics on failure", async () => {
     vi.mocked(api.fetchDashboardOverview).mockRejectedValue(
       new Error("We're having trouble connecting to your financial records right now. Please check your internet connection or try again.")
     );
 
     render(<Home />);
+
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
       expect(
@@ -193,6 +229,9 @@ describe("Home Page Dashboard & Connectivity", () => {
 
     render(<Home />);
 
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    fireEvent.click(ledgerBtn);
+
     await waitFor(() => {
       expect(screen.queryByText(/127\.0\.0\.1/)).not.toBeInTheDocument();
       expect(screen.queryByText(/8000/)).not.toBeInTheDocument();
@@ -207,7 +246,7 @@ describe("Home Page Dashboard & Connectivity", () => {
     });
   });
 
-  it("retries fetching data when Try again button is clicked", async () => {
+  it("retries fetching data when Try again button is clicked in Payments & Earnings", async () => {
     vi.mocked(api.fetchDashboardOverview)
       .mockRejectedValueOnce(new Error("Unable to connect to backend server"))
       .mockResolvedValue(mockOverview);
@@ -219,6 +258,9 @@ describe("Home Page Dashboard & Connectivity", () => {
       .mockResolvedValue(mockLedger);
 
     render(<Home />);
+
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
       expect(screen.getByText(/trouble connecting to your financial records/i)).toBeInTheDocument();
@@ -242,9 +284,28 @@ describe("Home Page Dashboard & Connectivity", () => {
 
     render(<Home />);
 
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    fireEvent.click(ledgerBtn);
+
     await waitFor(() => {
       expect(screen.getByText("No transactions match the selected filter.")).toBeInTheDocument();
       expect(screen.queryByText("Connection issue")).not.toBeInTheDocument();
+    });
+  });
+
+  it("replaces unauthenticated credentials error with a friendly sign-in prompt and Sign In button", async () => {
+    vi.mocked(api.fetchDashboardOverview).mockRejectedValue(
+      new Error("Authentication credentials were not provided.")
+    );
+
+    render(<Home />);
+
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    fireEvent.click(ledgerBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to view your personalized dashboard and track your opportunities.")).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /^Sign In$/i }).length).toBeGreaterThanOrEqual(1);
     });
   });
 });
@@ -281,7 +342,7 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Sign in to view your opportunity drafts")
+        screen.getByText(/Sign in to view your opportunity drafts/i)
       ).toBeInTheDocument();
     });
 
@@ -333,7 +394,7 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
       expect(api.logoutUser).toHaveBeenCalled();
       expect(screen.queryByText("Automated Drone Fleet Logistics")).not.toBeInTheDocument();
       expect(
-        screen.getByText("Sign in to view your opportunity drafts")
+        screen.getByText(/Sign in to view your opportunity drafts/i)
       ).toBeInTheDocument();
     });
   });
@@ -353,7 +414,7 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
       expect(api.clearAccessToken).toHaveBeenCalled();
       expect(screen.queryByText("Automated Drone Fleet Logistics")).not.toBeInTheDocument();
       expect(
-        screen.getByText("Sign in to view your opportunity drafts")
+        screen.getByText(/Sign in to view your opportunity drafts/i)
       ).toBeInTheDocument();
     });
   });

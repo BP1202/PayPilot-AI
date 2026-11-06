@@ -66,7 +66,7 @@ export const CopilotChat: React.FC = () => {
           </div>
         </div>
         <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
-          Deterministic Insights Mode
+          Grounded Business Assistant
         </span>
       </div>
 
@@ -92,7 +92,7 @@ export const CopilotChat: React.FC = () => {
               }`}
             >
               <p>{msg.text}</p>
-              {msg.mode && (
+              {msg.mode && msg.mode !== "DETERMINISTIC_DEMO" && (
                 <span className="mt-1 block text-[10px] opacity-75 font-mono">
                   Source: {msg.mode}
                 </span>

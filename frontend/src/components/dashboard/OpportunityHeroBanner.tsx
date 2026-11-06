@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Handshake, CheckCircle2, Target, Rocket } from "lucide-react";
+import { Handshake, CheckCircle2, Target, Rocket, ArrowRight } from "lucide-react";
 import { OpportunityIntent } from "@/types";
 
 interface OpportunityHeroBannerProps {
@@ -12,19 +12,39 @@ export const OpportunityHeroBanner: React.FC<OpportunityHeroBannerProps> = ({
   onQuickAction,
 }) => {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-indigo-100/90 bg-gradient-to-r from-indigo-50/70 via-white to-violet-50/60 p-6 sm:p-8 shadow-xs">
+    <div className="relative overflow-hidden rounded-3xl border border-indigo-100/90 bg-gradient-to-r from-indigo-50/70 via-white to-violet-50/60 p-6 sm:p-8 shadow-xs space-y-5">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
         {/* Left Column: Vision & Heading */}
         <div className="lg:col-span-4 space-y-2.5">
-          <span className="text-xs font-bold tracking-wider uppercase text-indigo-600">
-            PayPilot AI
-          </span>
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100/80 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
+            <span>PayPilot AI Opportunity Network</span>
+          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
-            The <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Idea-to-Business</span> Opportunity Network
+            Turn Ideas Into Impact —{" "}
+            <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+              The Idea-to-Business Opportunity Network
+            </span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Connect with the right people — whether you need a solution, have an idea, or want to invest in innovation.
+            Connect with the right partners, structure real agreements in AI Deal Rooms, and execute verified milestone-based outcomes.
           </p>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              onClick={() => onQuickAction("SEEKING_SOLUTION")}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
+            >
+              <span>Post a Request</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onQuickAction("OFFERING_SOLUTION")}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+            >
+              <span>Create Opportunity</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Center Column: Two-Sided Visual Connector */}
@@ -105,4 +125,3 @@ export const OpportunityHeroBanner: React.FC<OpportunityHeroBannerProps> = ({
     </div>
   );
 };
-

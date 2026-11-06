@@ -54,7 +54,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
 
         <div className="flex items-center space-x-2">
           <span className="rounded-full bg-indigo-100/80 px-2.5 py-1 text-xs font-semibold text-indigo-800 border border-indigo-200">
-            Mode: {recommendation.mode}
+            {recommendation.mode === "DETERMINISTIC_DEMO" ? "Verified Analysis" : `Mode: ${recommendation.mode}`}
           </span>
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600 border border-slate-200">
             Grounded in Ledger

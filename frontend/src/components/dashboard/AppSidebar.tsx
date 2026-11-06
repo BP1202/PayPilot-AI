@@ -75,7 +75,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { id: "collaborations", label: "Connections & Proposals", icon: Handshake },
     { id: "deal-rooms", label: "AI Deal Rooms", icon: Briefcase },
     { id: "profile", label: "Profiles", icon: Building2 },
-    { id: "ledger", label: "Commerce Ledger", icon: Receipt },
+    { id: "ledger", label: "Payments & Earnings", icon: Receipt },
   ];
 
   return (

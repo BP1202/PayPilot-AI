@@ -42,9 +42,9 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Commerce Ledger</h2>
+          <h2 className="text-lg font-bold text-slate-900">Payments & Earnings</h2>
           <p className="text-xs text-slate-500">
-            Real-time verified transaction history and payment records
+            Verified transaction history, milestone payouts, and payment records
           </p>
         </div>
 
