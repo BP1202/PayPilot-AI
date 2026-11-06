@@ -18,6 +18,7 @@ import {
   Briefcase,
   Search,
   User as UserIcon,
+  LogOut,
 } from "lucide-react";
 import { User, Business } from "@/types";
 
@@ -85,7 +86,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: "opportunities", label: "Opportunities", icon: Compass },
         { id: "collaborations", label: "My Applications & Proposals", icon: Handshake },
         { id: "deal-rooms", label: "Active Workspaces", icon: Briefcase },
-        { id: "profile", label: "My Profile & Skills", icon: Building2 },
         { id: "ledger", label: "Payments & Earnings", icon: Receipt },
       ]
     : [
@@ -94,11 +94,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: "collaborations", label: "Review Proposals", icon: Handshake },
         { id: "deal-rooms", label: "Deal Rooms", icon: Briefcase },
         { id: "ledger", label: "Payments & Earnings", icon: Receipt },
-        { id: "profile", label: "Organization Profile", icon: Building2 },
       ];
 
   return (
-    <aside className="w-64 shrink-0 flex flex-col justify-between border-r border-slate-200/80 bg-white min-h-screen p-4 select-none">
+    <aside className="w-64 h-full shrink-0 flex flex-col justify-between border-r border-slate-200/80 bg-white p-4 select-none overflow-y-auto">
       <div className="space-y-5">
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-2 py-1">
@@ -208,8 +207,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         {/* User Identity Box with Clear Active Role Indicator */}
         {currentUser ? (
           <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white shadow-xs">
+            <button
+              onClick={onOpenProfile}
+              className="flex items-center gap-2.5 min-w-0 text-left hover:opacity-80 transition cursor-pointer flex-1"
+              title="View Profile"
+            >
+              <div
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs ${
+                  isSeeker
+                    ? "bg-gradient-to-tr from-blue-600 to-indigo-600 ring-2 ring-blue-100"
+                    : "bg-gradient-to-tr from-emerald-600 to-teal-600 ring-2 ring-emerald-100"
+                }`}
+              >
                 {getInitials(currentUser.full_name, currentUser.email)}
               </div>
               <div className="min-w-0">
@@ -224,18 +233,19 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                         : "bg-emerald-50 text-emerald-700 border-emerald-200"
                     }`}
                   >
-                    {isSeeker ? "Seeker · Seeking Solutions" : "Creator · Sharing Skills & Ideas"}
+                    {isSeeker ? "Seeker · Solutions" : "Creator · Skills"}
                   </span>
                 </div>
               </div>
-            </div>
+            </button>
             <button
               onClick={onSignOut}
-              className="text-slate-400 hover:text-slate-700 p-1 rounded-md transition"
+              className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
               title="Sign Out"
               aria-label="Sign Out"
             >
-              <ChevronDown className="h-4 w-4" />
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Sign Out</span>
             </button>
           </div>
         ) : (

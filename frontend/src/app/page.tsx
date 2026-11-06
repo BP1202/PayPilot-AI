@@ -9,6 +9,7 @@ import { RecentActivitySection } from "@/components/dashboard/RecentActivitySect
 import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
 import { OpportunityDiscoveryFeed } from "@/components/discovery/OpportunityDiscoveryFeed";
 import { ProfileWorkspace } from "@/components/profile/ProfileWorkspace";
+import { AchievementsModal } from "@/components/profile/AchievementsModal";
 import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
 import { CandidateRecommendationsModal } from "@/components/matching/CandidateRecommendationsModal";
 import { ConnectionsProposalsView } from "@/components/connections/ConnectionsProposalsView";
@@ -60,6 +61,11 @@ import {
   Rocket,
   Compass,
   Lightbulb,
+  User as UserIcon,
+  Award,
+  ChevronDown,
+  LogOut,
+  Sparkles,
 } from "lucide-react";
 
 function sanitizeErrorMessage(rawMessage?: string): string {
@@ -244,6 +250,9 @@ export default function Home() {
   const [selectedDealRoomId, setSelectedDealRoomId] = useState<string | null>(null);
   const [backendStatus, setBackendStatus] = useState<"checking" | "connected" | "offline">("checking");
   const [globalSearch, setGlobalSearch] = useState("");
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState<"individual" | "organization">("individual");
 
   const handleOpenDealRoomFromProposal = async (proposalId: string) => {
     try {
@@ -479,9 +488,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block">
+    <div className="h-screen w-full overflow-hidden bg-slate-50 flex flex-col md:flex-row">
+      {/* Desktop Sidebar: stays full viewport height, never cut off on scroll */}
+      <div className="hidden md:flex md:w-64 md:h-screen md:sticky md:top-0 md:shrink-0 flex-col">
         <AppSidebar
           currentView={currentView}
           onNavigate={handleNavigate}
@@ -489,7 +498,10 @@ export default function Home() {
           business={overview?.business}
           activeRole={activeRole}
           onRoleChange={handleRoleChange}
-          onOpenProfile={() => handleNavigate("profile")}
+          onOpenProfile={() => {
+            setProfileInitialTab(activeRole === "seeker" ? "individual" : "organization");
+            handleNavigate("profile");
+          }}
           onOpenAuth={() => setIsAuthOpen(true)}
           onSignOut={handleSignOut}
           onCreateOpportunity={() => handleOpenNewStudio()}
@@ -539,10 +551,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content Area: independently scrollable full viewport height */}
+      <div className="flex-1 h-screen overflow-y-auto flex flex-col min-w-0">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+        <header className="sticky top-0 z-20 shrink-0 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
@@ -653,18 +665,145 @@ export default function Home() {
               </span>
             </button>
 
-            {/* Authentication Button */}
+            {/* Top Right Profile Icon & Menu ("Blue and Green Theory") */}
             {currentUser ? (
-              <button
-                onClick={handleSignOut}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition cursor-pointer ${
-                  activeRole === "seeker"
-                    ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200"
-                    : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
-                }`}
-              >
-                Sign Out
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className={`flex items-center gap-2 rounded-2xl p-1.5 pr-2.5 transition cursor-pointer border ${
+                    activeRole === "seeker"
+                      ? "bg-blue-50/70 border-blue-200/80 hover:bg-blue-100/70 text-blue-900"
+                      : "bg-emerald-50/70 border-emerald-200/80 hover:bg-emerald-100/70 text-emerald-900"
+                  }`}
+                  aria-label="User profile menu"
+                  aria-expanded={isProfileMenuOpen}
+                >
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[11px] font-extrabold text-white shadow-2xs ${
+                      activeRole === "seeker"
+                        ? "bg-gradient-to-tr from-blue-600 to-indigo-600 ring-2 ring-blue-200"
+                        : "bg-gradient-to-tr from-emerald-600 to-teal-600 ring-2 ring-emerald-200"
+                    }`}
+                  >
+                    {currentUser.full_name
+                      ? currentUser.full_name
+                          .trim()
+                          .split(" ")
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()
+                      : currentUser.email.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span className="hidden sm:inline text-xs font-bold truncate max-w-[120px]">
+                    {currentUser.full_name || currentUser.email.split("@")[0]}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </button>
+
+                {/* Profile Dropdown Menu */}
+                {isProfileMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xl z-40 space-y-1 animate-in fade-in zoom-in-95">
+                      {/* User Header */}
+                      <div className="px-3 py-2 border-b border-slate-100 space-y-1">
+                        <p className="text-xs font-bold text-slate-900 truncate">
+                          {currentUser.full_name || "Opnly Member"}
+                        </p>
+                        <p className="text-[11px] text-slate-400 truncate">
+                          {currentUser.email}
+                        </p>
+                        <div className="pt-1">
+                          <span
+                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-extrabold border ${
+                              activeRole === "seeker"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }`}
+                          >
+                            {activeRole === "seeker" ? "Seeker · Individual" : "Creator · Organization"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Direct Role Profile ("Blue and Green Theory") */}
+                      {activeRole === "seeker" ? (
+                        <button
+                          onClick={() => {
+                            setProfileInitialTab("individual");
+                            handleNavigate("profile");
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50/80 rounded-xl transition cursor-pointer text-left"
+                        >
+                          <UserIcon className="h-4 w-4 text-blue-600" />
+                          <span>My Profile & Skills</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setProfileInitialTab("organization");
+                            handleNavigate("profile");
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/80 rounded-xl transition cursor-pointer text-left"
+                        >
+                          <Building2 className="h-4 w-4 text-emerald-600" />
+                          <span>Organization & Business Profile</span>
+                        </button>
+                      )}
+
+                      {/* Achievements Option */}
+                      <button
+                        onClick={() => {
+                          setIsAchievementsOpen(true);
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-amber-700 hover:bg-amber-50/80 rounded-xl transition cursor-pointer text-left"
+                      >
+                        <Award className="h-4 w-4 text-amber-500" />
+                        <span>Achievements & Badges</span>
+                      </button>
+
+                      {/* Role Switcher */}
+                      <button
+                        onClick={() => {
+                          handleRoleChange(activeRole === "seeker" ? "creator" : "seeker");
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl transition cursor-pointer text-left ${
+                          activeRole === "seeker"
+                            ? "text-emerald-700 hover:bg-emerald-50"
+                            : "text-blue-700 hover:bg-blue-50"
+                        }`}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        <span>
+                          Switch to {activeRole === "seeker" ? "Creator (Green)" : "Seeker (Blue)"}
+                        </span>
+                      </button>
+
+                      <div className="border-t border-slate-100 my-1" />
+
+                      {/* Sign Out */}
+                      <button
+                        onClick={() => {
+                          handleSignOut();
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer text-left"
+                      >
+                        <LogOut className="h-4 w-4 text-rose-500" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             ) : (
               <button
                 onClick={() => setIsAuthOpen(true)}
@@ -954,6 +1093,8 @@ export default function Home() {
               <ProfileWorkspace
                 currentUser={currentUser}
                 onOpenAuth={() => setIsAuthOpen(true)}
+                activeRole={activeRole}
+                initialTab={profileInitialTab}
               />
             </div>
           ) : (
@@ -1062,6 +1203,17 @@ export default function Home() {
           }}
         />
       )}
+
+      <AchievementsModal
+        isOpen={isAchievementsOpen}
+        onClose={() => setIsAchievementsOpen(false)}
+        currentUser={currentUser}
+        activeRole={activeRole}
+        onViewProfile={() => {
+          setProfileInitialTab(activeRole === "seeker" ? "individual" : "organization");
+          handleNavigate("profile");
+        }}
+      />
 
       <AuthModal
         isOpen={isAuthOpen}

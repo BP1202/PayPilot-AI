@@ -32,15 +32,29 @@ import {
 interface ProfileWorkspaceProps {
   currentUser?: UserType | null;
   onOpenAuth?: () => void;
+  activeRole?: "seeker" | "creator";
+  initialTab?: "individual" | "organization";
 }
 
 export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
   currentUser,
   onOpenAuth,
+  activeRole = "seeker",
+  initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState<"individual" | "organization">(
-    "individual"
+    initialTab || (activeRole === "creator" ? "organization" : "individual")
   );
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    } else if (activeRole === "creator") {
+      setActiveTab("organization");
+    } else {
+      setActiveTab("individual");
+    }
+  }, [initialTab, activeRole]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -317,22 +331,22 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
             onClick={() => setActiveTab("individual")}
             className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition cursor-pointer ${
               activeTab === "individual"
-                ? "bg-white text-indigo-700 shadow-sm font-bold"
+                ? "bg-white text-blue-700 shadow-sm font-bold"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <User className="h-3.5 w-3.5" />
+            <User className="h-3.5 w-3.5 text-blue-600" />
             <span>Individual Profile</span>
           </button>
           <button
             onClick={() => setActiveTab("organization")}
             className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition cursor-pointer ${
               activeTab === "organization"
-                ? "bg-white text-indigo-700 shadow-sm font-bold"
+                ? "bg-white text-emerald-700 shadow-sm font-bold"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Building2 className="h-3.5 w-3.5" />
+            <Building2 className="h-3.5 w-3.5 text-emerald-600" />
             <span>Organization Profile</span>
           </button>
         </div>
