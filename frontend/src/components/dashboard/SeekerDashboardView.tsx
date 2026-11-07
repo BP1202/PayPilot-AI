@@ -58,12 +58,22 @@ interface ActivityItem {
   statusColor?: string;
 }
 
-const PUBLISHED_STATUSES: OpportunityStatus[] = [
+const ACTIVE_DISCOVERY_STATUSES: OpportunityStatus[] = [
   "PUBLISHED",
   "MATCHING",
   "NEGOTIATING",
   "TRANSACTING",
   "GROWING",
+];
+
+const DISCOVERABLE_VISIBILITIES = ["PUBLIC", "AUTHENTICATED", "SHARED"];
+
+const EXCLUDED_FROM_ACTIVE_STATUSES: OpportunityStatus[] = [
+  "DRAFT",
+  "ANALYSED",
+  "COMPLETED",
+  "ARCHIVED",
+  "CLOSED",
 ];
 
 const DRAFT_STATUSES: OpportunityStatus[] = ["DRAFT", "ANALYSED"];
@@ -80,10 +90,10 @@ export const SeekerDashboardView: React.FC<SeekerDashboardViewProps> = ({
   onSelectOpportunity,
   onSwitchWorkspace,
 }) => {
-  const [dealRooms, setDealRooms] = useState<DealRoom[]>([]);
+  const [dealRooms, setDealRooms] = useState<DealRoom[] | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [suggestedMatchesCount, setSuggestedMatchesCount] = useState<number>(0);
+  const [suggestedMatchesCount, setSuggestedMatchesCount] = useState<number | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -101,6 +111,8 @@ export const SeekerDashboardView: React.FC<SeekerDashboardViewProps> = ({
 
       if (roomsRes.status === "fulfilled") {
         setDealRooms(roomsRes.value.items || []);
+      } else {
+        setDealRooms(null);
       }
       if (connsRes.status === "fulfilled") {
         setConnections(connsRes.value.items || []);
@@ -112,21 +124,26 @@ export const SeekerDashboardView: React.FC<SeekerDashboardViewProps> = ({
         // Distinct suggested matches count
         const matches = recsRes.value.items || [];
         setSuggestedMatchesCount(matches.length);
+      } else {
+        setSuggestedMatchesCount(null);
       }
 
-      // If all major requests failed, notify user
+      // If any major request failed, notify user and avoid showing misleading zeros
       if (
-        roomsRes.status === "rejected" &&
-        connsRes.status === "rejected" &&
-        propsRes.status === "rejected"
+        roomsRes.status === "rejected" ||
+        connsRes.status === "rejected" ||
+        propsRes.status === "rejected" ||
+        recsRes.status === "rejected"
       ) {
         setLoadError(
-          "We could not refresh some collaboration records. Please check your connection."
+          "We could not refresh some collaboration records. Please check your connection or retry."
         );
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load dashboard records.";
       setLoadError(msg);
+      setDealRooms(null);
+      setSuggestedMatchesCount(null);
     } finally {
       setIsLoadingDetails(false);
     }
@@ -147,18 +164,26 @@ export const SeekerDashboardView: React.FC<SeekerDashboardViewProps> = ({
     DRAFT_STATUSES.includes(o.status)
   ).length;
 
-  const publishedNeedsCount = allUserOpps.filter(
-    (o) =>
-      PUBLISHED_STATUSES.includes(o.status) ||
-      o.visibility === "PUBLIC" ||
-      o.visibility === "AUTHENTICATED" ||
-      o.visibility === "SHARED"
-  ).length;
+  // Active Needs in Network:
+  // Must satisfy BOTH:
+  // 1. Published and remains eligible for discovery under the lifecycle rules
+  // 2. Visibility permits the relevant audience to discover them
+  // Completed, archived, closed, and draft records are strictly excluded from inflating the count.
+  const publishedNeedsCount = allUserOpps.filter((o) => {
+    const isActiveLifecycle = ACTIVE_DISCOVERY_STATUSES.includes(o.status);
+    const isDiscoverableVisibility = DISCOVERABLE_VISIBILITIES.includes(o.visibility);
+    const isExcluded = EXCLUDED_FROM_ACTIVE_STATUSES.includes(o.status);
+
+    return isActiveLifecycle && isDiscoverableVisibility && !isExcluded;
+  }).length;
 
   // Ongoing Collaborations: Distinct Deal Rooms with active status
-  const ongoingCollaborationsCount = dealRooms.filter(
-    (r) => r.status === "ACTIVE" || r.status === "COMPLETION_REVIEW"
-  ).length;
+  const ongoingCollaborationsCount =
+    dealRooms !== null
+      ? dealRooms.filter(
+          (r) => r.status === "ACTIVE" || r.status === "COMPLETION_REVIEW"
+        ).length
+      : null;
 
   // Recent Activity Feed: Aggregated from authorized, real records (privacy safe)
   const activityItems: ActivityItem[] = [];
@@ -190,7 +215,8 @@ export const SeekerDashboardView: React.FC<SeekerDashboardViewProps> = ({
   });
 
   // 3. Deal Rooms
-  dealRooms.slice(0, 3).forEach((room) => {
+  const safeDealRooms = dealRooms || [];
+  safeDealRooms.slice(0, 3).forEach((room) => {
     activityItems.push({
       id: `room-${room.id}`,
       type: "deal_room",
@@ -491,12 +517,18 @@ export const SeekerDashboardView: React.FC<SeekerDashboardViewProps> = ({
             <div className="text-2xl font-black text-indigo-600">
               {isLoadingDetails ? (
                 <span className="text-slate-300">—</span>
+              ) : suggestedMatchesCount === null ? (
+                <span className="text-slate-400 text-base font-semibold">Unavailable</span>
               ) : (
                 suggestedMatchesCount
               )}
             </div>
             <p className="text-[11px] text-slate-500">
-              {suggestedMatchesCount === 1 ? "1 candidate recommendation" : `${suggestedMatchesCount} candidate recommendations`}
+              {isLoadingDetails || suggestedMatchesCount === null
+                ? "Candidate recommendations"
+                : suggestedMatchesCount === 1
+                ? "1 candidate recommendation"
+                : `${suggestedMatchesCount} candidate recommendations`}
             </p>
           </div>
 
@@ -508,12 +540,18 @@ export const SeekerDashboardView: React.FC<SeekerDashboardViewProps> = ({
             <div className="text-2xl font-black text-purple-600">
               {isLoadingDetails ? (
                 <span className="text-slate-300">—</span>
+              ) : ongoingCollaborationsCount === null ? (
+                <span className="text-slate-400 text-base font-semibold">Unavailable</span>
               ) : (
                 ongoingCollaborationsCount
               )}
             </div>
             <p className="text-[11px] text-slate-500">
-              {ongoingCollaborationsCount === 1 ? "1 active Deal Room" : `${ongoingCollaborationsCount} active Deal Rooms`}
+              {isLoadingDetails || ongoingCollaborationsCount === null
+                ? "Active Deal Rooms"
+                : ongoingCollaborationsCount === 1
+                ? "1 active Deal Room"
+                : `${ongoingCollaborationsCount} active Deal Rooms`}
             </p>
           </div>
         </div>

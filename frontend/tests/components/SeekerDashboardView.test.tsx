@@ -308,5 +308,154 @@ describe("SeekerDashboardView Component", () => {
       expect(screen.getByText(/Connection with Sarah Seeker is pending/i)).toBeInTheDocument();
     });
   });
+
+  it("strictly excludes completed, archived, closed, private, and public-draft opportunities from active needs count", async () => {
+    const mixedOpportunities: Opportunity[] = [
+      // Active in network
+      {
+        ...mockOpportunities[1],
+        id: "opp_pub1",
+        status: "PUBLISHED",
+        visibility: "PUBLIC",
+      },
+      {
+        ...mockOpportunities[2],
+        id: "opp_match1",
+        status: "MATCHING",
+        visibility: "AUTHENTICATED",
+      },
+      // Excluded: completed, archived, closed even if public
+      {
+        ...mockOpportunities[0],
+        id: "opp_completed",
+        status: "COMPLETED",
+        visibility: "PUBLIC",
+      },
+      {
+        ...mockOpportunities[0],
+        id: "opp_archived",
+        status: "ARCHIVED",
+        visibility: "PUBLIC",
+      },
+      {
+        ...mockOpportunities[0],
+        id: "opp_closed",
+        status: "CLOSED",
+        visibility: "PUBLIC",
+      },
+      // Excluded: public draft (only counts as draft, not active published need)
+      {
+        ...mockOpportunities[0],
+        id: "opp_draft_pub",
+        status: "DRAFT",
+        visibility: "PUBLIC",
+      },
+      // Excluded: published but private (not discoverable in network)
+      {
+        ...mockOpportunities[1],
+        id: "opp_pub_private",
+        status: "PUBLISHED",
+        visibility: "PRIVATE",
+      },
+    ];
+
+    render(
+      <SeekerDashboardView
+        currentUser={mockUser}
+        opportunities={mixedOpportunities}
+        onPostNeed={onPostNeed}
+        onBrowseContributors={onBrowseContributors}
+        onViewMyOpportunities={onViewMyOpportunities}
+        onViewConnections={onViewConnections}
+        onOpenDealRooms={onOpenDealRooms}
+        onSelectOpportunity={onSelectOpportunity}
+        onSwitchWorkspace={onSwitchWorkspace}
+      />
+    );
+
+    await waitFor(() => {
+      // Exactly 2 active needs (opp_pub1 and opp_match1)
+      expect(screen.getByText("2 active needs in network")).toBeInTheDocument();
+      // 1 draft need (opp_draft_pub)
+      expect(screen.getByText("1 captured draft")).toBeInTheDocument();
+    });
+  });
+
+  it("displays error banner and displays Unavailable rather than false zeros when API fails", async () => {
+    vi.mocked(api.fetchDealRooms).mockRejectedValue(new Error("Network timeout"));
+    vi.mocked(api.fetchRecommendedOpportunities).mockRejectedValue(new Error("Service unavailable"));
+
+    render(
+      <SeekerDashboardView
+        currentUser={mockUser}
+        opportunities={mockOpportunities}
+        onPostNeed={onPostNeed}
+        onBrowseContributors={onBrowseContributors}
+        onViewMyOpportunities={onViewMyOpportunities}
+        onViewConnections={onViewConnections}
+        onOpenDealRooms={onOpenDealRooms}
+        onSelectOpportunity={onSelectOpportunity}
+        onSwitchWorkspace={onSwitchWorkspace}
+      />
+    );
+
+    await waitFor(() => {
+      // Shows error banner
+      expect(
+        screen.getByText(/We could not refresh some collaboration records/i)
+      ).toBeInTheDocument();
+      // Shows Retry button
+      expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
+      // Displays Unavailable instead of misleading 0
+      const unavailableBadges = screen.getAllByText("Unavailable");
+      expect(unavailableBadges.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it("does not leak confidential proposal budgets or private documents into activity feed", async () => {
+    const mockPrivateProposals: Proposal[] = [
+      {
+        id: "prop_private1",
+        connection_id: "conn_1",
+        title: "Confidential Enterprise Strategy",
+        description: "Sensitive architectural audit",
+        status: "PENDING_REVIEW",
+        current_version: 1,
+        deliverables: ["Secret Blueprint 1"],
+        budget_amount: "500000.00",
+        currency: "USD",
+        proposer: { user_id: "usr_alice", full_name: "Alice Partner", skills: [] },
+        recipient: { user_id: "usr_seeker1", full_name: "Sarah Seeker", skills: [] },
+      },
+    ];
+    vi.mocked(api.fetchProposals).mockResolvedValue({
+      items: mockPrivateProposals,
+      total: 1,
+    });
+
+    render(
+      <SeekerDashboardView
+        currentUser={mockUser}
+        opportunities={mockOpportunities}
+        onPostNeed={onPostNeed}
+        onBrowseContributors={onBrowseContributors}
+        onViewMyOpportunities={onViewMyOpportunities}
+        onViewConnections={onViewConnections}
+        onOpenDealRooms={onOpenDealRooms}
+        onSelectOpportunity={onSelectOpportunity}
+        onSwitchWorkspace={onSwitchWorkspace}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Proposal Update")).toBeInTheDocument();
+      expect(
+        screen.getByText(/Proposal "Confidential Enterprise Strategy" is pending review/i)
+      ).toBeInTheDocument();
+      // Confidential budget should NOT be leaked in activity feed
+      expect(screen.queryByText(/500000/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Secret Blueprint/)).not.toBeInTheDocument();
+    });
+  });
 });
 
