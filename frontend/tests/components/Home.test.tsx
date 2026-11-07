@@ -507,7 +507,7 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     fireEvent.click(switchBtn);
 
     await waitFor(() => {
-      expect(screen.getByText("Seeker Workspace")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Seeker Workspace" })).toBeInTheDocument();
       expect(localStorage.getItem("opnly_active_role")).toBe("seeker");
     });
 

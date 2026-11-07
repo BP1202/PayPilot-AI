@@ -19,6 +19,7 @@ import { DealRoomWorkspaceView } from "@/components/deal-rooms/DealRoomWorkspace
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
+import { SeekerDashboardView } from "@/components/dashboard/SeekerDashboardView";
 import { DashboardStats } from "@/components/DashboardStats";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { CommerceLedger } from "@/components/CommerceLedger";
@@ -1003,30 +1004,46 @@ export const AppShell: React.FC<AppShellProps> = ({
 
           {/* VIEW ROUTING */}
           {currentView === "home" ? (
-            /* ========================================================================= */
-            /* STREAMLINED ACTION-FIRST OPPORTUNITY HOME EXPERIENCE                      */
-            /* ========================================================================= */
-            <div className="space-y-6 w-full">
-              {/* 1. Opportunity Hero Banner with Two-Sided Handshake Visual Artifact */}
-              <section aria-label="Action-First Hero">
-                <OpportunityHeroBanner
-                  role={activeRole}
-                  userName={currentUser?.full_name}
-                  onNavigate={handleNavigate}
-                  onRoleChange={handleRoleChange}
-                  onQuickAction={(intent) => {
-                    handleRoleChange(intent === "SEEKING_SOLUTION" ? "seeker" : "creator");
-                    handleOpenNewStudio(intent);
-                  }}
-                  onCreateOpportunity={() => {
-                    handleRoleChange("creator");
-                    handleOpenNewStudio("OFFERING_SOLUTION");
-                  }}
-                />
-              </section>
+            activeRole === "seeker" ? (
+              /* ========================================================================= */
+              /* FOCUSED SEEKER WORKSPACE DASHBOARD (Issue #3)                             */
+              /* ========================================================================= */
+              <SeekerDashboardView
+                currentUser={currentUser}
+                opportunities={opportunities}
+                isLoadingOpps={oppLoading}
+                onPostNeed={() => handleOpenNewStudio("SEEKING_SOLUTION")}
+                onBrowseContributors={() => handleNavigate("opportunities", "explore")}
+                onViewMyOpportunities={() => handleNavigate("opportunities", "mine")}
+                onViewConnections={() => handleNavigate("collaborations")}
+                onOpenDealRooms={() => handleNavigate("deal-rooms")}
+                onSelectOpportunity={handleOpenExistingStudio}
+                onSwitchWorkspace={() => handleRoleChange("creator")}
+              />
+            ) : (
+              /* ========================================================================= */
+              /* CONTRIBUTOR WORKSPACE DASHBOARD (Unchanged)                               */
+              /* ========================================================================= */
+              <div className="space-y-6 w-full">
+                {/* 1. Opportunity Hero Banner */}
+                <section aria-label="Action-First Hero">
+                  <OpportunityHeroBanner
+                    role={activeRole}
+                    userName={currentUser?.full_name}
+                    onNavigate={handleNavigate}
+                    onRoleChange={handleRoleChange}
+                    onQuickAction={(intent) => {
+                      handleRoleChange(intent === "SEEKING_SOLUTION" ? "seeker" : "creator");
+                      handleOpenNewStudio(intent);
+                    }}
+                    onCreateOpportunity={() => {
+                      handleRoleChange("creator");
+                      handleOpenNewStudio("OFFERING_SOLUTION");
+                    }}
+                  />
+                </section>
 
-              {/* 2. Role-Tailored Core Section: Creator manages listings/drafts, Seeker explores recommendations */}
-              {activeRole === "creator" ? (
+                {/* 2. Contributor Opportunity Drafts Workspace */}
                 <section aria-label="Opportunity Drafts Workspace">
                   <OpportunityDraftsList
                     opportunities={opportunities}
@@ -1042,40 +1059,26 @@ export const AppShell: React.FC<AppShellProps> = ({
                     businesses={overview?.business ? [overview.business] : []}
                   />
                 </section>
-              ) : (
-                <section aria-label="Recommended Opportunities">
-                  <RecommendedOpportunitiesSection
-                    currentUser={currentUser}
-                    onSelectCategory={(category) =>
-                      handleOpenNewStudio("SEEKING_SOLUTION", category)
-                    }
-                    onExploreAll={() => handleNavigate("browse")}
-                    onViewOpportunity={(oppId) => {
-                      const opp = opportunities.find((o) => o.id === oppId);
-                      if (opp) handleOpenExistingStudio(opp);
-                    }}
-                  />
-                </section>
-              )}
 
-              {/* 3. Balanced Activity & Collaborations Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                <section className="lg:col-span-7" aria-label="Recent Activity">
-                  <RecentActivitySection
-                    opportunities={opportunities}
-                    onSelectOpportunity={handleOpenExistingStudio}
-                    onSeeAll={() => handleNavigate(activeRole === "seeker" ? "browse" : "opportunities")}
-                  />
-                </section>
+                {/* 3. Balanced Activity & Collaborations Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                  <section className="lg:col-span-7" aria-label="Recent Activity">
+                    <RecentActivitySection
+                      opportunities={opportunities}
+                      onSelectOpportunity={handleOpenExistingStudio}
+                      onSeeAll={() => handleNavigate("opportunities")}
+                    />
+                  </section>
 
-                <section className="lg:col-span-5" aria-label="Active Collaborations">
-                  <ActiveCollaborationsSection
-                    onSeeAll={() => handleNavigate("collaborations")}
-                    onStartOpportunity={() => handleNavigate("browse")}
-                  />
-                </section>
+                  <section className="lg:col-span-5" aria-label="Active Collaborations">
+                    <ActiveCollaborationsSection
+                      onSeeAll={() => handleNavigate("collaborations")}
+                      onStartOpportunity={() => handleNavigate("browse")}
+                    />
+                  </section>
+                </div>
               </div>
-            </div>
+            )
           ) : currentView === "opportunities" || currentView === "browse" ? (
             /* ========================================================================= */
             /* UNIFIED OPPORTUNITY NETWORK & WORKSPACE HUB                               */
