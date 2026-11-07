@@ -18,6 +18,7 @@ import { DealRoomsListView } from "@/components/deal-rooms/DealRoomsListView";
 import { DealRoomWorkspaceView } from "@/components/deal-rooms/DealRoomWorkspaceView";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
+import { PublicLandingView } from "@/components/landing/PublicLandingView";
 import { DashboardStats } from "@/components/DashboardStats";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { CommerceLedger } from "@/components/CommerceLedger";
@@ -205,6 +206,10 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [pendingActionAfterAuth, setPendingActionAfterAuth] = useState<{
+    intent: OpportunityIntent;
+    category?: OpportunityCategory;
+  } | null>(null);
   const [matchingOpportunity, setMatchingOpportunity] = useState<Opportunity | null>(null);
   const [connectTarget, setConnectTarget] = useState<{
     recipientUserId: string;
@@ -432,6 +437,30 @@ export const AppShell: React.FC<AppShellProps> = ({
       loadData(selectedStatus);
     }
     loadOpportunities(selectedOppStatus);
+
+    if (pendingActionAfterAuth) {
+      const { intent, category } = pendingActionAfterAuth;
+      setPendingActionAfterAuth(null);
+      handleOpenNewStudio(intent, category);
+    }
+  };
+
+  const handlePublicPostRequest = () => {
+    if (!currentUser) {
+      setPendingActionAfterAuth({ intent: "SEEKING_SOLUTION" });
+      setIsAuthOpen(true);
+    } else {
+      handleOpenNewStudio("SEEKING_SOLUTION");
+    }
+  };
+
+  const handlePublicOfferSkills = () => {
+    if (!currentUser) {
+      setPendingActionAfterAuth({ intent: "OFFERING_SOLUTION" });
+      setIsAuthOpen(true);
+    } else {
+      handleOpenNewStudio("OFFERING_SOLUTION");
+    }
   };
 
   const handleSignOut = () => {
@@ -514,6 +543,54 @@ export const AppShell: React.FC<AppShellProps> = ({
       }
     }
   };
+
+  const isPublicHome = currentView === "home" && !currentUser;
+
+  if (isPublicHome) {
+    return (
+      <div className="min-h-screen w-full bg-slate-50 font-sans text-slate-900 overflow-y-auto">
+        <PublicLandingView
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onExploreOpportunities={() => handleNavigate("opportunities", "explore")}
+          onPostRequest={handlePublicPostRequest}
+          onOfferSkills={handlePublicOfferSkills}
+          onNavigateView={(view) => handleNavigate(view)}
+        />
+
+        <AuthModal
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onSuccess={handleAuthSuccess}
+        />
+
+        <OpportunityStudioModal
+          isOpen={isStudioOpen}
+          onClose={() => setIsStudioOpen(false)}
+          onSuccess={handleOpportunitySuccess}
+          existingOpportunity={activeOpportunity}
+          businessId={overview?.business?.id}
+          onFindCollaborators={(opp) => setMatchingOpportunity(opp)}
+          initialIntent={studioInitialIntent}
+          initialCategory={studioInitialCategory}
+        />
+
+        {connectTarget && (
+          <ConnectionRequestModal
+            isOpen={true}
+            onClose={() => setConnectTarget(null)}
+            recipientUserId={connectTarget.recipientUserId}
+            recipientName={connectTarget.recipientName}
+            opportunityId={connectTarget.opportunityId}
+            opportunityTitle={connectTarget.opportunityTitle}
+            onSuccess={() => {
+              setConnectTarget(null);
+              setSuccessToast("Connection request sent successfully!");
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full overflow-hidden bg-slate-50 flex flex-col md:flex-row">

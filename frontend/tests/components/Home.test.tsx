@@ -150,32 +150,71 @@ describe("Home Page Dashboard & Connectivity", () => {
     vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
   });
 
-  it("renders action-first opportunity network hero, role indicator, and recommended sample opportunities on homepage", async () => {
+  it("renders the 6-section public landing page for unauthenticated visitors with two participation paths, lifecycle journey, example opportunities, and trust safeguards", async () => {
     render(<Home />);
 
     await waitFor(() => {
-      // Hero headline
-      expect(screen.getAllByText(/Turn Ideas Into Impact/i).length).toBeGreaterThanOrEqual(1);
-      // Action-First Buttons for Seeker
-      expect(screen.getAllByText("Find Opportunities").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("Apply Now")).toBeInTheDocument();
-      expect(screen.getByText("Track Progress")).toBeInTheDocument();
-      expect(screen.getByText("Build Profile")).toBeInTheDocument();
-      // Primary quick CTAs
+      // 01 · Hero headline
+      expect(screen.getByText(/Ideas need people/i)).toBeInTheDocument();
+      expect(screen.getByText(/Skills need opportunities/i)).toBeInTheDocument();
+
+      // Primary CTAs
+      expect(screen.getAllByText("Explore Opportunities").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("Post a Request").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText("Create Opportunity").length).toBeGreaterThanOrEqual(1);
-      // Active role is displayed
-      expect(screen.getAllByText("Seeker").length).toBeGreaterThanOrEqual(1);
-      // Sample / demo opportunity
+      expect(screen.getAllByText("Offer Your Skills").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("Sign In").length).toBeGreaterThanOrEqual(1);
+
+      // 02 · Two Participation Paths
+      expect(screen.getByText("I need a solution ↔ I have skills to offer")).toBeInTheDocument();
+      expect(screen.getByText("I Need a Solution")).toBeInTheDocument();
+      expect(screen.getByText("I Have Skills to Offer")).toBeInTheDocument();
+      expect(screen.getByText("One account. Participate both ways.")).toBeInTheDocument();
+
+      // 03 · How the Network Works (Visual Lifecycle Journey)
+      expect(screen.getByText("How the network works")).toBeInTheDocument();
+      expect(screen.getByText("01 · Publish")).toBeInTheDocument();
+      expect(screen.getByText("02 · Match")).toBeInTheDocument();
+      expect(screen.getByText("03 · Invite")).toBeInTheDocument();
+      expect(screen.getByText("04 · Agree")).toBeInTheDocument();
+      expect(screen.getByText("05 · Collaborate")).toBeInTheDocument();
+      expect(screen.getByText("06 · Get Paid")).toBeInTheDocument();
+
+      // 04 · Example Opportunities clearly labelled
+      expect(screen.getByText("Opportunities happening here")).toBeInTheDocument();
+      expect(screen.getAllByText("Example Opportunities").length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("Automated Financial Reconciliation Engine")).toBeInTheDocument();
+      expect(screen.getByText("High-Throughput Distributed Microservices Architecture")).toBeInTheDocument();
+
+      // 05 · Trust and Reliability (accurate PayPal & verified payment records copy)
+      expect(screen.getByText("Work with greater confidence")).toBeInTheDocument();
+      expect(screen.getByText("Mutual Agreements")).toBeInTheDocument();
+      expect(screen.getByText("Evidence Reviews")).toBeInTheDocument();
+      expect(screen.getByText("Payment Verification")).toBeInTheDocument();
+      expect(screen.getByText("Reduce Payment Delays")).toBeInTheDocument();
+
+      // 06 · Final CTA
+      expect(screen.getByText("Your next opportunity starts here.")).toBeInTheDocument();
     });
 
-    // Commerce Ledger, Copilot Chat, KPI cards, and repetitive marketing are NOT on homepage
+    // Internal dashboard information, private ledger, and KPI cards are NOT on the public landing page
     expect(screen.queryByText("Commerce Ledger")).not.toBeInTheDocument();
     expect(screen.queryByText("Copilot Business Assistant")).not.toBeInTheDocument();
     expect(screen.queryByText("Settled Revenue")).not.toBeInTheDocument();
-    expect(screen.queryByText("How Opnly Works")).not.toBeInTheDocument();
-    expect(screen.queryByText("Built for Commercial Confidence")).not.toBeInTheDocument();
+    expect(screen.queryByText("Recent Activity")).not.toBeInTheDocument();
+    expect(screen.queryByText("Active Collaborations")).not.toBeInTheDocument();
+  });
+
+  it("preserves unauthenticated visitor intent when clicking Post a Request", async () => {
+    render(<Home />);
+
+    const postBtn = screen.getAllByRole("button", { name: /Post a Request/i })[0];
+    fireEvent.click(postBtn);
+
+    await waitFor(() => {
+      // Auth modal should open
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByText("Sign In to Opnly")).toBeInTheDocument();
+    });
   });
 
   it("renders data successfully when navigating to Payments & Earnings view", async () => {
@@ -349,16 +388,14 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     expect(api.fetchUserOpportunities).toHaveBeenCalled();
   });
 
-  it("shows unauthenticated state prompting sign in when no active session exists", async () => {
+  it("shows public landing page with sign in prompt when no active session exists", async () => {
     vi.mocked(api.getStoredUser).mockReturnValue(null);
     vi.mocked(api.getAccessToken).mockReturnValue(null);
 
     render(<Home />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Sign in to view your opportunity drafts/i)
-      ).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /^Sign In$/i }).length).toBeGreaterThanOrEqual(1);
     });
 
     expect(screen.queryByText("Automated Drone Fleet Logistics")).not.toBeInTheDocument();
@@ -408,9 +445,7 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     await waitFor(() => {
       expect(api.logoutUser).toHaveBeenCalled();
       expect(screen.queryByText("Automated Drone Fleet Logistics")).not.toBeInTheDocument();
-      expect(
-        screen.getByText(/Sign in to view your opportunity drafts/i)
-      ).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /^Sign In$/i }).length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -428,9 +463,7 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     await waitFor(() => {
       expect(api.clearAccessToken).toHaveBeenCalled();
       expect(screen.queryByText("Automated Drone Fleet Logistics")).not.toBeInTheDocument();
-      expect(
-        screen.getByText(/Sign in to view your opportunity drafts/i)
-      ).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /^Sign In$/i }).length).toBeGreaterThanOrEqual(1);
     });
   });
 
