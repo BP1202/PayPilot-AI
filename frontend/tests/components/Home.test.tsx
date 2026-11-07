@@ -499,7 +499,7 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Automated Drone Fleet Logistics")).toBeInTheDocument();
-      expect(screen.getByText("Contributor Workspace")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Contributor Workspace" })).toBeInTheDocument();
     });
 
     // Topbar quick switch to Seeker

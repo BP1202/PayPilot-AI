@@ -20,6 +20,7 @@ import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
 import { SeekerDashboardView } from "@/components/dashboard/SeekerDashboardView";
+import { ContributorDashboardView } from "@/components/dashboard/ContributorDashboardView";
 import { DashboardStats } from "@/components/DashboardStats";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { CommerceLedger } from "@/components/CommerceLedger";
@@ -1022,62 +1023,24 @@ export const AppShell: React.FC<AppShellProps> = ({
               />
             ) : (
               /* ========================================================================= */
-              /* CONTRIBUTOR WORKSPACE DASHBOARD (Unchanged)                               */
+              /* FOCUSED CONTRIBUTOR WORKSPACE DASHBOARD (Issue #4)                        */
               /* ========================================================================= */
-              <div className="space-y-6 w-full">
-                {/* 1. Opportunity Hero Banner */}
-                <section aria-label="Action-First Hero">
-                  <OpportunityHeroBanner
-                    role={activeRole}
-                    userName={currentUser?.full_name}
-                    onNavigate={handleNavigate}
-                    onRoleChange={handleRoleChange}
-                    onQuickAction={(intent) => {
-                      handleRoleChange(intent === "SEEKING_SOLUTION" ? "seeker" : "creator");
-                      handleOpenNewStudio(intent);
-                    }}
-                    onCreateOpportunity={() => {
-                      handleRoleChange("creator");
-                      handleOpenNewStudio("OFFERING_SOLUTION");
-                    }}
-                  />
-                </section>
-
-                {/* 2. Contributor Opportunity Drafts Workspace */}
-                <section aria-label="Opportunity Drafts Workspace">
-                  <OpportunityDraftsList
-                    opportunities={opportunities}
-                    isLoading={oppLoading}
-                    error={oppError}
-                    onRetry={() => loadOpportunities(selectedOppStatus)}
-                    onSelectOpportunity={handleOpenExistingStudio}
-                    onCreateNew={() => handleOpenNewStudio()}
-                    selectedStatus={selectedOppStatus}
-                    onFilterChange={handleOppFilterChange}
-                    isAuthenticated={!!currentUser}
-                    onSignIn={() => setIsAuthOpen(true)}
-                    businesses={overview?.business ? [overview.business] : []}
-                  />
-                </section>
-
-                {/* 3. Balanced Activity & Collaborations Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                  <section className="lg:col-span-7" aria-label="Recent Activity">
-                    <RecentActivitySection
-                      opportunities={opportunities}
-                      onSelectOpportunity={handleOpenExistingStudio}
-                      onSeeAll={() => handleNavigate("opportunities")}
-                    />
-                  </section>
-
-                  <section className="lg:col-span-5" aria-label="Active Collaborations">
-                    <ActiveCollaborationsSection
-                      onSeeAll={() => handleNavigate("collaborations")}
-                      onStartOpportunity={() => handleNavigate("browse")}
-                    />
-                  </section>
-                </div>
-              </div>
+              <ContributorDashboardView
+                currentUser={currentUser}
+                opportunities={opportunities}
+                isLoadingOpps={oppLoading}
+                oppError={oppError}
+                onRetryOpps={() => loadOpportunities(selectedOppStatus)}
+                onBrowseOpportunities={() => handleNavigate("opportunities", "explore")}
+                onOfferSkills={() => handleOpenNewStudio("OFFERING_SOLUTION")}
+                onCompleteProfile={() => handleNavigate("profile")}
+                onManageMyOffers={() => handleNavigate("opportunities", "mine")}
+                onViewSuggestedMatches={() => handleNavigate("opportunities", "explore")}
+                onViewConnections={() => handleNavigate("collaborations")}
+                onOpenDealRooms={() => handleNavigate("deal-rooms")}
+                onSelectOpportunity={handleOpenExistingStudio}
+                onSwitchWorkspace={() => handleRoleChange("seeker")}
+              />
             )
           ) : currentView === "opportunities" || currentView === "browse" ? (
             /* ========================================================================= */
