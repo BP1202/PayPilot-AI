@@ -131,7 +131,7 @@ describe("AuthModal Component", () => {
     });
   });
 
-  it("allows selecting role workspace (Seek Solutions vs Share Skills) and saves choice", async () => {
+  it("allows selecting starting workspace (Seeker vs Contributor) with dual-participation notice and saves choice", async () => {
     const mockUser = {
       id: "usr_789",
       email: "creator@opnly.demo",
@@ -150,14 +150,17 @@ describe("AuthModal Component", () => {
 
     render(<AuthModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-    // Verify both role cards are rendered
-    expect(screen.getByText("Seek Solutions")).toBeInTheDocument();
-    expect(screen.getByText("Share Skills")).toBeInTheDocument();
-    expect(screen.getByText("Seeker Focus")).toBeInTheDocument();
-    expect(screen.getByText("Creator Focus")).toBeInTheDocument();
+    // Verify dual-path notice is rendered
+    expect(screen.getByText(/One account supports both paths/i)).toBeInTheDocument();
 
-    // Select Creator
-    fireEvent.click(screen.getByText("Share Skills"));
+    // Verify both workspace choice cards are rendered
+    expect(screen.getByText("I need a solution")).toBeInTheDocument();
+    expect(screen.getByText("I have skills to offer")).toBeInTheDocument();
+    expect(screen.getByText("Seeker Workspace")).toBeInTheDocument();
+    expect(screen.getByText("Contributor Workspace")).toBeInTheDocument();
+
+    // Select Contributor Workspace
+    fireEvent.click(screen.getByText("I have skills to offer"));
 
     // Fill credentials and submit
     fireEvent.change(screen.getByLabelText(/email address/i), {

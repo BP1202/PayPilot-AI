@@ -493,4 +493,34 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
 
     expect(api.fetchUserOpportunities).toHaveBeenCalledTimes(2);
   });
+
+  it("allows switching between Seeker and Contributor workspaces seamlessly without signing out and keeps both profiles accessible", async () => {
+    render(<Home />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Automated Drone Fleet Logistics")).toBeInTheDocument();
+      expect(screen.getByText("Contributor Workspace")).toBeInTheDocument();
+    });
+
+    // Topbar quick switch to Seeker
+    const switchBtn = screen.getByRole("button", { name: /Switch to Seeker/i });
+    fireEvent.click(switchBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Seeker Workspace")).toBeInTheDocument();
+      expect(localStorage.getItem("opnly_active_role")).toBe("seeker");
+    });
+
+    // Open profile menu
+    const profileBtn = screen.getByLabelText("User profile menu");
+    fireEvent.click(profileBtn);
+
+    await waitFor(() => {
+      // Both Personal and Organization profile options are visible under one account
+      expect(screen.getByText("Personal Profile & Skills")).toBeInTheDocument();
+      expect(screen.getByText("Organization & Business Profile")).toBeInTheDocument();
+      // Menu switcher also available
+      expect(screen.getByText(/Switch to Contributor Workspace/i)).toBeInTheDocument();
+    });
+  });
 });

@@ -85,7 +85,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: "home", label: "Dashboard", icon: HomeIcon },
         { id: "opportunities", label: "Opportunities", icon: Compass },
         { id: "collaborations", label: "My Applications & Proposals", icon: Handshake },
-        { id: "deal-rooms", label: "Active Workspaces", icon: Briefcase },
+        { id: "deal-rooms", label: "Deal Rooms", icon: Briefcase },
         { id: "ledger", label: "Payments & Earnings", icon: Receipt },
       ]
     : [
@@ -116,10 +116,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </div>
         </div>
 
-        {/* Role Switcher Pill: Blue for Seeker vs. Green for Share Skills */}
+        {/* Workspace Switcher: Seeker (Need Solutions) vs. Contributor (Offer Skills) */}
         <div className="space-y-1.5 px-1">
           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
-            <span>Active Role</span>
+            <span>Workspace</span>
             <span
               className={
                 isSeeker
@@ -127,7 +127,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   : "text-emerald-600 font-extrabold"
               }
             >
-              {isSeeker ? "Seeking Solutions" : "Sharing Skills"}
+              {isSeeker ? "Seeker (Need Solutions)" : "Contributor (Offer Skills)"}
             </span>
           </div>
           <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200/80 shadow-2xs">
@@ -140,6 +140,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   : "text-slate-500 hover:text-slate-900"
               }`}
               aria-pressed={isSeeker}
+              title="Seeker Workspace (I need a solution)"
             >
               <Search className="h-3.5 w-3.5" />
               <span>Seeker</span>
@@ -153,11 +154,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   : "text-slate-500 hover:text-slate-900"
               }`}
               aria-pressed={!isSeeker}
+              title="Contributor Workspace (I have skills to offer)"
             >
               <Lightbulb className="h-3.5 w-3.5" />
-              <span>Creator</span>
+              <span>Contributor</span>
             </button>
           </div>
+          <p className="text-[10px] text-slate-400 px-1 font-medium text-center">
+            One account. Switch workspaces anytime.
+          </p>
         </div>
 
         {/* Navigation Links */}

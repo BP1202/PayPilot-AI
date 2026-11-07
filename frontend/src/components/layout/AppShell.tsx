@@ -695,8 +695,22 @@ export const AppShell: React.FC<AppShellProps> = ({
                     : "bg-emerald-50 text-emerald-700 border-emerald-200"
                 }`}
               >
-                {activeRole === "seeker" ? "Seeker Workspace" : "Creator Workspace"}
+                {activeRole === "seeker" ? "Seeker Workspace" : "Contributor Workspace"}
               </span>
+
+              <button
+                type="button"
+                onClick={() => handleRoleChange(activeRole === "seeker" ? "creator" : "seeker")}
+                className={`ml-1.5 hidden sm:inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold border transition cursor-pointer ${
+                  activeRole === "seeker"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                    : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                }`}
+                title="Switch workspace view (One account supports both paths)"
+              >
+                <Sparkles className="h-2.5 w-2.5" />
+                <span>Switch to {activeRole === "seeker" ? "Contributor" : "Seeker"}</span>
+              </button>
             </div>
           </div>
 
@@ -830,37 +844,35 @@ export const AppShell: React.FC<AppShellProps> = ({
                                 : "bg-emerald-50 text-emerald-700 border-emerald-200"
                             }`}
                           >
-                            {activeRole === "seeker" ? "Seeker · Individual" : "Creator · Organization"}
+                            {activeRole === "seeker" ? "Seeker Workspace" : "Contributor Workspace"}
                           </span>
                         </div>
                       </div>
 
-                      {/* Direct Role Profile ("Blue and Green Theory") */}
-                      {activeRole === "seeker" ? (
-                        <button
-                          onClick={() => {
-                            setProfileInitialTab("individual");
-                            handleNavigate("profile");
-                            setIsProfileMenuOpen(false);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50/80 rounded-xl transition cursor-pointer text-left"
-                        >
-                          <UserIcon className="h-4 w-4 text-blue-600" />
-                          <span>My Profile & Skills</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setProfileInitialTab("organization");
-                            handleNavigate("profile");
-                            setIsProfileMenuOpen(false);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/80 rounded-xl transition cursor-pointer text-left"
-                        >
-                          <Building2 className="h-4 w-4 text-emerald-600" />
-                          <span>Organization & Business Profile</span>
-                        </button>
-                      )}
+                      {/* Shared Profiles: Both Personal and Organization available under one account */}
+                      <button
+                        onClick={() => {
+                          setProfileInitialTab("individual");
+                          handleNavigate("profile");
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50/80 rounded-xl transition cursor-pointer text-left"
+                      >
+                        <UserIcon className="h-4 w-4 text-blue-600" />
+                        <span>Personal Profile & Skills</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setProfileInitialTab("organization");
+                          handleNavigate("profile");
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/80 rounded-xl transition cursor-pointer text-left"
+                      >
+                        <Building2 className="h-4 w-4 text-emerald-600" />
+                        <span>Organization & Business Profile</span>
+                      </button>
 
                       {/* Achievements Option */}
                       <button
@@ -874,7 +886,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                         <span>Achievements & Badges</span>
                       </button>
 
-                      {/* Role Switcher */}
+                      {/* Workspace Switcher */}
                       <button
                         onClick={() => {
                           handleRoleChange(activeRole === "seeker" ? "creator" : "seeker");
@@ -885,10 +897,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                             ? "text-emerald-700 hover:bg-emerald-50"
                             : "text-blue-700 hover:bg-blue-50"
                         }`}
+                        title="Switch workspace view (One account supports both paths)"
                       >
                         <Sparkles className="h-4 w-4" />
                         <span>
-                          Switch to {activeRole === "seeker" ? "Creator Workspace" : "Seeker Workspace"}
+                          Switch to {activeRole === "seeker" ? "Contributor Workspace (Offer Skills)" : "Seeker Workspace (Need Solutions)"}
                         </span>
                       </button>
 
