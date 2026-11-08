@@ -174,3 +174,4 @@ describe("ParticipantProfileModal Component", () => {
     });
   });
 });
+

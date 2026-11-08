@@ -439,6 +439,8 @@ export interface ParticipantCandidate {
   location?: string | null;
   skills: string[];
   services: string[];
+  resources?: string[];
+  experience?: string[];
   explanation: MatchExplanation;
 }
 

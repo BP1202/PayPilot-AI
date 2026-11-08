@@ -441,3 +441,258 @@ def test_gemini_live_ai_enrichment_mock(
         assert item["explanation"]["mode"] == "LIVE_AI"
         assert item["explanation"]["provenance"] == "AI_INFERRED"
         assert "Exceptional fit" in item["explanation"]["explanation_summary"]
+
+
+def test_matching_with_services_overlap(
+    client_with_db: TestClient, test_db_session: Session
+):
+    """Verifies service offerings match opportunity requirements with explicit signals."""
+    creator, creator_token = make_user(test_db_session, "creator-srv-1", "creator-srv@test.com")
+    candidate, _ = make_user(
+        test_db_session, "cand-srv-1", "cand-srv@test.com", "Sarah Security Consultant"
+    )
+
+    opp = create_test_opportunity(
+        test_db_session,
+        "opp-sec-1",
+        creator.id,
+        "Security Assessment",
+        industry="Cybersecurity",
+        required_skills=["Penetration Testing", "Security Audit"],
+    )
+
+    test_db_session.add(
+        IndividualProfile(
+            user_id=candidate.id,
+            headline="Principal Security Researcher",
+            industry="Cybersecurity",
+            skills=["Python", "Linux"],
+            services=["Penetration Testing", "Vulnerability Assessment"],
+            visibility=ProfileVisibility.PUBLIC.value,
+        )
+    )
+    test_db_session.commit()
+
+    resp = client_with_db.get(
+        f"/api/v1/matches/participants/{opp.id}",
+        headers={"Authorization": f"Bearer {creator_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] >= 1
+    cand = next(c for c in data["items"] if c["name"] == "Sarah Security Consultant")
+    assert "Penetration Testing" in cand["services"]
+    assert any("Service offering: Penetration Testing" in sig for sig in cand["explanation"]["strong_signals"])
+
+
+def test_matching_with_resources_and_tools_overlap(
+    client_with_db: TestClient, test_db_session: Session
+):
+    """Verifies equipment and infrastructure match opportunity requirements."""
+    creator, creator_token = make_user(test_db_session, "creator-res-1", "creator-res@test.com")
+    candidate, _ = make_user(
+        test_db_session, "cand-res-1", "cand-res@test.com", "David Infrastructure Pro"
+    )
+
+    opp = create_test_opportunity(
+        test_db_session,
+        "opp-infra-1",
+        creator.id,
+        "FedRAMP Cloud Hosting",
+        industry="Cloud",
+        required_skills=["AWS GovCloud", "Kubernetes"],
+    )
+
+    test_db_session.add(
+        IndividualProfile(
+            user_id=candidate.id,
+            headline="Cloud DevOps Architect",
+            industry="Cloud",
+            skills=["Terraform", "Kubernetes"],
+            resources=["AWS GovCloud", "Bare Metal Cluster"],
+            visibility=ProfileVisibility.PUBLIC.value,
+        )
+    )
+    test_db_session.commit()
+
+    resp = client_with_db.get(
+        f"/api/v1/matches/participants/{opp.id}",
+        headers={"Authorization": f"Bearer {creator_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] >= 1
+    cand = next(c for c in data["items"] if c["name"] == "David Infrastructure Pro")
+    assert "AWS GovCloud" in cand["resources"]
+    assert any("Equipped with: AWS GovCloud" in sig for sig in cand["explanation"]["strong_signals"])
+    assert any("Proficient in Kubernetes" in sig for sig in cand["explanation"]["strong_signals"])
+
+
+def test_matching_with_experience_overlap(
+    client_with_db: TestClient, test_db_session: Session
+):
+    """Verifies experience milestones and domain background match requirements."""
+    creator, creator_token = make_user(test_db_session, "creator-exp-1", "creator-exp@test.com")
+    candidate, _ = make_user(
+        test_db_session, "cand-exp-1", "cand-exp@test.com", "Elena Fintech Lead"
+    )
+
+    opp = create_test_opportunity(
+        test_db_session,
+        "opp-fin-lead-1",
+        creator.id,
+        "Fintech Advisory Role",
+        industry="FinTech",
+        required_skills=["FinTech Executive", "SOC-2 Audit"],
+    )
+
+    test_db_session.add(
+        IndividualProfile(
+            user_id=candidate.id,
+            headline="Former VP Engineering",
+            industry="FinTech",
+            experience=["10+ Years FinTech Executive", "SOC-2 Type II Certified"],
+            visibility=ProfileVisibility.PUBLIC.value,
+        )
+    )
+    test_db_session.commit()
+
+    resp = client_with_db.get(
+        f"/api/v1/matches/participants/{opp.id}",
+        headers={"Authorization": f"Bearer {creator_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] >= 1
+    cand = next(c for c in data["items"] if c["name"] == "Elena Fintech Lead")
+    assert "10+ Years FinTech Executive" in cand["experience"]
+    assert any("Domain experience: 10+ Years FinTech Executive" in sig for sig in cand["explanation"]["strong_signals"])
+
+
+def test_combined_multidimensional_capability_matching(
+    client_with_db: TestClient, test_db_session: Session
+):
+    """Verifies combined skills, services, resources, and experience create a Strong Match."""
+    creator, creator_token = make_user(test_db_session, "creator-multi-1", "creator-multi@test.com")
+    candidate, _ = make_user(
+        test_db_session, "cand-multi-1", "cand-multi@test.com", "Marcus AI Platform Lead"
+    )
+
+    opp = create_test_opportunity(
+        test_db_session,
+        "opp-multi-1",
+        creator.id,
+        "Distributed ML Training Pipeline",
+        industry="Artificial Intelligence",
+        required_skills=["PyTorch", "MLOps Architecture", "H100 GPU Cluster"],
+    )
+
+    test_db_session.add(
+        IndividualProfile(
+            user_id=candidate.id,
+            headline="AI Systems Architect",
+            industry="Artificial Intelligence",
+            skills=["PyTorch", "Python"],
+            services=["MLOps Architecture", "Model Fine-Tuning"],
+            resources=["H100 GPU Cluster", "Kubeflow"],
+            experience=["Lead Architect at Autonomous AI"],
+            visibility=ProfileVisibility.PUBLIC.value,
+        )
+    )
+    test_db_session.commit()
+
+    resp = client_with_db.get(
+        f"/api/v1/matches/participants/{opp.id}",
+        headers={"Authorization": f"Bearer {creator_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    cand = next(c for c in data["items"] if c["name"] == "Marcus AI Platform Lead")
+    assert cand["explanation"]["match_tier"] == "STRONG_MATCH"
+    assert cand["explanation"]["score"] >= 0.75
+    strong_sigs = cand["explanation"]["strong_signals"]
+    assert any("Proficient in PyTorch" in s for s in strong_sigs)
+    assert any("Service offering: MLOps Architecture" in s for s in strong_sigs)
+    assert any("Equipped with: H100 GPU Cluster" in s for s in strong_sigs)
+
+
+def test_private_profile_exclusion_with_expanded_capabilities(
+    client_with_db: TestClient, test_db_session: Session
+):
+    """Verifies profiles with PRIVATE visibility are strictly excluded even with matching services/resources."""
+    creator, creator_token = make_user(test_db_session, "creator-priv-1", "creator-priv@test.com")
+    private_cand, _ = make_user(
+        test_db_session, "cand-priv-1", "cand-priv@test.com", "Private Provider Person"
+    )
+
+    opp = create_test_opportunity(
+        test_db_session,
+        "opp-priv-test",
+        creator.id,
+        "Specialized Hardware Need",
+        industry="Hardware",
+        required_skills=["5-Axis CNC Mill"],
+    )
+
+    test_db_session.add(
+        IndividualProfile(
+            user_id=private_cand.id,
+            skills=["Machining"],
+            resources=["5-Axis CNC Mill"],
+            visibility=ProfileVisibility.PRIVATE.value,
+        )
+    )
+    test_db_session.commit()
+
+    resp = client_with_db.get(
+        f"/api/v1/matches/participants/{opp.id}",
+        headers={"Authorization": f"Bearer {creator_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    names = [c["name"] for c in data["items"]]
+    assert "Private Provider Person" not in names
+
+
+def test_business_candidate_expanded_capabilities(
+    client_with_db: TestClient, test_db_session: Session
+):
+    """Verifies business organizations matching on services and tooling return full capability structures."""
+    creator, creator_token = make_user(test_db_session, "creator-biz-exp", "creator-biz-exp@test.com")
+
+    opp = create_test_opportunity(
+        test_db_session,
+        "opp-biz-exp",
+        creator.id,
+        "Enterprise Data Migration",
+        industry="Enterprise IT",
+        required_skills=["Enterprise Cloud Migration", "Dedicated Data Center"],
+    )
+
+    biz = Business(
+        name="Global Cloud Solutions Corp",
+        user_id="biz-owner-id-99",
+        industry="Enterprise IT",
+        skills=["Kubernetes"],
+        services=["Enterprise Cloud Migration", "Managed Support"],
+        resources=["Dedicated Data Center", "Fiber Optical Uplink"],
+        experience=["SOC-2 Type II Certified Facility"],
+        visibility="PUBLIC",
+    )
+    test_db_session.add(biz)
+    test_db_session.commit()
+
+    resp = client_with_db.get(
+        f"/api/v1/matches/participants/{opp.id}",
+        headers={"Authorization": f"Bearer {creator_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    cand = next(c for c in data["items"] if c["name"] == "Global Cloud Solutions Corp")
+    assert cand["participant_type"] == "BUSINESS"
+    assert "Enterprise Cloud Migration" in cand["services"]
+    assert "Dedicated Data Center" in cand["resources"]
+    strong_sigs = cand["explanation"]["strong_signals"]
+    assert any("Service offering: Enterprise Cloud Migration" in s for s in strong_sigs)
+    assert any("Equipped with: Dedicated Data Center" in s for s in strong_sigs)
+

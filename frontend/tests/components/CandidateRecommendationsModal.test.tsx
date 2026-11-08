@@ -25,6 +25,8 @@ describe("CandidateRecommendationsModal Component", () => {
         location: "London, UK",
         skills: ["Solidity", "Rust", "FastAPI"],
         services: ["Auditing", "Smart Contracts"],
+        resources: ["AWS GovCloud", "Hardware Security Module"],
+        experience: ["10+ Years Smart Contracts", "Lead Security Architect"],
         explanation: {
           match_tier: "STRONG_MATCH",
           score: 0.9,
@@ -140,6 +142,68 @@ describe("CandidateRecommendationsModal Component", () => {
     const closeBtn = screen.getByRole("button", { name: "Close" });
     fireEvent.click(closeBtn);
     expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders candidate resources and experience badges alongside skills and services", async () => {
+    vi.spyOn(api, "fetchOpportunityCandidates").mockResolvedValue(sampleResponse);
+
+    render(
+      <CandidateRecommendationsModal
+        isOpen={true}
+        opportunityId="opp-123"
+        opportunityTitle="Payments Gateway"
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Alice Blockchain Engineer")).toBeInTheDocument();
+    });
+
+    // Check expanded capability badges
+    expect(screen.getByText("AWS GovCloud")).toBeInTheDocument();
+    expect(screen.getByText("Hardware Security Module")).toBeInTheDocument();
+    expect(screen.getByText("10+ Years Smart Contracts")).toBeInTheDocument();
+    expect(screen.getByText("Lead Security Architect")).toBeInTheDocument();
+    expect(screen.getByText("Auditing")).toBeInTheDocument();
+  });
+
+  it("opens participant profile modal when View Profile is clicked", async () => {
+    vi.spyOn(api, "fetchOpportunityCandidates").mockResolvedValue(sampleResponse);
+    vi.spyOn(api, "fetchPublicIndividualProfile").mockResolvedValue({
+      user_id: "cand-1",
+      headline: "Senior Smart Contract Engineer",
+      industry: "FinTech",
+      location: "London, UK",
+      skills: ["Solidity", "Rust", "FastAPI"],
+      services: ["Auditing", "Smart Contracts"],
+      resources: ["AWS GovCloud"],
+      experience: ["10+ Years Smart Contracts"],
+      interests: ["DeFi"],
+      visibility: "PUBLIC",
+    });
+
+    render(
+      <CandidateRecommendationsModal
+        isOpen={true}
+        opportunityId="opp-123"
+        opportunityTitle="Payments Gateway"
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Alice Blockchain Engineer")).toBeInTheDocument();
+    });
+
+    const viewProfileBtns = screen.getAllByRole("button", { name: /View Profile/i });
+    expect(viewProfileBtns.length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(viewProfileBtns[0]);
+
+    await waitFor(() => {
+      expect(api.fetchPublicIndividualProfile).toHaveBeenCalledWith("cand-1");
+    });
   });
 });
 
