@@ -107,6 +107,8 @@ const mockOpportunity1: Opportunity = {
   id: "opp_alpha",
   user_id: "usr_alice123",
   submission_type: "IDEA",
+  intent: "OFFERING_SOLUTION",
+  category: "TECH",
   status: "ANALYSED",
   visibility: "PRIVATE",
   title: "Automated Drone Fleet Logistics",
