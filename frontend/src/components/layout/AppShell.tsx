@@ -19,6 +19,7 @@ import { DealRoomWorkspaceView } from "@/components/deal-rooms/DealRoomWorkspace
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
+import { UnifiedWorkspaceView } from "@/components/dashboard/UnifiedWorkspaceView";
 import { SeekerDashboardView } from "@/components/dashboard/SeekerDashboardView";
 import { ContributorDashboardView } from "@/components/dashboard/ContributorDashboardView";
 import { DashboardStats } from "@/components/DashboardStats";
@@ -113,10 +114,22 @@ const ROLE_STORAGE_KEY = "opnly_active_role";
 function getInitialViewFromPath(defaultView: DashboardView = "home"): DashboardView {
   if (typeof window !== "undefined") {
     const path = window.location.pathname.replace(/^\/+/g, "").split("/")[0];
-    if (path === "opportunities" || path === "browse") return "opportunities";
+    if (
+      path === "opportunities" ||
+      path === "browse" ||
+      path === "explore" ||
+      path === "my-opportunities"
+    )
+      return "opportunities";
     if (path === "collaborations") return "collaborations";
     if (path === "deal-rooms") return "deal-rooms";
-    if (path === "profile") return "profile";
+    if (
+      path === "profile" ||
+      path === "trust" ||
+      path === "organisations" ||
+      path === "settings"
+    )
+      return "profile";
     if (path === "ledger" || path === "payments") return "ledger";
 
     const params = new URLSearchParams(window.location.search);
@@ -125,13 +138,34 @@ function getInitialViewFromPath(defaultView: DashboardView = "home"): DashboardV
       "home",
       "opportunities",
       "browse",
+      "explore",
+      "my-opportunities",
+      "matches",
       "collaborations",
       "deal-rooms",
       "ledger",
+      "trust",
       "profile",
+      "organisations",
+      "settings",
     ];
     if (viewParam && validViews.includes(viewParam)) {
-      return viewParam === "browse" ? "opportunities" : viewParam;
+      if (
+        viewParam === "browse" ||
+        viewParam === "explore" ||
+        viewParam === "my-opportunities" ||
+        viewParam === "matches"
+      ) {
+        return "opportunities";
+      }
+      if (
+        viewParam === "trust" ||
+        viewParam === "organisations" ||
+        viewParam === "settings"
+      ) {
+        return "profile";
+      }
+      return viewParam;
     }
   }
   return defaultView;
@@ -229,8 +263,26 @@ export const AppShell: React.FC<AppShellProps> = ({
   // Dynamic Browser URL Route Synchronization
   const handleNavigate = useCallback(
     (view: DashboardView, tab?: "explore" | "mine") => {
-      const targetView = view === "browse" ? "opportunities" : view;
-      const targetTab = tab || (view === "browse" ? "explore" : undefined);
+      let targetView: DashboardView = view;
+      let targetTab = tab;
+
+      if (view === "browse" || view === "explore") {
+        targetView = "opportunities";
+        targetTab = "explore";
+      } else if (view === "my-opportunities") {
+        targetView = "opportunities";
+        targetTab = "mine";
+      } else if (view === "matches") {
+        targetView = "opportunities";
+        targetTab = "explore";
+      } else if (view === "trust" || view === "organisations" || view === "settings") {
+        targetView = "profile";
+        if (view === "organisations") {
+          setProfileInitialTab("organization");
+        } else {
+          setProfileInitialTab("individual");
+        }
+      }
 
       setCurrentView(targetView);
       if (targetTab) {
@@ -1005,44 +1057,41 @@ export const AppShell: React.FC<AppShellProps> = ({
 
           {/* VIEW ROUTING */}
           {currentView === "home" ? (
-            activeRole === "seeker" ? (
-              /* ========================================================================= */
-              /* FOCUSED SEEKER WORKSPACE DASHBOARD (Issue #3)                             */
-              /* ========================================================================= */
-              <SeekerDashboardView
-                currentUser={currentUser}
-                opportunities={opportunities}
-                isLoadingOpps={oppLoading}
-                onPostNeed={() => handleOpenNewStudio("SEEKING_SOLUTION")}
-                onBrowseContributors={() => handleNavigate("opportunities", "explore")}
-                onViewMyOpportunities={() => handleNavigate("opportunities", "mine")}
-                onViewConnections={() => handleNavigate("collaborations")}
-                onOpenDealRooms={() => handleNavigate("deal-rooms")}
-                onSelectOpportunity={handleOpenExistingStudio}
-                onSwitchWorkspace={() => handleRoleChange("creator")}
-              />
-            ) : (
-              /* ========================================================================= */
-              /* FOCUSED CONTRIBUTOR WORKSPACE DASHBOARD (Issue #4)                        */
-              /* ========================================================================= */
-              <ContributorDashboardView
-                currentUser={currentUser}
-                opportunities={opportunities}
-                isLoadingOpps={oppLoading}
-                oppError={oppError}
-                onRetryOpps={() => loadOpportunities(selectedOppStatus)}
-                onBrowseOpportunities={() => handleNavigate("opportunities", "explore")}
-                onOfferSkills={() => handleOpenNewStudio("OFFERING_SOLUTION")}
-                onCompleteProfile={() => handleNavigate("profile")}
-                onManageMyOffers={() => handleNavigate("opportunities", "mine")}
-                onViewSuggestedMatches={() => handleNavigate("opportunities", "explore")}
-                onViewConnections={() => handleNavigate("collaborations")}
-                onOpenDealRooms={() => handleNavigate("deal-rooms")}
-                onSelectOpportunity={handleOpenExistingStudio}
-                onSwitchWorkspace={() => handleRoleChange("seeker")}
-              />
-            )
-          ) : currentView === "opportunities" || currentView === "browse" ? (
+            /* ========================================================================= */
+            /* UNIFIED AI-POWERED WORKSPACE DASHBOARD (Issue #9)                         */
+            /* ========================================================================= */
+            <UnifiedWorkspaceView
+              currentUser={currentUser}
+              opportunities={opportunities}
+              overview={overview}
+              isLoadingOpps={oppLoading}
+              oppError={oppError}
+              onRetryOpps={() => loadOpportunities(selectedOppStatus)}
+              onPostNeed={() => handleOpenNewStudio("SEEKING_SOLUTION")}
+              onOfferCapability={() => handleOpenNewStudio("OFFERING_SOLUTION")}
+              onBrowseOpportunities={(filter) => {
+                if (filter === "needs") {
+                  setStudioInitialIntent("SEEKING_SOLUTION");
+                } else if (filter === "capabilities") {
+                  setStudioInitialIntent("OFFERING_SOLUTION");
+                }
+                handleNavigate("opportunities", "explore");
+              }}
+              onViewMyOpportunities={() => handleNavigate("opportunities", "mine")}
+              onViewConnections={() => handleNavigate("collaborations")}
+              onOpenDealRooms={(roomId) => {
+                if (roomId) setSelectedDealRoomId(roomId);
+                handleNavigate("deal-rooms");
+              }}
+              onSelectOpportunity={handleOpenExistingStudio}
+              onViewMatches={() => handleNavigate("opportunities", "explore")}
+              onViewLedger={() => handleNavigate("ledger")}
+              onCompleteProfile={() => handleNavigate("profile")}
+            />
+          ) : currentView === "opportunities" ||
+            currentView === "browse" ||
+            currentView === "explore" ||
+            currentView === "my-opportunities" ? (
             /* ========================================================================= */
             /* UNIFIED OPPORTUNITY NETWORK & WORKSPACE HUB                               */
             /* ========================================================================= */

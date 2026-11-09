@@ -36,6 +36,10 @@ import {
   AlertTriangle,
   X,
   Check,
+  ChevronDown,
+  ChevronUp,
+  History,
+  XCircle,
 } from "lucide-react";
 
 interface MilestoneExecutionWorkspaceProps {
@@ -63,8 +67,12 @@ export function MilestoneExecutionWorkspace({
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [evidenceTitle, setEvidenceTitle] = useState("");
   const [evidenceDescription, setEvidenceDescription] = useState("");
+  const [evidenceNotes, setEvidenceNotes] = useState("");
   const [evidenceType, setEvidenceType] = useState<MilestoneEvidenceType>("EXTERNAL_REFERENCE");
   const [evidenceUrl, setEvidenceUrl] = useState("");
+
+  // Audit trail expanded state per milestone
+  const [expandedAuditIds, setExpandedAuditIds] = useState<Record<string, boolean>>({});
 
   // Review Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -134,6 +142,7 @@ export function MilestoneExecutionWorkspace({
         : `Deliverables: ${milestone.title}`
     );
     setEvidenceDescription("");
+    setEvidenceNotes("");
     setEvidenceType("EXTERNAL_REFERENCE");
     setEvidenceUrl("");
     setIsEvidenceModalOpen(true);
@@ -153,6 +162,7 @@ export function MilestoneExecutionWorkspace({
         description: evidenceDescription.trim(),
         evidence_type: evidenceType,
         reference_url: evidenceUrl.trim(),
+        submission_notes: evidenceNotes.trim() || undefined,
       });
       setIsEvidenceModalOpen(false);
       await loadMilestones();
@@ -175,8 +185,15 @@ export function MilestoneExecutionWorkspace({
     e.preventDefault();
     if (!activeMilestone || !activeMilestone.current_evidence_submission) return;
 
-    if (reviewDecision === "REVISION_REQUESTED" && !reviewComments.trim()) {
-      alert("Feedback comments are required when requesting revisions.");
+    if (
+      (reviewDecision === "REVISION_REQUESTED" || reviewDecision === "REJECTED") &&
+      !reviewComments.trim()
+    ) {
+      alert(
+        reviewDecision === "REJECTED"
+          ? "A mandatory rejection reason is required when rejecting deliverables."
+          : "Feedback comments are required when requesting revisions."
+      );
       return;
     }
 
@@ -375,8 +392,11 @@ export function MilestoneExecutionWorkspace({
                 statusBadgeClass = "bg-amber-50 text-amber-800 border-amber-200";
                 statusLabel = "Under Review";
               } else if (milestone.status === "REVISION_REQUESTED") {
-                statusBadgeClass = "bg-rose-50 text-rose-700 border-rose-200";
+                statusBadgeClass = "bg-amber-50 text-amber-800 border-amber-300";
                 statusLabel = "Revision Requested";
+              } else if (milestone.status === "REJECTED") {
+                statusBadgeClass = "bg-rose-50 text-rose-700 border-rose-300 font-bold";
+                statusLabel = "Submission Rejected";
               } else if (milestone.status === "APPROVED") {
                 statusBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
                 statusLabel = "Approved";
@@ -500,6 +520,17 @@ export function MilestoneExecutionWorkspace({
                         {milestone.current_evidence_submission.description}
                       </p>
 
+                      {milestone.current_evidence_submission.submission_notes && (
+                        <div className="bg-white/80 border border-indigo-100 rounded-xl p-2.5 text-xs text-slate-700">
+                          <span className="font-bold text-slate-800 block text-[10px] uppercase text-indigo-700">
+                            Submission Notes:
+                          </span>
+                          <p className="mt-0.5 whitespace-pre-wrap">
+                            {milestone.current_evidence_submission.submission_notes}
+                          </p>
+                        </div>
+                      )}
+
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-indigo-100/60 text-[11px]">
                         <a
                           href={milestone.current_evidence_submission.reference_url}
@@ -520,23 +551,186 @@ export function MilestoneExecutionWorkspace({
 
                   {/* Payment Readiness Banner (when Approved) */}
                   {milestone.status === "APPROVED" && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-950">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div
+                      className={`rounded-2xl p-4 flex items-start gap-3 text-xs border ${
+                        milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-950"
+                          : "bg-slate-50 border-slate-200 text-slate-800"
+                      }`}
+                    >
+                      <CheckCircle2
+                        className={`h-5 w-5 shrink-0 mt-0.5 ${
+                          milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
+                            ? "text-emerald-600"
+                            : "text-slate-500"
+                        }`}
+                      />
                       <div className="space-y-1">
                         <p className="font-bold">
-                          Payment Readiness: Ready for Payment Review
+                          {milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
+                            ? "Payment Readiness: Ready for Payment Review"
+                            : "Milestone Verified & Approved (Non-monetary)"}
                         </p>
-                        <p className="text-emerald-800 text-[11px] leading-relaxed">
-                          Dual-consent verified. Counterparty approved deliverables (Submission v
-                          {milestone.current_evidence_submission?.submission_version || 1}).
-                          This record forms the auditable bridge to the upcoming PayPal transaction &
-                          escrow release module.
+                        <p
+                          className={`text-[11px] leading-relaxed ${
+                            milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
+                              ? "text-emerald-800"
+                              : "text-slate-600"
+                          }`}
+                        >
+                          {milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
+                            ? `Dual-consent verified. Counterparty approved deliverables (Submission v${
+                                milestone.current_evidence_submission?.submission_version || 1
+                              }). This record forms the auditable bridge to the upcoming PayPal transaction & escrow release module.`
+                            : `Dual-consent verified. Counterparty approved deliverables. This milestone has no financial obligation ($0.00 agreed amount) and does not require payment settlement.`}
                         </p>
-                        <p className="text-[10px] font-semibold text-emerald-700 italic">
-                          Note: PayPal settlement execution occurs in the upcoming transaction module;
-                          no automated fund transfer takes place in this step.
-                        </p>
+                        {milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW" && (
+                          <p className="text-[10px] font-semibold text-emerald-700 italic">
+                            Note: PayPal settlement execution occurs in the upcoming transaction module; no automated fund transfer takes place in this step.
+                          </p>
+                        )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Expandable Deliverable & Review Audit Trail */}
+                  {((milestone.evidence_history && milestone.evidence_history.length > 0) ||
+                    (milestone.review_history && milestone.review_history.length > 0)) && (
+                    <div className="border border-slate-200/80 rounded-2xl overflow-hidden bg-slate-50/50">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedAuditIds((prev) => ({
+                            ...prev,
+                            [milestone.id]: !prev[milestone.id],
+                          }))
+                        }
+                        className="w-full px-4 py-2.5 flex items-center justify-between text-left text-xs font-bold text-slate-700 hover:bg-slate-100/70 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <History className="h-4 w-4 text-indigo-600" />
+                          <span>
+                            Deliverable & Review Audit Trail ({milestone.evidence_submissions_count} submissions, {milestone.reviews_count} reviews)
+                          </span>
+                        </div>
+                        {expandedAuditIds[milestone.id] ? (
+                          <ChevronUp className="h-4 w-4 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-slate-400" />
+                        )}
+                      </button>
+
+                      {expandedAuditIds[milestone.id] && (
+                        <div className="p-4 space-y-4 border-t border-slate-200/80 bg-white">
+                          {/* Submissions Timeline */}
+                          {milestone.evidence_history && milestone.evidence_history.length > 0 && (
+                            <div className="space-y-2">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Evidence Submissions History
+                              </span>
+                              <div className="space-y-2">
+                                {milestone.evidence_history.map((evi) => (
+                                  <div
+                                    key={evi.id}
+                                    className="p-3 rounded-xl border border-slate-100 bg-slate-50/60 text-xs space-y-1.5"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-extrabold text-slate-900">
+                                          v{evi.submission_version}: {evi.title}
+                                        </span>
+                                        <span
+                                          className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                            evi.status === "APPROVED"
+                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                              : evi.status === "REVISION_REQUESTED"
+                                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                                              : evi.status === "REJECTED"
+                                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                                              : evi.status === "SUPERSEDED"
+                                              ? "bg-slate-100 text-slate-400 border-slate-200"
+                                              : "bg-blue-50 text-blue-700 border-blue-200"
+                                          }`}
+                                        >
+                                          {evi.status}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-slate-400">
+                                        {new Date(evi.created_at).toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <p className="text-slate-600">{evi.description}</p>
+                                    {evi.submission_notes && (
+                                      <div className="text-[11px] bg-white p-2 rounded-lg border border-slate-200 text-slate-700">
+                                        <span className="font-bold text-slate-500 block text-[9px] uppercase">
+                                          Notes:
+                                        </span>
+                                        {evi.submission_notes}
+                                      </div>
+                                    )}
+                                    <div className="pt-1">
+                                      <a
+                                        href={evi.reference_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-indigo-600 hover:underline inline-flex items-center gap-1 text-[11px]"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        <span>{evi.reference_url}</span>
+                                      </a>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Reviews Timeline */}
+                          {milestone.review_history && milestone.review_history.length > 0 && (
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Review Decisions History
+                              </span>
+                              <div className="space-y-2">
+                                {milestone.review_history.map((rev) => (
+                                  <div
+                                    key={rev.id}
+                                    className="p-3 rounded-xl border border-slate-100 bg-slate-50/60 text-xs space-y-1"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold text-slate-800">{rev.reviewer_name}</span>
+                                        <span className="text-[10px] text-slate-400">
+                                          (reviewed v{rev.evidence_version})
+                                        </span>
+                                        <span
+                                          className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                            rev.decision === "APPROVED"
+                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                              : rev.decision === "REVISION_REQUESTED"
+                                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                                              : "bg-rose-50 text-rose-700 border-rose-200"
+                                          }`}
+                                        >
+                                          {rev.decision}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-slate-400">
+                                        {new Date(rev.created_at).toLocaleString()}
+                                      </span>
+                                    </div>
+                                    {rev.comments && (
+                                      <p className="text-slate-600 text-[11px] italic bg-white p-2 rounded-lg border border-slate-200">
+                                        &quot;{rev.comments}&quot;
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -562,10 +756,11 @@ export function MilestoneExecutionWorkspace({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      {/* Start Work Button (Responsible User only) */}
+                      {/* Start / Resume Work Button (Responsible User only) */}
                       {isResponsible &&
                         (milestone.status === "NOT_STARTED" ||
-                          milestone.status === "REVISION_REQUESTED") && (
+                          milestone.status === "REVISION_REQUESTED" ||
+                          milestone.status === "REJECTED") && (
                           <button
                             onClick={() => handleStartWork(milestone)}
                             disabled={actionLoading}
@@ -573,7 +768,7 @@ export function MilestoneExecutionWorkspace({
                           >
                             <Send className="h-3.5 w-3.5" />
                             <span>
-                              {milestone.status === "REVISION_REQUESTED"
+                              {milestone.status === "REVISION_REQUESTED" || milestone.status === "REJECTED"
                                 ? "Resume Work"
                                 : "Start Work"}
                             </span>
@@ -583,7 +778,8 @@ export function MilestoneExecutionWorkspace({
                       {/* Submit Deliverables Button (Responsible User only) */}
                       {isResponsible &&
                         (milestone.status === "IN_PROGRESS" ||
-                          milestone.status === "REVISION_REQUESTED") && (
+                          milestone.status === "REVISION_REQUESTED" ||
+                          milestone.status === "REJECTED") && (
                           <button
                             onClick={() => handleOpenEvidenceModal(milestone)}
                             disabled={actionLoading}
@@ -591,7 +787,7 @@ export function MilestoneExecutionWorkspace({
                           >
                             <FileText className="h-3.5 w-3.5" />
                             <span>
-                              {milestone.status === "REVISION_REQUESTED"
+                              {milestone.status === "REVISION_REQUESTED" || milestone.status === "REJECTED"
                                 ? "Resubmit Deliverables"
                                 : "Submit Deliverables"}
                             </span>
@@ -713,6 +909,19 @@ export function MilestoneExecutionWorkspace({
                 />
               </div>
 
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Submission Notes / Remarks <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={evidenceNotes}
+                  onChange={(e) => setEvidenceNotes(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                  placeholder="Additional context, verification credentials, environment details, or instructions..."
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
@@ -759,12 +968,12 @@ export function MilestoneExecutionWorkspace({
             <form onSubmit={handleSubmitReview} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-700">Review Decision</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <label
-                    className={`p-3 rounded-2xl border flex items-center gap-2.5 cursor-pointer transition ${
+                    className={`p-3 rounded-2xl border flex items-center gap-2 cursor-pointer transition ${
                       reviewDecision === "APPROVED"
-                        ? "border-emerald-500 bg-emerald-50/50 text-emerald-950 font-bold"
-                        : "border-slate-200 text-slate-600"
+                        ? "border-emerald-500 bg-emerald-50/60 text-emerald-950 font-bold"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}
                   >
                     <input
@@ -776,14 +985,14 @@ export function MilestoneExecutionWorkspace({
                       className="text-emerald-600"
                     />
                     <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <span className="text-xs">Approve Deliverables</span>
+                    <span className="text-xs">Approve</span>
                   </label>
 
                   <label
-                    className={`p-3 rounded-2xl border flex items-center gap-2.5 cursor-pointer transition ${
+                    className={`p-3 rounded-2xl border flex items-center gap-2 cursor-pointer transition ${
                       reviewDecision === "REVISION_REQUESTED"
-                        ? "border-rose-500 bg-rose-50/50 text-rose-950 font-bold"
-                        : "border-slate-200 text-slate-600"
+                        ? "border-amber-500 bg-amber-50/60 text-amber-950 font-bold"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}
                   >
                     <input
@@ -792,10 +1001,29 @@ export function MilestoneExecutionWorkspace({
                       value="REVISION_REQUESTED"
                       checked={reviewDecision === "REVISION_REQUESTED"}
                       onChange={() => setReviewDecision("REVISION_REQUESTED")}
+                      className="text-amber-600"
+                    />
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span className="text-xs">Request Revision</span>
+                  </label>
+
+                  <label
+                    className={`p-3 rounded-2xl border flex items-center gap-2 cursor-pointer transition ${
+                      reviewDecision === "REJECTED"
+                        ? "border-rose-500 bg-rose-50/60 text-rose-950 font-bold"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="decision"
+                      value="REJECTED"
+                      checked={reviewDecision === "REJECTED"}
+                      onChange={() => setReviewDecision("REJECTED")}
                       className="text-rose-600"
                     />
-                    <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
-                    <span className="text-xs">Request Revision</span>
+                    <XCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span className="text-xs">Reject Submission</span>
                   </label>
                 </div>
               </div>
@@ -803,21 +1031,23 @@ export function MilestoneExecutionWorkspace({
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700">
                   Feedback & Review Comments{" "}
-                  {reviewDecision === "REVISION_REQUESTED" ? (
-                    <span className="text-rose-600 font-bold">* (Required)</span>
-                  ) : (
+                  {reviewDecision === "APPROVED" ? (
                     <span className="text-slate-400 font-normal">(Optional)</span>
+                  ) : (
+                    <span className="text-rose-600 font-bold">* (Required)</span>
                   )}
                 </label>
                 <textarea
                   rows={3}
-                  required={reviewDecision === "REVISION_REQUESTED"}
+                  required={reviewDecision === "REVISION_REQUESTED" || reviewDecision === "REJECTED"}
                   value={reviewComments}
                   onChange={(e) => setReviewComments(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                   placeholder={
                     reviewDecision === "REVISION_REQUESTED"
                       ? "Explain specifically what changes or additions are required before approval..."
+                      : reviewDecision === "REJECTED"
+                      ? "State the clear reason why these deliverables were rejected..."
                       : "Add any feedback, notes, or sign-off remarks..."
                   }
                 />
@@ -827,6 +1057,12 @@ export function MilestoneExecutionWorkspace({
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900">
                   <span className="font-bold">Notice:</span> Approving this milestone marks it as verified and
                   updates payment readiness to Ready for Review for the upcoming PayPal module.
+                </div>
+              )}
+
+              {reviewDecision === "REJECTED" && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-900">
+                  <span className="font-bold">Notice:</span> Rejecting deliverables marks this submission as rejected and requires a clear reason. The contributor will be able to resume work and submit an updated revision.
                 </div>
               )}
 
@@ -844,10 +1080,18 @@ export function MilestoneExecutionWorkspace({
                   className={`px-5 py-2 rounded-xl text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer ${
                     reviewDecision === "APPROVED"
                       ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "bg-rose-600 hover:bg-rose-700"
+                      : reviewDecision === "REJECTED"
+                      ? "bg-rose-600 hover:bg-rose-700"
+                      : "bg-amber-600 hover:bg-amber-700"
                   }`}
                 >
-                  {actionLoading ? "Recording..." : `Confirm ${reviewDecision === "APPROVED" ? "Approval" : "Revision Request"}`}
+                  {actionLoading
+                    ? "Recording..."
+                    : reviewDecision === "APPROVED"
+                    ? "Confirm Approval"
+                    : reviewDecision === "REJECTED"
+                    ? "Confirm Deliverable Rejection"
+                    : "Confirm Revision Request"}
                 </button>
               </div>
             </form>

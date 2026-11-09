@@ -21,6 +21,13 @@ vi.mock("@/lib/api", async () => {
     fetchUserOpportunities: vi.fn(),
     fetchOpportunityById: vi.fn(),
     fetchCurrentUser: vi.fn(),
+    fetchDealRooms: vi.fn(),
+    fetchDealRoomMilestones: vi.fn(),
+    fetchProposals: vi.fn(),
+    fetchConnectionRequests: vi.fn(),
+    fetchOpportunityCandidates: vi.fn(),
+    fetchRecommendedOpportunities: vi.fn(),
+    fetchMyIndividualProfile: vi.fn(),
     loginUser: vi.fn(),
     registerUser: vi.fn(),
     logoutUser: vi.fn(),
@@ -150,6 +157,13 @@ describe("Home Page Dashboard & Connectivity", () => {
     vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(mockLedger);
     vi.mocked(api.fetchUserOpportunities).mockResolvedValue({ items: [], total: 0 });
     vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
+    vi.mocked(api.fetchDealRooms).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(api.fetchProposals).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(api.fetchConnectionRequests).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(api.fetchOpportunityCandidates).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(api.fetchRecommendedOpportunities).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(api.fetchMyIndividualProfile).mockResolvedValue({ completeness_percent: 80 });
   });
 
   it("renders the 6-section public landing page for unauthenticated visitors with two participation paths, lifecycle journey, example opportunities, and trust safeguards", async () => {
@@ -496,21 +510,14 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     expect(api.fetchUserOpportunities).toHaveBeenCalledTimes(2);
   });
 
-  it("allows switching between Seeker and Contributor workspaces seamlessly without signing out and keeps both profiles accessible", async () => {
+  it("renders unified workspace with both participation paths and keeps profiles accessible under one account", async () => {
     render(<Home />);
 
     await waitFor(() => {
       expect(screen.getByText("Automated Drone Fleet Logistics")).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Contributor Workspace" })).toBeInTheDocument();
-    });
-
-    // Topbar quick switch to Seeker
-    const switchBtn = screen.getByRole("button", { name: /Switch to Seeker/i });
-    fireEvent.click(switchBtn);
-
-    await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Seeker Workspace" })).toBeInTheDocument();
-      expect(localStorage.getItem("opnly_active_role")).toBe("seeker");
+      expect(screen.getByText("Unified Opportunity Network")).toBeInTheDocument();
+      expect(screen.getByText("I Need a Solution")).toBeInTheDocument();
+      expect(screen.getByText("I Have Capabilities to Offer")).toBeInTheDocument();
     });
 
     // Open profile menu
@@ -521,8 +528,6 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
       // Both Personal and Organization profile options are visible under one account
       expect(screen.getByText("Personal Profile & Skills")).toBeInTheDocument();
       expect(screen.getByText("Organization & Business Profile")).toBeInTheDocument();
-      // Menu switcher also available
-      expect(screen.getByText(/Switch to Contributor Workspace/i)).toBeInTheDocument();
     });
   });
 });

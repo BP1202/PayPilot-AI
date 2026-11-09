@@ -744,13 +744,13 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-extrabold text-slate-900">I need something</p>
-                        <span className="text-[10px] font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full border border-blue-200">
-                          Seek Solutions · Blue
+                        <p className="text-sm font-extrabold text-slate-900">I Need a Solution</p>
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded-full border border-indigo-200">
+                          Seek Solutions · Indigo
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                        Find developers, funding, specialized partners, or commercial solutions for your problem or idea.
+                        Find developers, technology partners, funding intros, specialized collaborators, or commercial solutions for your business need.
                       </p>
                     </div>
                   </button>
@@ -775,13 +775,13 @@ export const OpportunityStudioModal: React.FC<OpportunityStudioModalProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-extrabold text-slate-900">I can offer something</p>
+                        <p className="text-sm font-extrabold text-slate-900">I Have Capabilities to Offer</p>
                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
-                          Share Skills & Ideas · Green
+                          Offer Capabilities · Emerald
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                        Share your technical skills, commercial services, product ideas, startup capabilities, or resources.
+                        Share your technical engineering, commercial services, product solutions, domain expertise, or resources.
                       </p>
                     </div>
                   </button>

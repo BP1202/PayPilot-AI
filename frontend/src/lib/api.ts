@@ -66,6 +66,8 @@ import {
   MilestoneReviewPayload,
   MilestoneCancelPayload,
   MilestoneAIAnalysisResponse,
+  CreatePayPalOrderPayload,
+  PayPalOrderResponse,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -1670,6 +1672,34 @@ export async function analyzeMilestoneAI(
     return handleFetchError(
       err,
       "AI Milestone Copilot could not complete review analysis. Please try again."
+    );
+  }
+}
+
+
+export async function createMilestonePayPalOrder(
+  roomId: string,
+  milestoneId: string,
+  idempotencyKey: string
+): Promise<PayPalOrderResponse> {
+  try {
+    const payload: CreatePayPalOrderPayload = { idempotency_key: idempotencyKey };
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/paypal/create-order`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<PayPalOrderResponse>(
+      res,
+      "Unable to create PayPal order. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to create PayPal order. Please try again."
     );
   }
 }

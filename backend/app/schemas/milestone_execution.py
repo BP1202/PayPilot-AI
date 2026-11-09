@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.milestone_execution import (
     EvidenceReviewStatus,
@@ -28,6 +28,11 @@ class MilestoneEvidenceCreatePayload(BaseModel):
         description="External reference URL, repository branch, preview link, or storage identifier",
     )
     attachments: list[dict[str, Any]] = Field(default_factory=list)
+    submission_notes: str | None = Field(
+        None,
+        max_length=2000,
+        description="Optional notes or context for the reviewer regarding this deliverable submission",
+    )
 
 
 class MilestoneReviewPayload(BaseModel):
@@ -35,12 +40,12 @@ class MilestoneReviewPayload(BaseModel):
         ..., description="ID of the evidence submission being reviewed"
     )
     decision: MilestoneReviewDecision = Field(
-        ..., description="APPROVED or REVISION_REQUESTED"
+        ..., description="APPROVED, REVISION_REQUESTED, or REJECTED"
     )
     comments: str | None = Field(
         None,
         max_length=2000,
-        description="Reviewer feedback notes or requested changes (mandatory if REVISION_REQUESTED)",
+        description="Reviewer feedback notes or reason (mandatory if REVISION_REQUESTED or REJECTED)",
     )
 
 
@@ -73,6 +78,7 @@ class MilestoneEvidenceResponse(BaseModel):
     reference_url: str
     attachments: list[dict[str, Any]] = []
     status: EvidenceReviewStatus
+    submission_notes: str | None = None
     created_at: datetime
 
 
@@ -107,6 +113,8 @@ class MilestoneExecutionResponse(BaseModel):
     cancellation_reason: str | None = None
     payment_readiness: PaymentReadinessStatus
     current_evidence_submission: MilestoneEvidenceResponse | None = None
+    evidence_history: list[MilestoneEvidenceResponse] = Field(default_factory=list)
+    review_history: list[MilestoneReviewResponse] = Field(default_factory=list)
     evidence_submissions_count: int = 0
     reviews_count: int = 0
     started_at: datetime | None = None
@@ -154,3 +162,39 @@ class MilestoneAIAnalysisResponse(BaseModel):
     mode: Literal["LIVE_AI", "DETERMINISTIC_FALLBACK"]
     provider: str
     model: str
+
+
+class PrepareMilestoneSettlementPayload(BaseModel):
+    idempotency_key: str = Field(
+        ...,
+        min_length=1,
+        max_length=128,
+        description="Client-generated unique idempotency token to ensure exactly-once transaction preparation.",
+    )
+    description: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Optional human-readable memo or description for the settlement transaction.",
+    )
+
+
+class CreatePayPalOrderPayload(BaseModel):
+    idempotency_key: str = Field(
+        ...,
+        min_length=1,
+        max_length=128,
+        description="Client-generated unique idempotency token to ensure exactly-once PayPal order creation.",
+    )
+
+
+class PayPalOrderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    transaction_id: str
+    transaction_ref: str
+    paypal_order_id: str
+    order_status: str
+    approval_url: str
+    currency: str
+    amount: str
+

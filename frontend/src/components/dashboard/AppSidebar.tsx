@@ -8,32 +8,35 @@ import {
   Compass,
   Building2,
   Receipt,
-  MessageSquare,
   Settings,
-  HelpCircle,
-  ChevronDown,
   Sparkles,
-  ArrowRight,
   Handshake,
   Briefcase,
-  Search,
   User as UserIcon,
   LogOut,
+  PlusCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { User, Business } from "@/types";
 
 export type DashboardView =
   | "home"
   | "opportunities"
+  | "explore"
   | "browse"
+  | "my-opportunities"
+  | "matches"
   | "collaborations"
   | "deal-rooms"
   | "ledger"
-  | "profile";
+  | "trust"
+  | "profile"
+  | "organisations"
+  | "settings";
 
 export type UserRole = "seeker" | "creator";
 
-interface AppSidebarProps {
+export interface AppSidebarProps {
   currentView: DashboardView;
   onNavigate: (view: DashboardView) => void;
   currentUser?: User | null;
@@ -44,6 +47,21 @@ interface AppSidebarProps {
   onOpenAuth: () => void;
   onSignOut: () => void;
   onCreateOpportunity?: () => void;
+  myOppsCount?: number;
+  pendingProposalsCount?: number;
+  activeDealRoomsCount?: number;
+}
+
+interface NavItem {
+  id: DashboardView;
+  label: string;
+  icon: React.ElementType;
+  badge?: string | number;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
@@ -57,9 +75,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onOpenAuth,
   onSignOut,
   onCreateOpportunity,
+  myOppsCount,
+  pendingProposalsCount,
+  activeDealRoomsCount,
 }) => {
-  const isSeeker = activeRole === "seeker";
-
   const getInitials = (name?: string | null, email?: string) => {
     if (name && name.trim()) {
       const parts = name.trim().split(" ");
@@ -74,31 +93,53 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     return "JD";
   };
 
-  // Role-tailored navigation items (fewer items, clearer labels)
-  const navItems: Array<{
-    id: DashboardView;
-    label: string;
-    icon: React.ElementType;
-    badge?: string;
-  }> = isSeeker
-    ? [
+  const navGroups: NavGroup[] = [
+    {
+      title: "Workspace",
+      items: [
         { id: "home", label: "Dashboard", icon: HomeIcon },
-        { id: "opportunities", label: "Opportunities", icon: Compass },
-        { id: "collaborations", label: "My Applications & Proposals", icon: Handshake },
-        { id: "deal-rooms", label: "Deal Rooms", icon: Briefcase },
+        {
+          id: "opportunities",
+          label: "Opportunities",
+          icon: Lightbulb,
+          badge: myOppsCount && myOppsCount > 0 ? myOppsCount : undefined,
+        },
+        {
+          id: "collaborations",
+          label: "Connections & Proposals",
+          icon: Handshake,
+          badge: pendingProposalsCount && pendingProposalsCount > 0 ? pendingProposalsCount : undefined,
+        },
+        {
+          id: "deal-rooms",
+          label: "Deal Rooms",
+          icon: Briefcase,
+          badge: activeDealRoomsCount && activeDealRoomsCount > 0 ? activeDealRoomsCount : undefined,
+        },
         { id: "ledger", label: "Payments & Earnings", icon: Receipt },
-      ]
-    : [
-        { id: "home", label: "Dashboard", icon: HomeIcon },
-        { id: "opportunities", label: "Opportunities", icon: Lightbulb },
-        { id: "collaborations", label: "Review Proposals", icon: Handshake },
-        { id: "deal-rooms", label: "Deal Rooms", icon: Briefcase },
-        { id: "ledger", label: "Payments & Earnings", icon: Receipt },
-      ];
+      ],
+    },
+    {
+      title: "Network & Discovery",
+      items: [
+        { id: "explore", label: "Discover Network", icon: Compass },
+        { id: "matches", label: "AI Matchmaking", icon: Sparkles },
+        { id: "trust", label: "Trust & Reputation", icon: ShieldCheck },
+      ],
+    },
+    {
+      title: "Identity & Profiles",
+      items: [
+        { id: "profile", label: "Personal Profile", icon: UserIcon },
+        { id: "organisations", label: "My Organisations", icon: Building2 },
+        { id: "settings", label: "Settings", icon: Settings },
+      ],
+    },
+  ];
 
   return (
     <aside className="w-64 h-full shrink-0 flex flex-col justify-between border-r border-slate-200/80 bg-white p-4 select-none overflow-y-auto">
-      <div className="space-y-5">
+      <div className="space-y-4">
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-2 py-1">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-100">
@@ -116,100 +157,73 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </div>
         </div>
 
-        {/* Workspace Switcher: Seeker (Need Solutions) vs. Contributor (Offer Skills) */}
-        <div className="space-y-1.5 px-1">
-          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
-            <span>Workspace</span>
-            <span
-              className={
-                isSeeker
-                  ? "text-blue-600 font-extrabold"
-                  : "text-emerald-600 font-extrabold"
-              }
-            >
-              {isSeeker ? "Seeker (Need Solutions)" : "Contributor (Offer Skills)"}
-            </span>
-          </div>
-          <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200/80 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => onRoleChange?.("seeker")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                isSeeker
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-              aria-pressed={isSeeker}
-              title="Seeker Workspace (I need a solution)"
-            >
-              <Search className="h-3.5 w-3.5" />
-              <span>Seeker</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onRoleChange?.("creator")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                !isSeeker
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-              aria-pressed={!isSeeker}
-              title="Contributor Workspace (I have skills to offer)"
-            >
-              <Lightbulb className="h-3.5 w-3.5" />
-              <span>Contributor</span>
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-400 px-1 font-medium text-center">
-            One account. Switch workspaces anytime.
-          </p>
+        {/* Primary Action Button: + Create Opportunity */}
+        <div className="px-1 pt-1">
+          <button
+            type="button"
+            onClick={() => onCreateOpportunity?.()}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 py-2.5 px-3 text-xs font-extrabold text-white shadow-md shadow-indigo-100 hover:shadow-lg hover:shadow-indigo-200 hover:from-indigo-700 hover:to-violet-700 transition cursor-pointer active:scale-[0.98]"
+          >
+            <PlusCircle className="h-4 w-4" />
+            <span>+ Create Opportunity</span>
+          </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav aria-label="Main Navigation" className="space-y-1 pt-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive =
-              currentView === item.id || (item.id === "opportunities" && currentView === "browse");
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition cursor-pointer ${
-                  isActive
-                    ? isSeeker
-                      ? "bg-blue-600 text-white shadow-xs shadow-blue-200"
-                      : "bg-emerald-600 text-white shadow-xs shadow-emerald-200"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Icon
-                    className={`h-4 w-4 shrink-0 ${
-                      isActive ? "text-white" : "text-slate-500"
-                    }`}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      isActive
-                        ? "bg-indigo-500 text-white"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Grouped Navigation Links */}
+        <nav aria-label="Main Navigation" className="space-y-4 pt-1">
+          {navGroups.map((group) => (
+            <div key={group.title} className="space-y-1">
+              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {group.title}
+              </div>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    currentView === item.id ||
+                    (item.id === "opportunities" &&
+                      (currentView === "browse" || currentView === "my-opportunities")) ||
+                    (item.id === "explore" && currentView === "browse");
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => onNavigate(item.id)}
+                      className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition cursor-pointer ${
+                        isActive
+                          ? "bg-indigo-600 text-white shadow-xs shadow-indigo-200"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon
+                          className={`h-4 w-4 shrink-0 ${
+                            isActive ? "text-white" : "text-slate-500"
+                          }`}
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+                      {item.badge !== undefined && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            isActive
+                              ? "bg-indigo-500 text-white"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </div>
 
-      <div className="space-y-4 pt-4">
-        {/* User Identity Box with Clear Active Role Indicator */}
+      <div className="space-y-3 pt-4 border-t border-slate-100">
+        {/* User Identity Box */}
         {currentUser ? (
           <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 flex items-center justify-between">
             <button
@@ -217,13 +231,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               className="flex items-center gap-2.5 min-w-0 text-left hover:opacity-80 transition cursor-pointer flex-1"
               title="View Profile"
             >
-              <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs ${
-                  isSeeker
-                    ? "bg-gradient-to-tr from-blue-600 to-indigo-600 ring-2 ring-blue-100"
-                    : "bg-gradient-to-tr from-emerald-600 to-teal-600 ring-2 ring-emerald-100"
-                }`}
-              >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs bg-gradient-to-tr from-indigo-600 to-violet-600 ring-2 ring-indigo-100">
                 {getInitials(currentUser.full_name, currentUser.email)}
               </div>
               <div className="min-w-0">
@@ -231,14 +239,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   {currentUser.full_name || currentUser.email.split("@")[0]}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span
-                    className={`inline-flex items-center rounded-md px-1.5 py-0.2 text-[9px] font-extrabold border ${
-                      isSeeker
-                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    }`}
-                  >
-                    {isSeeker ? "Seeker · Solutions" : "Creator · Skills"}
+                  <span className="inline-flex items-center rounded-md px-1.5 py-0.2 text-[9px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Unified Account
                   </span>
                 </div>
               </div>
@@ -255,21 +257,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 font-semibold">
-              <span>Current Mode:</span>
-              <span
-                className={`font-bold ${
-                  isSeeker ? "text-blue-600" : "text-emerald-600"
-                }`}
-              >
-                {isSeeker ? "Seeker Workspace" : "Creator Workspace"}
-              </span>
-            </div>
             <button
               onClick={onOpenAuth}
-              className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white shadow-sm transition cursor-pointer ${
-                isSeeker ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"
-              }`}
+              className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white shadow-sm transition cursor-pointer bg-indigo-600 hover:bg-indigo-700"
             >
               <span>Sign In / Register</span>
             </button>

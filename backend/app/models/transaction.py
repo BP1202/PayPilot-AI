@@ -2,7 +2,7 @@ import enum
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -22,13 +22,55 @@ class TransactionType(str, enum.Enum):
 
 class Transaction(Base):
     __tablename__ = "transactions"
+    __table_args__ = (
+        UniqueConstraint(
+            "milestone_id",
+            "idempotency_key",
+            name="uq_transaction_milestone_idempotency",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     transaction_ref: Mapped[str] = mapped_column(
         String(64), unique=True, index=True, nullable=False
     )
-    business_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("businesses.id"), nullable=False, index=True
+    business_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("businesses.id"), nullable=True, index=True
+    )
+
+    # Deal Room settlement linkages (nullable for legacy invoicing transactions)
+    milestone_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("deal_room_milestones.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    deal_room_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("deal_rooms.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    payer_user_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    payee_user_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    paypal_order_id: Mapped[str | None] = mapped_column(
+        String(128), unique=True, index=True, nullable=True
+    )
+    paypal_capture_id: Mapped[str | None] = mapped_column(
+        String(128), unique=True, index=True, nullable=True
+    )
+    idempotency_key: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, index=True
     )
 
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
@@ -71,3 +113,7 @@ class Transaction(Base):
     )
 
     business = relationship("Business", back_populates="transactions")
+    milestone = relationship("MilestoneExecution", back_populates="transactions")
+    deal_room = relationship("DealRoom")
+    payer = relationship("User", foreign_keys=[payer_user_id])
+    payee = relationship("User", foreign_keys=[payee_user_id])

@@ -6,6 +6,7 @@ from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.milestone_execution import (
+    CreatePayPalOrderPayload,
     MilestoneAIAnalysisResponse,
     MilestoneCancelPayload,
     MilestoneEvidenceCreatePayload,
@@ -14,9 +15,13 @@ from app.schemas.milestone_execution import (
     MilestoneListResponse,
     MilestonePaymentReadinessResponse,
     MilestoneReviewPayload,
+    PayPalOrderResponse,
+    PrepareMilestoneSettlementPayload,
 )
+from app.schemas.transaction import TransactionRead
 from app.services.milestone_service import MilestoneService
-from fastapi import APIRouter, Depends, status
+from app.services.payment_service import PaymentService
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 router = APIRouter(
@@ -187,3 +192,52 @@ async def analyze_milestone_deliverables_ai(
     return await service.analyze_milestone_ai(
         db=db, user_id=current_user.id, room_id=room_id, milestone_id=milestone_id
     )
+
+
+@router.post(
+    "/{milestone_id}/settlement",
+    response_model=TransactionRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Prepare an agreement-backed settlement transaction record for an approved milestone",
+)
+def prepare_milestone_settlement(
+    room_id: str,
+    milestone_id: str,
+    payload: PrepareMilestoneSettlementPayload,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    response: Response,
+) -> TransactionRead:
+    payment_service = PaymentService(db)
+    tx = payment_service.prepare_milestone_settlement(
+        caller_user_id=current_user.id,
+        room_id=room_id,
+        milestone_id=milestone_id,
+        idempotency_key=payload.idempotency_key,
+        description=payload.description,
+    )
+    return TransactionRead.model_validate(tx)
+
+
+@router.post(
+    "/{milestone_id}/paypal/create-order",
+    response_model=PayPalOrderResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a PayPal Sandbox order for an approved milestone settlement",
+)
+def create_milestone_paypal_order(
+    room_id: str,
+    milestone_id: str,
+    payload: CreatePayPalOrderPayload,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PayPalOrderResponse:
+    payment_service = PaymentService(db)
+    res = payment_service.create_paypal_order_for_milestone(
+        caller_user_id=current_user.id,
+        room_id=room_id,
+        milestone_id=milestone_id,
+        idempotency_key=payload.idempotency_key,
+    )
+    return PayPalOrderResponse.model_validate(res)
+

@@ -494,4 +494,179 @@ describe("Milestone Execution Frontend Module", () => {
     expect(screen.getByText(/Verify all query parameters are documented/i)).toBeInTheDocument();
     expect(screen.getByText(/Human Control & Advisory Disclaimer/i)).toBeInTheDocument();
   });
+
+  it("designated reviewer can reject deliverables with mandatory reason, recording REJECTED decision", async () => {
+    const underReviewList: MilestoneListResponse = {
+      ...sampleMilestonesResponse,
+      pending_review_count: 1,
+      items: [
+        {
+          ...sampleMilestonesResponse.items[0],
+          status: "SUBMITTED_FOR_REVIEW",
+          current_evidence_submission: {
+            id: "ev_111",
+            milestone_id: "ms_111",
+            room_id: "room_123",
+            submitted_by_id: "usr_alice",
+            submitter_name: "Alice Architect",
+            submission_version: 1,
+            title: "FastAPI Implementation Complete",
+            description: "Code merged and docs verified.",
+            evidence_type: "CODE_REPOSITORY",
+            reference_url: "https://github.com/paypilot/backend",
+            attachments: [],
+            status: "PENDING_REVIEW",
+            submission_notes: "Please review auth endpoints.",
+            created_at: "2026-11-02T12:00:00Z",
+          },
+        },
+        sampleMilestonesResponse.items[1],
+      ],
+    };
+
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValueOnce(underReviewList);
+    vi.mocked(api.reviewMilestoneEvidence).mockResolvedValueOnce({
+      ...underReviewList.items[0],
+      status: "REJECTED",
+      payment_readiness: "NOT_READY",
+    });
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValueOnce({
+      ...sampleMilestonesResponse,
+      items: [
+        {
+          ...underReviewList.items[0],
+          status: "REJECTED",
+          payment_readiness: "NOT_READY",
+        },
+        sampleMilestonesResponse.items[1],
+      ],
+    });
+
+    render(
+      <MilestoneExecutionWorkspace
+        roomId="room_123"
+        currentUser={mockReviewerUser}
+        agreedMilestones={sampleAgreedMilestones}
+        currency="USD"
+      />
+    );
+
+    const reviewBtn = await screen.findByRole("button", { name: /Review Deliverables/i });
+    fireEvent.click(reviewBtn);
+
+    expect(await screen.findByText(/Review Deliverables: Backend Prototype & OpenAPI Spec/i)).toBeInTheDocument();
+
+    // Select Reject Submission radio
+    const rejectRadio = screen.getByLabelText(/Reject Submission/i);
+    fireEvent.click(rejectRadio);
+
+    // Verify confirmation button updates
+    expect(screen.getByRole("button", { name: /Confirm Deliverable Rejection/i })).toBeInTheDocument();
+
+    // Fill mandatory comments
+    const commentInput = screen.getByPlaceholderText(/State the clear reason why these deliverables were rejected/i);
+    fireEvent.change(commentInput, { target: { value: "Missing required integration tests." } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Confirm Deliverable Rejection/i }));
+
+    await waitFor(() => {
+      expect(api.reviewMilestoneEvidence).toHaveBeenCalledWith(
+        "room_123",
+        "ms_111",
+        expect.objectContaining({
+          evidence_id: "ev_111",
+          decision: "REJECTED",
+          comments: "Missing required integration tests.",
+        })
+      );
+    });
+  });
+
+  it("renders REJECTED status with Resume Work and Resubmit Deliverables buttons and expandable audit trail", async () => {
+    const rejectedList: MilestoneListResponse = {
+      ...sampleMilestonesResponse,
+      items: [
+        {
+          ...sampleMilestonesResponse.items[0],
+          status: "REJECTED",
+          current_evidence_submission: {
+            id: "ev_111",
+            milestone_id: "ms_111",
+            room_id: "room_123",
+            submitted_by_id: "usr_alice",
+            submitter_name: "Alice Architect",
+            submission_version: 1,
+            title: "FastAPI Implementation Complete",
+            description: "Code merged and docs verified.",
+            evidence_type: "CODE_REPOSITORY",
+            reference_url: "https://github.com/paypilot/backend",
+            attachments: [],
+            status: "REJECTED",
+            submission_notes: "Initial delivery notes.",
+            created_at: "2026-11-02T12:00:00Z",
+          },
+          evidence_history: [
+            {
+              id: "ev_111",
+              milestone_id: "ms_111",
+              room_id: "room_123",
+              submitted_by_id: "usr_alice",
+              submitter_name: "Alice Architect",
+              submission_version: 1,
+              title: "FastAPI Implementation Complete",
+              description: "Code merged and docs verified.",
+              evidence_type: "CODE_REPOSITORY",
+              reference_url: "https://github.com/paypilot/backend",
+              attachments: [],
+              status: "REJECTED",
+              submission_notes: "Initial delivery notes.",
+              created_at: "2026-11-02T12:00:00Z",
+            },
+          ],
+          review_history: [
+            {
+              id: "rev_111",
+              milestone_id: "ms_111",
+              evidence_id: "ev_111",
+              evidence_version: 1,
+              reviewer_id: "usr_bob",
+              reviewer_name: "Bob Reviewer",
+              decision: "REJECTED",
+              comments: "Missing integration tests.",
+              created_at: "2026-11-02T14:00:00Z",
+            },
+          ],
+          evidence_submissions_count: 1,
+          reviews_count: 1,
+        },
+        sampleMilestonesResponse.items[1],
+      ],
+    };
+
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValueOnce(rejectedList);
+
+    render(
+      <MilestoneExecutionWorkspace
+        roomId="room_123"
+        currentUser={mockWorkerUser}
+        agreedMilestones={sampleAgreedMilestones}
+        currency="USD"
+      />
+    );
+
+    expect(await screen.findByText(/Submission Rejected/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Resume Work/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Resubmit Deliverables/i })).toBeInTheDocument();
+
+    // Verify submission notes displayed
+    expect(screen.getByText(/Initial delivery notes\./i)).toBeInTheDocument();
+
+    // Toggle audit trail
+    const auditBtn = screen.getByRole("button", { name: /Deliverable & Review Audit Trail/i });
+    fireEvent.click(auditBtn);
+
+    expect(await screen.findByText(/Evidence Submissions History/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review Decisions History/i)).toBeInTheDocument();
+    expect(screen.getByText(/"Missing integration tests\."/i)).toBeInTheDocument();
+  });
 });

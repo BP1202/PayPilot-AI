@@ -833,6 +833,7 @@ export type MilestoneExecutionStatus =
   | "IN_PROGRESS"
   | "SUBMITTED_FOR_REVIEW"
   | "REVISION_REQUESTED"
+  | "REJECTED"
   | "APPROVED"
   | "CANCELLED";
 
@@ -853,10 +854,11 @@ export type MilestoneEvidenceType =
 export type EvidenceReviewStatus =
   | "PENDING_REVIEW"
   | "REVISION_REQUESTED"
+  | "REJECTED"
   | "APPROVED"
   | "SUPERSEDED";
 
-export type MilestoneReviewDecision = "APPROVED" | "REVISION_REQUESTED";
+export type MilestoneReviewDecision = "APPROVED" | "REVISION_REQUESTED" | "REJECTED";
 
 export interface MilestoneParticipantSummary {
   user_id: string;
@@ -878,6 +880,7 @@ export interface MilestoneEvidence {
   reference_url: string;
   attachments: Record<string, any>[];
   status: EvidenceReviewStatus;
+  submission_notes?: string | null;
   created_at: string;
 }
 
@@ -912,6 +915,8 @@ export interface MilestoneExecution {
   cancellation_reason?: string | null;
   payment_readiness: PaymentReadinessStatus;
   current_evidence_submission?: MilestoneEvidence | null;
+  evidence_history?: MilestoneEvidence[];
+  review_history?: MilestoneReview[];
   evidence_submissions_count: number;
   reviews_count: number;
   started_at?: string | null;
@@ -951,6 +956,7 @@ export interface MilestoneEvidenceCreatePayload {
   description: string;
   evidence_type?: MilestoneEvidenceType;
   reference_url: string;
+  submission_notes?: string | null;
   attachments?: Record<string, any>[];
 }
 
@@ -982,4 +988,37 @@ export interface MilestoneAIAnalysisResponse {
   provider: string;
   model: string;
 }
+
+export type DashboardView =
+  | "home"
+  | "opportunities"
+  | "explore"
+  | "browse"
+  | "my-opportunities"
+  | "matches"
+  | "collaborations"
+  | "deal-rooms"
+  | "ledger"
+  | "trust"
+  | "profile"
+  | "organisations"
+  | "settings";
+
+export type UserRole = "seeker" | "creator";
+
+export interface CreatePayPalOrderPayload {
+  idempotency_key: string;
+}
+
+export interface PayPalOrderResponse {
+  transaction_id: string;
+  transaction_ref: string;
+  paypal_order_id: string;
+  order_status: string;
+  approval_url: string;
+  currency: string;
+  amount: string;
+}
+
+
 
