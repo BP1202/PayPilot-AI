@@ -19,6 +19,9 @@ import {
   reviewMilestoneEvidence,
   cancelDealRoomMilestone,
   analyzeMilestoneAI,
+  createMilestonePayPalOrder,
+  captureMilestonePayPalOrder,
+  fetchMilestoneSettlementStatus,
 } from "@/lib/api";
 import {
   CheckCircle2,
@@ -40,6 +43,10 @@ import {
   ChevronUp,
   History,
   XCircle,
+  CreditCard,
+  Loader2,
+  Lock,
+  ArrowRight,
 } from "lucide-react";
 
 interface MilestoneExecutionWorkspaceProps {
@@ -47,6 +54,17 @@ interface MilestoneExecutionWorkspaceProps {
   currentUser: User | null;
   agreedMilestones: DealRoomMilestoneItem[];
   currency: string;
+}
+
+interface PaymentState {
+  status: "idle" | "creating_order" | "awaiting_approval" | "capturing" | "completed" | "failed" | "cancelled";
+  orderId?: string;
+  captureId?: string;
+  approvalUrl?: string;
+  amount?: string;
+  currency?: string;
+  message?: string;
+  error?: string;
 }
 
 export function MilestoneExecutionWorkspace({
@@ -62,6 +80,15 @@ export function MilestoneExecutionWorkspace({
   // Modals & Active Actions
   const [activeMilestone, setActiveMilestone] = useState<MilestoneExecution | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // PayPal Settlement & Payment State
+  const [paymentLoadingId, setPaymentLoadingId] = useState<string | null>(null);
+  const [paymentStates, setPaymentStates] = useState<Record<string, PaymentState>>({});
+  const [paymentNotice, setPaymentNotice] = useState<{
+    type: "success" | "info" | "warning" | "error";
+    title: string;
+    message: string;
+  } | null>(null);
 
   // Evidence Modal State
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
@@ -88,23 +115,240 @@ export function MilestoneExecutionWorkspace({
   const [aiAnalysis, setAiAnalysis] = useState<MilestoneAIAnalysisResponse | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
+  // Load existing settlement state for approved milestones
+  const loadSettlementStatuses = useCallback(async (milestones: MilestoneExecution[]) => {
+    const approvedReady = milestones.filter(
+      (m) => m.status === "APPROVED" && (m.payment_readiness === "READY_FOR_PAYMENT_REVIEW" || m.payment_readiness === "PAID")
+    );
+    for (const m of approvedReady) {
+      try {
+        const statusRes = await fetchMilestoneSettlementStatus(roomId, m.id);
+        if (statusRes) {
+          setPaymentStates((prev) => ({
+            ...prev,
+            [m.id]: {
+              status: statusRes.status === "COMPLETED"
+                ? "completed"
+                : statusRes.status === "AWAITING_APPROVAL"
+                ? "awaiting_approval"
+                : "idle",
+              orderId: statusRes.paypal_order_id || undefined,
+              captureId: statusRes.paypal_capture_id || undefined,
+              approvalUrl: statusRes.approval_url || undefined,
+              amount: statusRes.agreed_amount || undefined,
+              currency: statusRes.currency,
+            },
+          }));
+        }
+      } catch {
+        // Safe graceful degradation if settlement endpoint isn't ready
+      }
+    }
+  }, [roomId]);
+
   const loadMilestones = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await fetchDealRoomMilestones(roomId);
       setMilestonesData(res);
+      if (res && res.items) {
+        loadSettlementStatuses(res.items);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load milestones";
       setError(msg);
     } finally {
       setLoading(false);
     }
-  }, [roomId]);
+  }, [roomId, loadSettlementStatuses]);
 
   useEffect(() => {
     loadMilestones();
   }, [loadMilestones]);
+
+  // Handle server-side PayPal Capture
+  const handleCapturePayPalOrder = useCallback(async (milestoneId: string) => {
+    setPaymentLoadingId(milestoneId);
+    setPaymentStates((prev) => ({
+      ...prev,
+      [milestoneId]: {
+        ...(prev[milestoneId] || { status: "capturing" }),
+        status: "capturing",
+        message: "Verifying buyer approval and capturing funds via PayPal API...",
+      },
+    }));
+
+    try {
+      const captureIdemp = `cap_${milestoneId}_${Date.now()}`;
+      const captureRes = await captureMilestonePayPalOrder(roomId, milestoneId, captureIdemp);
+
+      setPaymentStates((prev) => ({
+        ...prev,
+        [milestoneId]: {
+          status: "completed",
+          orderId: captureRes.paypal_order_id,
+          captureId: captureRes.paypal_capture_id,
+          amount: captureRes.amount,
+          currency: captureRes.currency,
+          message: `Verified capture completed! Funds settled (${captureRes.amount} ${captureRes.currency}).`,
+        },
+      }));
+
+      setPaymentNotice({
+        type: "success",
+        title: "PayPal Payment Completed!",
+        message: `Verified capture ID ${captureRes.paypal_capture_id} confirmed by PayPal Sandbox. Transaction ${captureRes.transaction_ref} is COMPLETED.`,
+      });
+
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("opnly_pending_paypal");
+      }
+
+      await loadMilestones();
+    } catch (err: any) {
+      const errorMsg = err?.message || "Server-side PayPal capture verification failed.";
+      setPaymentStates((prev) => ({
+        ...prev,
+        [milestoneId]: {
+          ...(prev[milestoneId] || {}),
+          status: "failed",
+          error: errorMsg,
+        },
+      }));
+      setPaymentNotice({
+        type: "error",
+        title: "Payment Capture Failed",
+        message: errorMsg,
+      });
+    } finally {
+      setPaymentLoadingId(null);
+    }
+  }, [roomId, loadMilestones]);
+
+  // Handle PayPal return and cancel URL detection
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const paymentAction = params.get("payment");
+    const returnMilestoneId = params.get("milestone_id");
+
+    if (paymentAction === "cancelled") {
+      setPaymentNotice({
+        type: "warning",
+        title: "PayPal Payment Cancelled",
+        message: "Checkout was cancelled. No funds were charged. You can retry payment whenever you are ready.",
+      });
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("payment");
+      newUrl.searchParams.delete("token");
+      newUrl.searchParams.delete("PayerID");
+      window.history.replaceState({}, "", newUrl.toString());
+    } else if (paymentAction === "return" && returnMilestoneId) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("payment");
+      newUrl.searchParams.delete("token");
+      newUrl.searchParams.delete("PayerID");
+      window.history.replaceState({}, "", newUrl.toString());
+
+      handleCapturePayPalOrder(returnMilestoneId);
+    }
+  }, [roomId, handleCapturePayPalOrder]);
+
+  // Handle Pay with PayPal (Create Order & Redirect)
+  const handlePayWithPayPal = async (milestone: MilestoneExecution) => {
+    const isPayer = currentUser && (
+      milestone.payer_user_id
+        ? milestone.payer_user_id === currentUser.id
+        : (milestone.reviewer_user?.user_id === currentUser.id || milestone.reviewer_user?.id === currentUser.id)
+    );
+
+    if (!isPayer) {
+      setPaymentNotice({
+        type: "error",
+        title: "Unauthorized Action",
+        message: `Only the designated client / payer (${milestone.reviewer_user?.name || milestone.reviewer_user?.full_name || "Client"}) is contractually authorized to initiate PayPal payments under the accepted agreement.`,
+      });
+      return;
+    }
+
+    if (milestone.payment_readiness !== "READY_FOR_PAYMENT_REVIEW") {
+      setPaymentNotice({
+        type: "warning",
+        title: "Payment Unavailable",
+        message: "This milestone is not currently eligible for payment review. Deliverables must be approved first.",
+      });
+      return;
+    }
+
+    const idempotencyKey = `ord_${milestone.id}_${Date.now()}`;
+    setPaymentLoadingId(milestone.id);
+    setPaymentStates((prev) => ({
+      ...prev,
+      [milestone.id]: {
+        status: "creating_order",
+        message: "Creating PayPal Sandbox order...",
+      },
+    }));
+
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const returnUrl = `${origin}/deal-rooms?room_id=${encodeURIComponent(roomId)}&milestone_id=${encodeURIComponent(milestone.id)}&payment=return`;
+      const cancelUrl = `${origin}/deal-rooms?room_id=${encodeURIComponent(roomId)}&milestone_id=${encodeURIComponent(milestone.id)}&payment=cancelled`;
+
+      const orderRes = await createMilestonePayPalOrder(
+        roomId,
+        milestone.id,
+        idempotencyKey,
+        returnUrl,
+        cancelUrl
+      );
+
+      setPaymentStates((prev) => ({
+        ...prev,
+        [milestone.id]: {
+          status: "awaiting_approval",
+          orderId: orderRes.paypal_order_id,
+          approvalUrl: orderRes.approval_url,
+          amount: orderRes.amount,
+          currency: orderRes.currency,
+          message: "PayPal Sandbox order created! Redirecting to PayPal for buyer approval...",
+        },
+      }));
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "opnly_pending_paypal",
+          JSON.stringify({
+            roomId,
+            milestoneId: milestone.id,
+            orderId: orderRes.paypal_order_id,
+            idempotencyKey,
+          })
+        );
+      }
+
+      if (orderRes.approval_url) {
+        window.location.href = orderRes.approval_url;
+      }
+    } catch (err: any) {
+      const errorMsg = err?.message || "Failed to create PayPal Sandbox order.";
+      setPaymentStates((prev) => ({
+        ...prev,
+        [milestone.id]: {
+          status: "failed",
+          error: errorMsg,
+        },
+      }));
+      setPaymentNotice({
+        type: "error",
+        title: "PayPal Order Creation Failed",
+        message: errorMsg,
+      });
+    } finally {
+      setPaymentLoadingId(null);
+    }
+  };
 
   const handleInitialize = async () => {
     try {
@@ -271,6 +515,43 @@ export function MilestoneExecutionWorkspace({
 
   return (
     <div className="space-y-6">
+      {/* PayPal Settlement Global Notice */}
+      {paymentNotice && (
+        <div
+          className={`rounded-2xl p-4 text-xs border flex items-start justify-between gap-3 ${
+            paymentNotice.type === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-950"
+              : paymentNotice.type === "warning"
+              ? "bg-amber-50 border-amber-200 text-amber-950"
+              : paymentNotice.type === "error"
+              ? "bg-rose-50 border-rose-200 text-rose-950"
+              : "bg-indigo-50 border-indigo-200 text-indigo-950"
+          }`}
+        >
+          <div className="flex items-start gap-2.5">
+            {paymentNotice.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            ) : paymentNotice.type === "warning" ? (
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            ) : paymentNotice.type === "error" ? (
+              <AlertCircle className="h-4 w-4 text-rose-600 mt-0.5 shrink-0" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-indigo-600 mt-0.5 shrink-0" />
+            )}
+            <div>
+              <p className="font-bold">{paymentNotice.title}</p>
+              <p className="text-[11px] mt-0.5 leading-relaxed">{paymentNotice.message}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setPaymentNotice(null)}
+            className="text-slate-400 hover:text-slate-600 cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {error && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between text-xs text-rose-700">
           <div className="flex items-center gap-2">
@@ -378,8 +659,13 @@ export function MilestoneExecutionWorkspace({
           {/* Milestone Items List */}
           <div className="space-y-4">
             {items.map((milestone) => {
-              const isResponsible = currentUser?.id === milestone.responsible_user.user_id;
-              const isReviewer = currentUser?.id === milestone.reviewer_user.user_id;
+              const isResponsible = currentUser?.id === milestone.responsible_user?.user_id || currentUser?.id === milestone.responsible_user?.id;
+              const isReviewer = currentUser?.id === milestone.reviewer_user?.user_id || currentUser?.id === milestone.reviewer_user?.id;
+              const isPayer = currentUser && (
+                milestone.payer_user_id
+                  ? milestone.payer_user_id === currentUser.id
+                  : (milestone.reviewer_user?.user_id === currentUser.id || milestone.reviewer_user?.id === currentUser.id)
+              );
               const hasEvidence = !!milestone.current_evidence_submission;
 
               // Status styles
@@ -549,47 +835,178 @@ export function MilestoneExecutionWorkspace({
                     </div>
                   )}
 
-                  {/* Payment Readiness Banner (when Approved) */}
-                  {milestone.status === "APPROVED" && (
-                    <div
-                      className={`rounded-2xl p-4 flex items-start gap-3 text-xs border ${
-                        milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-950"
-                          : "bg-slate-50 border-slate-200 text-slate-800"
-                      }`}
-                    >
-                      <CheckCircle2
-                        className={`h-5 w-5 shrink-0 mt-0.5 ${
-                          milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
-                            ? "text-emerald-600"
-                            : "text-slate-500"
-                        }`}
-                      />
-                      <div className="space-y-1">
-                        <p className="font-bold">
-                          {milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
-                            ? "Payment Readiness: Ready for Payment Review"
-                            : "Milestone Verified & Approved (Non-monetary)"}
-                        </p>
-                        <p
-                          className={`text-[11px] leading-relaxed ${
-                            milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
-                              ? "text-emerald-800"
-                              : "text-slate-600"
-                          }`}
-                        >
-                          {milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW"
-                            ? `Dual-consent verified. Counterparty approved deliverables (Submission v${
-                                milestone.current_evidence_submission?.submission_version || 1
-                              }). This record forms the auditable bridge to the upcoming PayPal transaction & escrow release module.`
-                            : `Dual-consent verified. Counterparty approved deliverables. This milestone has no financial obligation ($0.00 agreed amount) and does not require payment settlement.`}
-                        </p>
-                        {milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW" && (
-                          <p className="text-[10px] font-semibold text-emerald-700 italic">
-                            Note: PayPal settlement execution occurs in the upcoming transaction module; no automated fund transfer takes place in this step.
+                  {/* Commercial Settlement & PayPal Sandbox Payment Card */}
+                  {milestone.status === "APPROVED" ? (
+                    milestone.payment_readiness === "PAID" ? (
+                      <div className="rounded-2xl p-4 bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-start gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="font-bold flex items-center gap-2">
+                            <span>Payment Completed & Settled</span>
+                            <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 font-semibold">
+                              PAID
+                            </span>
                           </p>
+                          <p className="text-[11px] text-emerald-800 leading-relaxed">
+                            Commercial settlement verified. Funds of ${milestone.agreed_amount || "0.00"} {milestone.currency} captured via PayPal Sandbox Orders v2. Official ledger receipt generated.
+                          </p>
+                          {paymentStates[milestone.id]?.captureId && (
+                            <p className="text-[10px] font-mono text-emerald-700 mt-1">
+                              PayPal Capture ID: {paymentStates[milestone.id].captureId}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50/70 to-white p-5 text-xs shadow-xs space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-indigo-100 pb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-xl bg-indigo-600 text-white shadow-xs">
+                              <CreditCard className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-900 text-sm">
+                                Payment Readiness: Ready for Payment Review
+                              </p>
+                              <p className="text-[11px] text-slate-500">
+                                Deliverables approved by designated reviewer. Authorized payer can release funds.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-lg font-black text-slate-900">
+                              ${milestone.agreed_amount || "0.00"}
+                            </span>
+                            <span className="text-xs text-slate-500 ml-1 font-semibold">{milestone.currency}</span>
+                          </div>
+                        </div>
+
+                        {/* Agreement Parties Summary */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-white border border-slate-200/80 text-[11px]">
+                          <div>
+                            <span className="text-slate-400 font-semibold block text-[10px] uppercase tracking-wider">
+                              Designated Payer (Client)
+                            </span>
+                            <span className="font-bold text-slate-800">
+                              {milestone.reviewer_user?.name || milestone.reviewer_user?.full_name || "Client"}
+                            </span>
+                            <span className="text-slate-400 block text-[10px]">
+                              {milestone.reviewer_user?.email}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-semibold block text-[10px] uppercase tracking-wider">
+                              Designated Payee (Worker)
+                            </span>
+                            <span className="font-bold text-slate-800">
+                              {milestone.responsible_user?.name || milestone.responsible_user?.full_name || "Solver"}
+                            </span>
+                            <span className="text-slate-400 block text-[10px]">
+                              {milestone.responsible_user?.email}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Payment Actions & States */}
+                        {paymentStates[milestone.id]?.status === "creating_order" ? (
+                          <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-100/60 text-indigo-900 text-xs font-medium">
+                            <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                            <span>Creating PayPal Sandbox Orders v2 transaction...</span>
+                          </div>
+                        ) : paymentStates[milestone.id]?.status === "capturing" ? (
+                          <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-100/60 text-indigo-900 text-xs font-medium">
+                            <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                            <span>Verifying buyer authorization and capturing funds via PayPal API...</span>
+                          </div>
+                        ) : paymentStates[milestone.id]?.status === "awaiting_approval" ? (
+                          <div className="space-y-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950">
+                            <div className="flex items-center justify-between">
+                              <p className="font-bold text-xs flex items-center gap-1.5">
+                                <Clock className="h-4 w-4 text-amber-600" />
+                                <span>PayPal Order Created — Awaiting Buyer Authorization</span>
+                              </p>
+                              {paymentStates[milestone.id]?.orderId && (
+                                <span className="font-mono text-[10px] bg-amber-100 px-2 py-0.5 rounded font-semibold text-amber-900">
+                                  Order ID: {paymentStates[milestone.id].orderId}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-amber-800">
+                              Order is active in PayPal Sandbox. Complete authorization or verify capture below.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              {paymentStates[milestone.id]?.approvalUrl && (
+                                <a
+                                  href={paymentStates[milestone.id].approvalUrl}
+                                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                                >
+                                  <span>Complete PayPal Approval</span>
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              )}
+                              <button
+                                onClick={() => handleCapturePayPalOrder(milestone.id)}
+                                disabled={actionLoading || paymentLoadingId === milestone.id}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                <span>Verify & Capture Payment</span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : paymentStates[milestone.id]?.status === "failed" ? (
+                          <div className="space-y-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-950">
+                            <p className="font-bold text-xs flex items-center gap-1.5">
+                              <AlertCircle className="h-4 w-4 text-rose-600" />
+                              <span>Payment Initiation Error</span>
+                            </p>
+                            <p className="text-[11px] text-rose-800">{paymentStates[milestone.id].error}</p>
+                            {isPayer && (
+                              <button
+                                onClick={() => handlePayWithPayPal(milestone)}
+                                disabled={actionLoading || paymentLoadingId === milestone.id}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                              >
+                                <RefreshCw className="h-3.5 w-3.5" />
+                                <span>Retry Pay with PayPal</span>
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+                            {isPayer ? (
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => handlePayWithPayPal(milestone)}
+                                  disabled={actionLoading || paymentLoadingId === milestone.id}
+                                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
+                                >
+                                  <CreditCard className="h-4 w-4" />
+                                  <span>Pay with PayPal (Sandbox)</span>
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </button>
+                                <span className="text-[11px] text-slate-500 font-medium">
+                                  Release ${milestone.agreed_amount || "0.00"} {milestone.currency}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-100 text-slate-700 text-[11px] border border-slate-200">
+                                <Lock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                <span>
+                                  Payment Authorization Restricted: Only the designated client/payer ({milestone.reviewer_user?.name || milestone.reviewer_user?.full_name || "Client"}) is authorized to initiate PayPal payments under the accepted agreement.
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
+                    )
+                  ) : (
+                    <div className="rounded-xl p-3 bg-slate-50 border border-slate-200/80 text-[11px] text-slate-500 flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span>
+                        Payment Unavailable: Deliverables must be submitted by the solver and approved by the reviewer before commercial payment release.
+                      </span>
                     </div>
                   )}
 
@@ -811,6 +1228,26 @@ export function MilestoneExecutionWorkspace({
                               Awaiting Counterparty Review (Self-Approval Restricted)
                             </span>
                           ) : null}
+                        </>
+                      )}
+
+                      {/* Pay with PayPal Button (Approved & Ready for Payment Review) */}
+                      {milestone.status === "APPROVED" && milestone.payment_readiness === "READY_FOR_PAYMENT_REVIEW" && (
+                        <>
+                          {isPayer ? (
+                            <button
+                              onClick={() => handlePayWithPayPal(milestone)}
+                              disabled={actionLoading || paymentLoadingId === milestone.id}
+                              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                            >
+                              <CreditCard className="h-3.5 w-3.5" />
+                              <span>Pay with PayPal (Sandbox)</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                              Awaiting Client Payout ({milestone.reviewer_user?.name || milestone.reviewer_user?.full_name || "Client"})
+                            </span>
+                          )}
                         </>
                       )}
 

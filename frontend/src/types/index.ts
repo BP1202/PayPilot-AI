@@ -862,7 +862,9 @@ export type MilestoneReviewDecision = "APPROVED" | "REVISION_REQUESTED" | "REJEC
 
 export interface MilestoneParticipantSummary {
   user_id: string;
+  id?: string;
   name: string;
+  full_name?: string;
   email?: string | null;
   role?: string | null;
 }
@@ -911,6 +913,8 @@ export interface MilestoneExecution {
   planned_due_date?: string | null;
   responsible_user: MilestoneParticipantSummary;
   reviewer_user: MilestoneParticipantSummary;
+  payer_user_id?: string | null;
+  payee_user_id?: string | null;
   status: MilestoneExecutionStatus;
   cancellation_reason?: string | null;
   payment_readiness: PaymentReadinessStatus;
@@ -1008,6 +1012,8 @@ export type UserRole = "seeker" | "creator";
 
 export interface CreatePayPalOrderPayload {
   idempotency_key: string;
+  return_url?: string;
+  cancel_url?: string;
 }
 
 export interface PayPalOrderResponse {
@@ -1019,6 +1025,40 @@ export interface PayPalOrderResponse {
   currency: string;
   amount: string;
 }
+
+export interface CapturePayPalOrderPayload {
+  idempotency_key: string;
+}
+
+export interface PayPalCaptureResponse {
+  transaction_id: string;
+  transaction_ref: string;
+  paypal_order_id: string;
+  paypal_capture_id: string;
+  capture_status: string;
+  transaction_status: string;
+  payment_readiness: string;
+  currency: string;
+  amount: string;
+}
+
+export interface MilestoneSettlementStatus {
+  milestone_id: string;
+  room_id: string;
+  status: "NOT_PREPARED" | "PREPARED" | "ORDER_CREATED" | "AWAITING_APPROVAL" | "COMPLETED" | "FAILED" | "CANCELLED";
+  payment_readiness: string;
+  agreed_amount?: string | null;
+  currency: string;
+  payer_user_id?: string | null;
+  payee_user_id?: string | null;
+  transaction_id?: string | null;
+  transaction_ref?: string | null;
+  paypal_order_id?: string | null;
+  paypal_capture_id?: string | null;
+  approval_url?: string | null;
+}
+
+
 
 
 

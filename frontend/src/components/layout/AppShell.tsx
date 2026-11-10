@@ -25,7 +25,6 @@ import { ContributorDashboardView } from "@/components/dashboard/ContributorDash
 import { DashboardStats } from "@/components/DashboardStats";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { CommerceLedger } from "@/components/CommerceLedger";
-import { CopilotChat } from "@/components/CopilotChat";
 import {
   Business,
   DashboardOverview,
@@ -133,6 +132,7 @@ function getInitialViewFromPath(defaultView: DashboardView = "home"): DashboardV
     if (path === "ledger" || path === "payments") return "ledger";
 
     const params = new URLSearchParams(window.location.search);
+    if (params.get("room_id")) return "deal-rooms";
     const viewParam = params.get("view") as DashboardView | null;
     const validViews: string[] = [
       "home",
@@ -253,7 +253,13 @@ export const AppShell: React.FC<AppShellProps> = ({
     opportunityId?: string | null;
     opportunityTitle?: string | null;
   } | null>(null);
-  const [selectedDealRoomId, setSelectedDealRoomId] = useState<string | null>(null);
+  const [selectedDealRoomId, setSelectedDealRoomId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("room_id");
+    }
+    return null;
+  });
   const [backendStatus, setBackendStatus] = useState<"checking" | "connected" | "offline">("checking");
   const [globalSearch, setGlobalSearch] = useState("");
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -336,6 +342,10 @@ export const AppShell: React.FC<AppShellProps> = ({
       const t = params.get("tab") as "explore" | "mine" | null;
       if (t === "mine" || t === "explore") {
         setActiveOppTab(t);
+      }
+      const rId = params.get("room_id");
+      if (rId) {
+        setSelectedDealRoomId(rId);
       }
     };
     window.addEventListener("popstate", handlePopState);
@@ -1275,23 +1285,17 @@ export const AppShell: React.FC<AppShellProps> = ({
                 />
               </section>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <section className="lg:col-span-2" aria-label="Commerce Ledger">
-                  <CommerceLedger
-                    transactions={transactions}
-                    loading={loading}
-                    error={error}
-                    selectedStatus={selectedStatus}
-                    onFilterChange={handleFilterChange}
-                    business={overview?.business}
-                    currentUser={currentUser}
-                  />
-                </section>
-
-                <section aria-label="Copilot Assistant">
-                  <CopilotChat />
-                </section>
-              </div>
+              <section aria-label="Commerce Ledger">
+                <CommerceLedger
+                  transactions={transactions}
+                  loading={loading}
+                  error={error}
+                  selectedStatus={selectedStatus}
+                  onFilterChange={handleFilterChange}
+                  business={overview?.business}
+                  currentUser={currentUser}
+                />
+              </section>
 
               {/* Contextual simulated operations disclaimer */}
               <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-xs text-slate-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
