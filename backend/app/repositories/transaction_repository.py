@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.transaction import Transaction, TransactionStatus
@@ -108,6 +110,93 @@ class TransactionRepository:
 
         return {
             "business_id": business_id,
+            "currency": "USD",
+            "total_revenue": total_revenue,
+            "completed_count": completed_count,
+            "pending_count": pending_count,
+            "pending_total": pending_total,
+            "transaction_count": transaction_count,
+        }
+
+    def _user_scope_condition(self, user_id: str, business_id: int | None = None):
+        conditions = [
+            Transaction.payer_user_id == user_id,
+            Transaction.payee_user_id == user_id,
+        ]
+        if business_id is not None:
+            conditions.append(Transaction.business_id == business_id)
+        return or_(*conditions)
+
+    def list_for_user(
+        self,
+        user_id: str,
+        business_id: int | None = None,
+        status: TransactionStatus | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Transaction]:
+        query = select(Transaction).where(self._user_scope_condition(user_id, business_id))
+        if status is not None:
+            query = query.where(Transaction.status == status)
+
+        query = (
+            query.order_by(Transaction.created_at.desc()).limit(limit).offset(offset)
+        )
+        return list(self.db.execute(query).scalars().all())
+
+    def count_for_user(
+        self,
+        user_id: str,
+        business_id: int | None = None,
+        status: TransactionStatus | None = None,
+    ) -> int:
+        query = select(func.count(Transaction.id)).where(
+            self._user_scope_condition(user_id, business_id)
+        )
+        if status is not None:
+            query = query.where(Transaction.status == status)
+        return self.db.execute(query).scalar() or 0
+
+    def get_dashboard_totals_for_user(
+        self,
+        user_id: str,
+        business_id: int | None = None,
+    ) -> dict[str, Any]:
+        cond = self._user_scope_condition(user_id, business_id)
+
+        rev_stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+            cond,
+            Transaction.status == TransactionStatus.COMPLETED,
+        )
+        total_revenue_raw = self.db.execute(rev_stmt).scalar()
+        total_revenue = Decimal(str(total_revenue_raw)).quantize(Decimal("0.01"))
+
+        comp_stmt = select(func.count(Transaction.id)).where(
+            cond,
+            Transaction.status == TransactionStatus.COMPLETED,
+        )
+        completed_count = self.db.execute(comp_stmt).scalar() or 0
+
+        pending_total_stmt = select(
+            func.coalesce(func.sum(Transaction.amount), 0)
+        ).where(
+            cond,
+            Transaction.status == TransactionStatus.PENDING,
+        )
+        pending_total_raw = self.db.execute(pending_total_stmt).scalar()
+        pending_total = Decimal(str(pending_total_raw)).quantize(Decimal("0.01"))
+
+        pending_count_stmt = select(func.count(Transaction.id)).where(
+            cond,
+            Transaction.status == TransactionStatus.PENDING,
+        )
+        pending_count = self.db.execute(pending_count_stmt).scalar() or 0
+
+        total_stmt = select(func.count(Transaction.id)).where(cond)
+        transaction_count = self.db.execute(total_stmt).scalar() or 0
+
+        return {
+            "business_id": business_id or 0,
             "currency": "USD",
             "total_revenue": total_revenue,
             "completed_count": completed_count,

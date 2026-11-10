@@ -33,6 +33,12 @@ def get_connection_service(
 
 
 @router.post(
+    "",
+    response_model=ConnectionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Send a connection request to another user",
+)
+@router.post(
     "/requests",
     response_model=ConnectionResponse,
     status_code=status.HTTP_201_CREATED,
@@ -51,6 +57,11 @@ def create_connection_request(
     return service.create_request(db=db, sender_id=current_user.id, payload=payload)
 
 
+@router.get(
+    "",
+    response_model=ConnectionListResponse,
+    summary="List connection requests (incoming, outgoing, or all)",
+)
 @router.get(
     "/requests",
     response_model=ConnectionListResponse,
@@ -75,6 +86,8 @@ def list_connection_requests(
     ] = None,
 ) -> ConnectionListResponse:
     service = ConnectionService()
+    if status == "ACCEPTED" and direction == "all":
+        return service.list_accepted_connections(db=db, user_id=current_user.id)
     return service.list_requests(
         db=db,
         user_id=current_user.id,
@@ -123,17 +136,6 @@ def withdraw_connection(
     )
 
 
-@router.get(
-    "",
-    response_model=ConnectionListResponse,
-    summary="List accepted connections for the authenticated user",
-)
-def list_accepted_connections(
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
-) -> ConnectionListResponse:
-    service = ConnectionService()
-    return service.list_accepted_connections(db=db, user_id=current_user.id)
 
 
 # ---------------------------------------------------------------------------

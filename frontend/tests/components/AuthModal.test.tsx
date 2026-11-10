@@ -48,15 +48,15 @@ describe("AuthModal Component", () => {
     const emailInput = screen.getByLabelText(/email address/i) as HTMLInputElement;
     const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement;
 
-    expect(emailInput.value).toBe("owner@apexgearworks.demo");
+    expect(emailInput.value).toBe("seeker1@opnly.com");
     expect(passwordInput.value).toBe("Password123!");
   });
 
   it("calls loginUser on valid sign in submission", async () => {
     const mockUser = {
       id: "usr_123",
-      email: "owner@apexgearworks.demo",
-      full_name: "Apex Owner",
+      email: "seeker1@opnly.com",
+      full_name: "Marcus Vance",
       is_active: true,
       created_at: "2026-11-04T00:00:00Z",
       updated_at: "2026-11-04T00:00:00Z",
@@ -76,7 +76,7 @@ describe("AuthModal Component", () => {
 
     await waitFor(() => {
       expect(api.loginUser).toHaveBeenCalledWith({
-        email: "owner@apexgearworks.demo",
+        email: "seeker1@opnly.com",
         password: "Password123!",
       });
       expect(mockOnSuccess).toHaveBeenCalledWith(mockUser);

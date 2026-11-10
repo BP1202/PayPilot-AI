@@ -52,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden lg:flex items-center space-x-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
             <Building2 className="h-4 w-4 text-slate-400" />
             <span className="font-medium text-slate-900">
-              {business ? business.name : "Apex Precision Gearworks"}
+              {business ? business.name : currentUser?.full_name ? `${currentUser.full_name}'s Venture` : "Opnly Network"}
             </span>
             <span className="text-slate-400">|</span>
             <span className="font-semibold text-indigo-600">

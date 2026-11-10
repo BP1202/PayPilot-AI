@@ -140,7 +140,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 Issued By (Payee)
               </p>
               <p className="font-extrabold text-slate-900">
-                {currentUser?.full_name || business?.name || "Alice Architect"}
+                {currentUser?.full_name || business?.name || "Commercial Participant"}
               </p>
               <p className="text-[11px] text-slate-500">
                 Opnly Verified Commercial Participant
@@ -155,7 +155,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 Billed To (Client / Counterparty)
               </p>
               <p className="font-extrabold text-slate-900">
-                {transaction.customer_name || "Stratos Dynamics"}
+                {transaction.customer_name || "Commercial Counterparty"}
               </p>
               <p className="text-[11px] text-slate-500">
                 Commercial Agreement Counterparty

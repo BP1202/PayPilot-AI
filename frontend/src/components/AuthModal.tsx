@@ -103,8 +103,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleFillDemo = () => {
-    setEmail("owner@apexgearworks.demo");
+  const handleFillDemo = (demoEmail = "seeker1@opnly.com") => {
+    setEmail(demoEmail);
     setPassword("Password123!");
     setMode("login");
     setErrorMessage(null);
@@ -370,14 +370,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Demo Account Quick-Fill */}
         <div className="mt-6 border-t border-slate-100 pt-4 text-center">
           <p className="text-xs text-slate-500 mb-2">Testing or evaluating Opnly?</p>
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="inline-flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-            <span>Use Demo Account (Apex Owner)</span>
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleFillDemo("seeker1@opnly.com")}
+              className="inline-flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+              <span>Use Demo Account (Seeker)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleFillDemo("solver1@opnly.com")}
+              className="inline-flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Solver Account (Alex Chen)</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
