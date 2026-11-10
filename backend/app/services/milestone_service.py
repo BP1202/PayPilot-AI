@@ -122,6 +122,19 @@ def _milestone_to_response(
         )
     ]
 
+    # Authoritative settlement parties derivation
+    payer_user_id: str | None = None
+    payee_user_id: str | None = None
+    if hasattr(milestone, "transactions") and milestone.transactions:
+        for t in milestone.transactions:
+            if t.payer_user_id:
+                payer_user_id = t.payer_user_id
+            if t.payee_user_id:
+                payee_user_id = t.payee_user_id
+    if not payer_user_id and milestone.reviewer_user_id:
+        payer_user_id = milestone.reviewer_user_id
+        payee_user_id = milestone.responsible_user_id
+
     return MilestoneExecutionResponse(
         id=milestone.id,
         room_id=milestone.room_id,
@@ -145,6 +158,8 @@ def _milestone_to_response(
         reviewer_user=_user_to_participant_summary(
             milestone.reviewer_user, "Designated Reviewer"
         ),
+        payer_user_id=payer_user_id,
+        payee_user_id=payee_user_id,
         status=MilestoneExecutionStatus(milestone.status),
         cancellation_reason=milestone.cancellation_reason,
         payment_readiness=PaymentReadinessStatus(milestone.payment_readiness),

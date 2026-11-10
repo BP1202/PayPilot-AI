@@ -57,6 +57,7 @@ from app.models.user import User
 from app.services.payment_service import PaymentService
 from app.services.paypal_auth import PayPalAuthService
 from app.services.paypal_order_service import (
+    PayPalCaptureResult,
     PayPalOrderAPIError,
     PayPalOrderConfigError,
     PayPalOrderNetworkError,
@@ -68,6 +69,7 @@ from app.services.paypal_order_service import (
 
 SANDBOX_BASE = "https://api-m.sandbox.paypal.com"
 FAKE_ORDER_ID = "5O190127TN364715T"
+FAKE_CAPTURE_ID = "3C679366HH252546M"
 FAKE_APPROVAL_URL = f"https://www.sandbox.paypal.com/checkoutnow?token={FAKE_ORDER_ID}"
 
 
@@ -118,6 +120,66 @@ def _mock_order_response(
                 "method": "GET",
             },
         ],
+    }
+
+
+def _mock_capture_response(
+    *,
+    order_id: str = FAKE_ORDER_ID,
+    capture_id: str = FAKE_CAPTURE_ID,
+    status: str = "COMPLETED",
+    amount: str = "2500.00",
+    currency: str = "USD",
+) -> dict[str, Any]:
+    return {
+        "id": order_id,
+        "status": status,
+        "purchase_units": [
+            {
+                "reference_id": "TXN-REF-1",
+                "payments": {
+                    "captures": [
+                        {
+                            "id": capture_id,
+                            "status": status,
+                            "amount": {
+                                "currency_code": currency,
+                                "value": amount,
+                            },
+                            "final_capture": True,
+                        }
+                    ]
+                },
+            }
+        ],
+    }
+
+
+def _mock_get_order_response(
+    *,
+    order_id: str = FAKE_ORDER_ID,
+    status: str = "APPROVED",
+    amount: str = "2500.00",
+    currency: str = "USD",
+    intent: str = "CAPTURE",
+    reference_id: str = "TXN-REF-1",
+    captures: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    pu: dict[str, Any] = {
+        "reference_id": reference_id,
+        "custom_id": "custom_ref_1",
+        "amount": {
+            "currency_code": currency,
+            "value": amount,
+        },
+    }
+    if captures:
+        pu["payments"] = {"captures": captures}
+    return {
+        "id": order_id,
+        "status": status,
+        "intent": intent,
+        "purchase_units": [pu],
     }
 
 
@@ -258,6 +320,76 @@ def test_order_service_handles_api_error_response():
         )
     assert exc_info.value.status_code == 422
     assert exc_info.value.error_name == "UNPROCESSABLE_ENTITY"
+
+
+def test_order_service_get_order_success():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert str(request.url) == f"{SANDBOX_BASE}/v2/checkout/orders/{FAKE_ORDER_ID}"
+        return httpx.Response(200, json=_mock_get_order_response())
+
+    service = _build_mock_order_service(handler)
+    data = service.get_order(FAKE_ORDER_ID)
+
+    assert data["id"] == FAKE_ORDER_ID
+    assert data["status"] == "APPROVED"
+    assert data["intent"] == "CAPTURE"
+
+
+def test_order_service_capture_order_success():
+    sent_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent_requests.append(request)
+        assert request.method == "POST"
+        assert str(request.url) == f"{SANDBOX_BASE}/v2/checkout/orders/{FAKE_ORDER_ID}/capture"
+        assert request.headers["PayPal-Request-Id"] == "cap_idemp_999"
+        return httpx.Response(201, json=_mock_capture_response())
+
+    service = _build_mock_order_service(handler)
+    cap_res = service.capture_order(FAKE_ORDER_ID, idempotency_key="cap_idemp_999")
+
+    assert isinstance(cap_res, PayPalCaptureResult)
+    assert cap_res.order_id == FAKE_ORDER_ID
+    assert cap_res.capture_id == FAKE_CAPTURE_ID
+    assert cap_res.status == "COMPLETED"
+    assert cap_res.amount == Decimal("2500.00")
+    assert cap_res.currency == "USD"
+
+
+def test_order_service_capture_reconciles_already_captured():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST":
+            # PayPal returns 422 ORDER_ALREADY_CAPTURED
+            return httpx.Response(
+                422,
+                json={
+                    "name": "UNPROCESSABLE_ENTITY",
+                    "message": "Order already captured",
+                    "details": [{"issue": "ORDER_ALREADY_CAPTURED"}],
+                },
+            )
+        # GET order returns order with completed capture
+        return httpx.Response(
+            200,
+            json=_mock_get_order_response(
+                status="COMPLETED",
+                captures=[
+                    {
+                        "id": FAKE_CAPTURE_ID,
+                        "status": "COMPLETED",
+                        "amount": {"currency_code": "USD", "value": "2500.00"},
+                    }
+                ],
+            ),
+        )
+
+    service = _build_mock_order_service(handler)
+    cap_res = service.capture_order(FAKE_ORDER_ID, idempotency_key="cap_idemp_dup")
+
+    assert cap_res.capture_id == FAKE_CAPTURE_ID
+    assert cap_res.status == "COMPLETED"
+
 
 
 # ==============================================================================
@@ -534,6 +666,174 @@ def test_payment_service_handles_gateway_timeout(test_db):
     assert exc_info.value.status_code == 504
 
 
+def test_payment_service_capture_paypal_order_success(test_db):
+    fix = _setup_settlement_fixture(test_db)
+    svc = PaymentService(test_db)
+
+    # Attach order to transaction
+    fix["settlement_tx"].paypal_order_id = FAKE_ORDER_ID
+    test_db.commit()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            # Server-side buyer approval check
+            return httpx.Response(200, json=_mock_get_order_response(status="APPROVED"))
+        if request.method == "POST":
+            # Capture call
+            return httpx.Response(201, json=_mock_capture_response())
+        return httpx.Response(404)
+
+    mock_svc = _build_mock_order_service(handler)
+
+    res = svc.capture_paypal_order_for_milestone(
+        caller_user_id=fix["payer"].id,
+        room_id=fix["room"].id,
+        milestone_id=fix["milestone"].id,
+        idempotency_key="cap_idemp_001",
+        order_service=mock_svc,
+    )
+
+    assert res["paypal_capture_id"] == FAKE_CAPTURE_ID
+    assert res["capture_status"] == "COMPLETED"
+    assert res["transaction_status"] == "COMPLETED"
+    assert res["payment_readiness"] == "PAID"
+
+    # Verify database state
+    tx = test_db.query(Transaction).filter(Transaction.id == int(res["transaction_id"])).first()
+    assert tx.status == TransactionStatus.COMPLETED
+    assert tx.paypal_capture_id == FAKE_CAPTURE_ID
+
+    m = test_db.query(MilestoneExecution).filter(MilestoneExecution.id == fix["milestone"].id).first()
+    assert m.payment_readiness == PaymentReadinessStatus.PAID.value
+
+    # Idempotent repeat on completed settlement
+    repeat_res = svc.capture_paypal_order_for_milestone(
+        caller_user_id=fix["payer"].id,
+        room_id=fix["room"].id,
+        milestone_id=fix["milestone"].id,
+        idempotency_key="cap_idemp_001",
+        order_service=mock_svc,
+    )
+    assert repeat_res["paypal_capture_id"] == FAKE_CAPTURE_ID
+    assert repeat_res["transaction_status"] == "COMPLETED"
+
+
+def test_payment_service_capture_rejects_unapproved_order(test_db):
+    fix = _setup_settlement_fixture(test_db)
+    svc = PaymentService(test_db)
+
+    fix["settlement_tx"].paypal_order_id = FAKE_ORDER_ID
+    test_db.commit()
+
+    # PayPal reports order is still CREATED (buyer has not approved)
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_mock_get_order_response(status="CREATED"))
+
+    mock_svc = _build_mock_order_service(handler)
+
+    with pytest.raises(HTTPException) as exc_info:
+        svc.capture_paypal_order_for_milestone(
+            caller_user_id=fix["payer"].id,
+            room_id=fix["room"].id,
+            milestone_id=fix["milestone"].id,
+            idempotency_key="cap_idemp_unapproved",
+            order_service=mock_svc,
+        )
+    assert exc_info.value.status_code == 422
+    assert "has not been approved by the buyer" in exc_info.value.detail
+
+    # Transaction MUST remain PENDING
+    tx = test_db.query(Transaction).filter(Transaction.id == fix["settlement_tx"].id).first()
+    assert tx.status == TransactionStatus.PENDING
+    assert tx.paypal_capture_id is None
+
+
+def test_payment_service_capture_rejects_unauthorized_caller(test_db):
+    fix = _setup_settlement_fixture(test_db)
+    svc = PaymentService(test_db)
+
+    fix["settlement_tx"].paypal_order_id = FAKE_ORDER_ID
+    test_db.commit()
+
+    # Worker calls capture -> 403 Forbidden
+    with pytest.raises(HTTPException) as exc_info:
+        svc.capture_paypal_order_for_milestone(
+            caller_user_id=fix["worker"].id,
+            room_id=fix["room"].id,
+            milestone_id=fix["milestone"].id,
+            idempotency_key="cap_idemp_worker",
+        )
+    assert exc_info.value.status_code == 403
+    assert "designated payer" in exc_info.value.detail
+
+    # Outsider calls capture -> 403 Forbidden
+    with pytest.raises(HTTPException) as exc_info:
+        svc.capture_paypal_order_for_milestone(
+            caller_user_id=fix["outsider"].id,
+            room_id=fix["room"].id,
+            milestone_id=fix["milestone"].id,
+            idempotency_key="cap_idemp_outsider",
+        )
+    assert exc_info.value.status_code == 403
+
+
+def test_payment_service_capture_rejects_amount_mismatch(test_db):
+    fix = _setup_settlement_fixture(test_db)
+    svc = PaymentService(test_db)
+
+    fix["settlement_tx"].paypal_order_id = FAKE_ORDER_ID
+    test_db.commit()
+
+    # PayPal reports order amount 3000.00 while transaction is 2500.00
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_mock_get_order_response(status="APPROVED", amount="3000.00"))
+
+    mock_svc = _build_mock_order_service(handler)
+
+    with pytest.raises(HTTPException) as exc_info:
+        svc.capture_paypal_order_for_milestone(
+            caller_user_id=fix["payer"].id,
+            room_id=fix["room"].id,
+            milestone_id=fix["milestone"].id,
+            idempotency_key="cap_idemp_mismatch",
+            order_service=mock_svc,
+        )
+    assert exc_info.value.status_code == 422
+    assert "amount/currency" in exc_info.value.detail
+
+
+def test_payment_service_capture_handles_pending_capture(test_db):
+    fix = _setup_settlement_fixture(test_db)
+    svc = PaymentService(test_db)
+
+    fix["settlement_tx"].paypal_order_id = FAKE_ORDER_ID
+    test_db.commit()
+
+    # PayPal reports capture is PENDING (not completed)
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            return httpx.Response(200, json=_mock_get_order_response(status="APPROVED"))
+        return httpx.Response(201, json=_mock_capture_response(status="PENDING"))
+
+    mock_svc = _build_mock_order_service(handler)
+
+    with pytest.raises(HTTPException) as exc_info:
+        svc.capture_paypal_order_for_milestone(
+            caller_user_id=fix["payer"].id,
+            room_id=fix["room"].id,
+            milestone_id=fix["milestone"].id,
+            idempotency_key="cap_idemp_pending",
+            order_service=mock_svc,
+        )
+    assert exc_info.value.status_code == 422
+    assert "PENDING provider clearance" in exc_info.value.detail
+
+    # Transaction must NOT be marked COMPLETED
+    tx = test_db.query(Transaction).filter(Transaction.id == fix["settlement_tx"].id).first()
+    assert tx.status == TransactionStatus.PENDING
+
+
+
 # ==============================================================================
 # 3. FastAPI Route Tests
 # ==============================================================================
@@ -602,6 +902,67 @@ def test_api_create_paypal_order_endpoint(test_db, monkeypatch):
         app.dependency_overrides.clear()
 
 
+def test_api_capture_paypal_order_endpoint(test_db, monkeypatch):
+    fix = _setup_settlement_fixture(test_db)
+    fix["settlement_tx"].paypal_order_id = FAKE_ORDER_ID
+    test_db.commit()
+
+    def override_get_db():
+        yield test_db
+
+    app.dependency_overrides[get_db] = override_get_db
+    client = TestClient(app)
+
+    try:
+        payer_token = create_access_token(user_id=fix["payer"].id, email=fix["payer"].email)
+        worker_token = create_access_token(user_id=fix["worker"].id, email=fix["worker"].email)
+
+        url = f"/api/v1/deal-rooms/{fix['room'].id}/milestones/{fix['milestone'].id}/paypal/capture-order"
+
+        # Mock order service methods
+        def mock_get_order(self, order_id):
+            return _mock_get_order_response(status="APPROVED")
+
+        def mock_capture_order(self, order_id, **kwargs):
+            return PayPalCaptureResult(
+                order_id=FAKE_ORDER_ID,
+                capture_id=FAKE_CAPTURE_ID,
+                status="COMPLETED",
+                currency="USD",
+                amount=Decimal("2500.00"),
+                raw_response=_mock_capture_response(),
+            )
+
+        monkeypatch.setattr(PayPalOrderService, "get_order", mock_get_order)
+        monkeypatch.setattr(PayPalOrderService, "capture_order", mock_capture_order)
+
+        # 1. Payer captures approved order -> 200 OK
+        resp = client.post(
+            url,
+            headers={"Authorization": f"Bearer {payer_token}"},
+            json={"idempotency_key": "api_cap_idemp_001"},
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["paypal_capture_id"] == FAKE_CAPTURE_ID
+        assert data["capture_status"] == "COMPLETED"
+        assert data["transaction_status"] == "COMPLETED"
+        assert data["payment_readiness"] == "PAID"
+        assert data["amount"] == "2500.00"
+
+        # 2. Worker attempts to capture -> 403 Forbidden
+        worker_resp = client.post(
+            url,
+            headers={"Authorization": f"Bearer {worker_token}"},
+            json={"idempotency_key": "api_cap_idemp_002"},
+        )
+        assert worker_resp.status_code == 403
+
+    finally:
+        app.dependency_overrides.clear()
+
+
+
 # ==============================================================================
 # 4. Direct PostgreSQL Integration Test
 # ==============================================================================
@@ -659,3 +1020,70 @@ def test_postgresql_order_creation_integration():
     finally:
         session.close()
         engine.dispose()
+
+
+def test_postgresql_capture_integration():
+    """Verify real PostgreSQL row locking, verified buyer approval, and capture state transition."""
+    pg_url = settings.DATABASE_URL
+    if not pg_url or "postgresql" not in pg_url:
+        pytest.skip("PostgreSQL not configured in settings")
+
+    engine = create_engine(pg_url)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    session = SessionLocal()
+
+    try:
+        fix = _setup_settlement_fixture(session)
+        fix["settlement_tx"].paypal_order_id = f"PG_ORDER_{uuid4().hex[:10]}"
+        session.commit()
+
+        svc = PaymentService(session)
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "GET":
+                return httpx.Response(200, json=_mock_get_order_response(status="APPROVED"))
+            if request.method == "POST":
+                return httpx.Response(201, json=_mock_capture_response())
+            return httpx.Response(404)
+
+        mock_svc = _build_mock_order_service(handler)
+
+        res = svc.capture_paypal_order_for_milestone(
+            caller_user_id=fix["payer"].id,
+            room_id=fix["room"].id,
+            milestone_id=fix["milestone"].id,
+            idempotency_key=f"pg_cap_{uuid4().hex[:8]}",
+            order_service=mock_svc,
+        )
+
+        assert res["paypal_capture_id"] == FAKE_CAPTURE_ID
+        assert res["capture_status"] == "COMPLETED"
+        assert res["transaction_status"] == "COMPLETED"
+        assert res["payment_readiness"] == "PAID"
+
+        # Verify transaction and milestone record in PostgreSQL
+        tx = session.query(Transaction).filter(Transaction.id == int(res["transaction_id"])).first()
+        assert tx is not None
+        assert tx.status == TransactionStatus.COMPLETED
+        assert tx.paypal_capture_id == FAKE_CAPTURE_ID
+
+        m = session.query(MilestoneExecution).filter(MilestoneExecution.id == fix["milestone"].id).first()
+        assert m.payment_readiness == PaymentReadinessStatus.PAID.value
+
+        # Clean up created PostgreSQL records
+        session.delete(tx)
+        session.delete(fix["milestone"])
+        for p in session.query(DealRoomParticipant).filter(DealRoomParticipant.room_id == fix["room"].id):
+            session.delete(p)
+        session.delete(fix["room"])
+        session.delete(fix["proposal"])
+        session.delete(fix["connection"])
+        session.delete(fix["payer"])
+        session.delete(fix["worker"])
+        session.delete(fix["outsider"])
+        session.commit()
+
+    finally:
+        session.close()
+        engine.dispose()
+

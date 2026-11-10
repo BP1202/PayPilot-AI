@@ -117,6 +117,8 @@ class MilestoneExecutionResponse(BaseModel):
     review_history: list[MilestoneReviewResponse] = Field(default_factory=list)
     evidence_submissions_count: int = 0
     reviews_count: int = 0
+    payer_user_id: str | None = None
+    payee_user_id: str | None = None
     started_at: datetime | None = None
     submitted_at: datetime | None = None
     approved_at: datetime | None = None
@@ -185,6 +187,16 @@ class CreatePayPalOrderPayload(BaseModel):
         max_length=128,
         description="Client-generated unique idempotency token to ensure exactly-once PayPal order creation.",
     )
+    return_url: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Optional buyer return URL upon approval",
+    )
+    cancel_url: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Optional buyer cancel URL",
+    )
 
 
 class PayPalOrderResponse(BaseModel):
@@ -197,4 +209,47 @@ class PayPalOrderResponse(BaseModel):
     approval_url: str
     currency: str
     amount: str
+
+
+class CapturePayPalOrderPayload(BaseModel):
+    idempotency_key: str = Field(
+        ...,
+        min_length=4,
+        max_length=128,
+        description="Client-generated unique idempotency token to ensure exactly-once PayPal order capture.",
+    )
+
+
+class PayPalCaptureResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    transaction_id: str
+    transaction_ref: str
+    paypal_order_id: str
+    paypal_capture_id: str
+    capture_status: str
+    transaction_status: str
+    payment_readiness: str
+    currency: str
+    amount: str
+
+
+class MilestoneSettlementStatusResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    milestone_id: str
+    room_id: str
+    status: str
+    payment_readiness: str
+    agreed_amount: str | None = None
+    currency: str = "USD"
+    payer_user_id: str | None = None
+    payee_user_id: str | None = None
+    transaction_id: str | None = None
+    transaction_ref: str | None = None
+    paypal_order_id: str | None = None
+    paypal_capture_id: str | None = None
+    approval_url: str | None = None
+
+
 

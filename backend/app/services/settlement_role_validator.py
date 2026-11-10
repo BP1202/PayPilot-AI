@@ -93,6 +93,7 @@ class SettlementRoleValidator:
         caller_user_id: str,
         room_id: str,
         milestone_id: str,
+        allow_paid: bool = False,
     ) -> ValidatedSettlementRoles:
         """
         Validate and resolve commercial settlement parties for a milestone.
@@ -158,10 +159,11 @@ class SettlementRoleValidator:
                 ),
             )
 
-        if (
-            milestone.payment_readiness
-            != PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
-        ):
+        valid_readiness = {PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value}
+        if allow_paid:
+            valid_readiness.add(PaymentReadinessStatus.PAID.value)
+
+        if milestone.payment_readiness not in valid_readiness:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(

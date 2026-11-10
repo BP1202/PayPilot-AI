@@ -32,6 +32,9 @@ logger = logging.getLogger(__name__)
 ORDERS_PATH = "/v2/checkout/orders"
 DEFAULT_TIMEOUT_SECONDS = 15.0
 
+ALLOWED_SANDBOX_HOSTS = frozenset({"www.sandbox.paypal.com", "sandbox.paypal.com"})
+ALLOWED_PRODUCTION_HOSTS = frozenset({"www.paypal.com", "paypal.com"})
+
 
 class PayPalOrderError(Exception):
     """Base exception for PayPal Orders v2 operations."""
@@ -78,6 +81,19 @@ class PayPalOrderResult(BaseModel):
     order_id: str
     status: str
     approval_url: str
+    currency: str
+    amount: Decimal
+    raw_response: dict[str, Any]
+
+
+class PayPalCaptureResult(BaseModel):
+    """Validated result from PayPal Orders v2 capture."""
+
+    model_config = ConfigDict(frozen=True)
+
+    order_id: str
+    capture_id: str
+    status: str
     currency: str
     amount: Decimal
     raw_response: dict[str, Any]
@@ -136,6 +152,8 @@ class PayPalOrderService:
         custom_id: str,
         description: str,
         idempotency_key: str,
+        return_url: str | None = None,
+        cancel_url: str | None = None,
     ) -> PayPalOrderResult:
         """
         Create a PayPal Orders v2 record with intent=CAPTURE.
@@ -147,6 +165,8 @@ class PayPalOrderService:
             custom_id: Opnly audit reference (e.g. tx_id & milestone_id).
             description: Sanitized, non-sensitive payment description.
             idempotency_key: Unique identifier sent as PayPal-Request-Id header.
+            return_url: Optional buyer return URL upon approval.
+            cancel_url: Optional buyer return URL upon cancellation.
 
         Returns:
             PayPalOrderResult with validated order ID and approval URL.
@@ -177,6 +197,16 @@ class PayPalOrderService:
         amount_str = f"{amount:.2f}"
         safe_description = description[:127].strip() if description else "Opnly Milestone Payment"
 
+        app_context: dict[str, Any] = {
+            "brand_name": "Opnly",
+            "landing_page": "NO_PREFERENCE",
+            "user_action": "PAY_NOW",
+        }
+        if return_url and return_url.strip():
+            app_context["return_url"] = return_url.strip()
+        if cancel_url and cancel_url.strip():
+            app_context["cancel_url"] = cancel_url.strip()
+
         payload: dict[str, Any] = {
             "intent": "CAPTURE",
             "purchase_units": [
@@ -190,11 +220,7 @@ class PayPalOrderService:
                     },
                 }
             ],
-            "application_context": {
-                "brand_name": "Opnly",
-                "landing_page": "NO_PREFERENCE",
-                "user_action": "PAY_NOW",
-            },
+            "application_context": app_context,
         }
 
         headers = {
@@ -302,7 +328,7 @@ class PayPalOrderService:
         """
         Validate and sanitize buyer approval URL domain against configured environment.
 
-        Prohibits untrusted or spoofed redirect targets.
+        Prohibits untrusted or spoofed redirect targets using exact allowlists.
         """
         parsed = urlparse(url)
         if parsed.scheme.lower() != "https":
@@ -313,19 +339,228 @@ class PayPalOrderService:
             raise PayPalOrderValidationError("Invalid approval URL: missing hostname.")
 
         if self._environment in {"production", "live"}:
-            if not (hostname == "paypal.com" or hostname.endswith(".paypal.com")):
+            if hostname not in ALLOWED_PRODUCTION_HOSTS:
                 raise PayPalOrderValidationError(
-                    f"Untrusted PayPal approval host '{hostname}' for production environment."
+                    f"Untrusted PayPal approval host '{hostname}' for production environment. "
+                    f"Must be one of: {sorted(ALLOWED_PRODUCTION_HOSTS)}"
                 )
         else:
             # Sandbox environment
-            if not (
-                hostname == "sandbox.paypal.com"
-                or hostname.endswith(".sandbox.paypal.com")
-            ):
+            if hostname not in ALLOWED_SANDBOX_HOSTS:
                 raise PayPalOrderValidationError(
-                    f"Untrusted PayPal approval host '{hostname}' for sandbox environment."
+                    f"Untrusted PayPal approval host '{hostname}' for sandbox environment. "
+                    f"Must be one of: {sorted(ALLOWED_SANDBOX_HOSTS)}"
                 )
 
         return url
+
+    def get_order(self, order_id: str) -> dict[str, Any]:
+        """
+        Retrieve order details directly from PayPal Orders v2 API (GET /v2/checkout/orders/{order_id}).
+
+        Used for server-side buyer approval verification and state reconciliation.
+        """
+        clean_order_id = (order_id or "").strip()
+        if not clean_order_id:
+            raise PayPalOrderValidationError("Order ID is required to retrieve PayPal order.")
+
+        try:
+            access_token = self._auth_service.get_access_token()
+        except PayPalAuthConfigError as exc:
+            logger.error("PayPal credentials not configured: %s", exc)
+            raise PayPalOrderConfigError("PayPal payment service credentials are not configured.") from exc
+        except PayPalAuthError as exc:
+            logger.error("PayPal OAuth2 authentication failed: %s", exc)
+            raise PayPalOrderAPIError("Failed to authenticate with PayPal gateway.", status_code=502) from exc
+
+        url = f"{self._base_url}{ORDERS_PATH}/{clean_order_id}"
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        }
+
+        try:
+            response = self._http_client.get(url, headers=headers, timeout=self._timeout)
+        except httpx.TimeoutException as exc:
+            logger.warning("PayPal get_order timed out for order %s", clean_order_id)
+            raise PayPalOrderTimeoutError("PayPal order retrieval timed out.") from exc
+        except httpx.ConnectError as exc:
+            logger.warning("PayPal get_order connection failure for order %s", clean_order_id)
+            raise PayPalOrderNetworkError("Failed to connect to PayPal gateway.") from exc
+        except httpx.HTTPError as exc:
+            logger.warning("PayPal get_order network error: %s", exc)
+            raise PayPalOrderNetworkError("PayPal order retrieval encountered a network error.") from exc
+
+        status_code = response.status_code
+        try:
+            data = response.json()
+        except ValueError as exc:
+            logger.error("PayPal response was not valid JSON (HTTP %s)", status_code)
+            raise PayPalOrderAPIError(f"PayPal returned non-JSON response (HTTP {status_code}).", status_code=502) from exc
+
+        if not isinstance(data, dict):
+            raise PayPalOrderAPIError("PayPal returned unexpected response structure.", status_code=502)
+
+        if status_code != 200:
+            error_name = data.get("name")
+            error_message = data.get("message", f"Failed to retrieve PayPal order (HTTP {status_code}).")
+            details = data.get("details", [])
+            logger.warning("PayPal get_order failed (HTTP %s): %s (%s)", status_code, error_name, error_message)
+            raise PayPalOrderAPIError(
+                error_message,
+                status_code=status_code,
+                error_name=error_name,
+                details=details,
+            )
+
+        return data
+
+    def capture_order(
+        self,
+        order_id: str,
+        *,
+        idempotency_key: str,
+    ) -> PayPalCaptureResult:
+        """
+        Capture an approved PayPal Orders v2 order (POST /v2/checkout/orders/{order_id}/capture).
+
+        Args:
+            order_id: PayPal order identifier.
+            idempotency_key: Stable idempotency token sent as PayPal-Request-Id.
+
+        Returns:
+            PayPalCaptureResult with capture ID, status, amount, and currency.
+        """
+        clean_order_id = (order_id or "").strip()
+        if not clean_order_id:
+            raise PayPalOrderValidationError("Order ID is required to capture PayPal order.")
+        clean_idemp = (idempotency_key or "").strip()
+        if not clean_idemp:
+            raise PayPalOrderValidationError("Idempotency key is required for PayPal order capture.")
+
+        try:
+            access_token = self._auth_service.get_access_token()
+        except PayPalAuthConfigError as exc:
+            logger.error("PayPal credentials not configured: %s", exc)
+            raise PayPalOrderConfigError("PayPal payment service credentials are not configured.") from exc
+        except PayPalAuthError as exc:
+            logger.error("PayPal OAuth2 authentication failed: %s", exc)
+            raise PayPalOrderAPIError("Failed to authenticate with PayPal gateway.", status_code=502) from exc
+
+        url = f"{self._base_url}{ORDERS_PATH}/{clean_order_id}/capture"
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+            "PayPal-Request-Id": clean_idemp,
+        }
+
+        try:
+            response = self._http_client.post(
+                url,
+                json={},
+                headers=headers,
+                timeout=self._timeout,
+            )
+        except httpx.TimeoutException as exc:
+            logger.warning("PayPal capture_order timed out for order %s", clean_order_id)
+            raise PayPalOrderTimeoutError(
+                "PayPal order capture timed out. Please retry with the same idempotency key."
+            ) from exc
+        except httpx.ConnectError as exc:
+            logger.warning("PayPal capture_order connection failure for order %s", clean_order_id)
+            raise PayPalOrderNetworkError("Failed to connect to PayPal gateway during capture.") from exc
+        except httpx.HTTPError as exc:
+            logger.warning("PayPal capture_order network error: %s", exc)
+            raise PayPalOrderNetworkError("PayPal order capture encountered a network error.") from exc
+
+        status_code = response.status_code
+        try:
+            data = response.json()
+        except ValueError as exc:
+            logger.error("PayPal capture response was not valid JSON (HTTP %s)", status_code)
+            raise PayPalOrderAPIError(f"PayPal returned non-JSON capture response (HTTP {status_code}).", status_code=502) from exc
+
+        if not isinstance(data, dict):
+            raise PayPalOrderAPIError("PayPal returned unexpected capture response structure.", status_code=502)
+
+        # Handle error responses
+        if status_code not in (200, 201):
+            error_name = data.get("name")
+            error_message = data.get("message", "PayPal order capture failed.")
+            details = data.get("details", [])
+            logger.warning(
+                "PayPal order capture rejected (HTTP %s): %s (%s)",
+                status_code,
+                error_name,
+                error_message,
+            )
+
+            # Check if order was already captured
+            has_already_captured = any(
+                isinstance(d, dict) and d.get("issue") == "ORDER_ALREADY_CAPTURED"
+                for d in details
+            ) or error_name == "ORDER_ALREADY_CAPTURED"
+
+            if has_already_captured:
+                # Reconcile from authoritative order data
+                logger.info("Order %s was already captured on PayPal; reconciling capture details.", clean_order_id)
+                order_data = self.get_order(clean_order_id)
+                return self._extract_capture_from_order_data(order_data)
+
+            raise PayPalOrderAPIError(
+                f"PayPal rejected order capture: {error_message}",
+                status_code=status_code,
+                error_name=error_name,
+                details=details,
+            )
+
+        return self._extract_capture_from_response(clean_order_id, data)
+
+    def _extract_capture_from_response(self, order_id: str, data: dict[str, Any]) -> PayPalCaptureResult:
+        purchase_units = data.get("purchase_units", [])
+        if not isinstance(purchase_units, list) or not purchase_units:
+            raise PayPalOrderAPIError("PayPal capture response missing purchase units.", status_code=502)
+
+        pu = purchase_units[0]
+        payments = pu.get("payments", {}) if isinstance(pu, dict) else {}
+        captures = payments.get("captures", []) if isinstance(payments, dict) else []
+
+        if not isinstance(captures, list) or not captures:
+            raise PayPalOrderAPIError("PayPal capture response missing captures array.", status_code=502)
+
+        cap = captures[0]
+        if not isinstance(cap, dict):
+            raise PayPalOrderAPIError("PayPal capture data malformed.", status_code=502)
+
+        capture_id = cap.get("id")
+        capture_status = cap.get("status")
+        amount_data = cap.get("amount", {})
+        currency = amount_data.get("currency_code")
+        amount_val = amount_data.get("value")
+
+        if not capture_id or not isinstance(capture_id, str):
+            raise PayPalOrderAPIError("PayPal capture response missing capture ID.", status_code=502)
+        if not capture_status or not isinstance(capture_status, str):
+            raise PayPalOrderAPIError("PayPal capture response missing capture status.", status_code=502)
+        if not currency or not amount_val:
+            raise PayPalOrderAPIError("PayPal capture response missing amount or currency.", status_code=502)
+
+        try:
+            amount_decimal = Decimal(str(amount_val))
+        except Exception as exc:
+            raise PayPalOrderAPIError(f"PayPal capture amount malformed: {amount_val}", status_code=502) from exc
+
+        return PayPalCaptureResult(
+            order_id=order_id,
+            capture_id=capture_id,
+            status=capture_status,
+            currency=currency,
+            amount=amount_decimal,
+            raw_response=data,
+        )
+
+    def _extract_capture_from_order_data(self, order_data: dict[str, Any]) -> PayPalCaptureResult:
+        order_id = order_data.get("id", "")
+        return self._extract_capture_from_response(order_id, order_data)
 
