@@ -54,6 +54,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   if (!isOpen || !liveTx) return null;
 
   const isPaid = liveTx.status === "COMPLETED";
+  const isMilestoneSettlement = Boolean(
+    liveTx.deal_room_id && liveTx.milestone_id
+  );
+  const canInitiateMilestonePayment = Boolean(
+    isMilestoneSettlement &&
+      currentUser?.id &&
+      (!liveTx.payer_user_id || liveTx.payer_user_id === currentUser.id)
+  );
 
   const formatCurrency = (val: string, currency: string = "USD") => {
     return new Intl.NumberFormat("en-US", {
@@ -89,6 +97,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   const handlePayInvoice = async () => {
+    if (
+      isMilestoneSettlement &&
+      (!currentUser?.id ||
+        (liveTx.payer_user_id && liveTx.payer_user_id !== currentUser.id))
+    ) {
+      setPaymentError("Only the designated payer can initiate this milestone payment.");
+      return;
+    }
+
     setIsPaying(true);
     setPaymentError(null);
 
@@ -110,13 +127,26 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           liveTx.milestone_id
         )}&payment=cancelled`;
 
-        // Ensure settlement is prepared
+        // Confirm the signed-in user is the agreement's payer before preparing or creating an order.
         const statusRes = await fetchMilestoneSettlementStatus(
           liveTx.deal_room_id,
           liveTx.milestone_id
-        ).catch(() => null);
+        );
 
-        if (!statusRes?.transaction_ref) {
+        if (
+          !currentUser?.id ||
+          !statusRes.payer_user_id ||
+          statusRes.payer_user_id !== currentUser.id
+        ) {
+          setPaymentError(
+            statusRes.payer_user_id
+              ? "Only the designated payer can initiate this milestone payment."
+              : "We couldn't verify who is authorized to pay. Please refresh and try again."
+          );
+          return;
+        }
+
+        if (!statusRes.transaction_ref) {
           await prepareMilestoneSettlement(
             liveTx.deal_room_id,
             liveTx.milestone_id,
@@ -151,9 +181,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           onPaymentSuccess(captured);
         }
       }
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "";
       setPaymentError(
-        err?.message || "Failed to initiate payment for this invoice."
+        message.toLowerCase().includes("designated payer")
+          ? "Only the designated payer can initiate this milestone payment."
+          : message ||
+              "We couldn't start checkout. Please confirm you're the designated payer and try again."
       );
     } finally {
       setIsPaying(false);
@@ -271,23 +305,25 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   Deliverable approved under bilateral agreement. Authorized payer can settle immediately with PayPal.
                 </p>
               </div>
-              <button
-                onClick={handlePayInvoice}
-                disabled={isPaying}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
-              >
-                {isPaying ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="h-4 w-4" />
-                    <span>Pay with PayPal</span>
-                  </>
-                )}
-              </button>
+              {(!isMilestoneSettlement || canInitiateMilestonePayment) && (
+                <button
+                  onClick={handlePayInvoice}
+                  disabled={isPaying}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {isPaying ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4" />
+                      <span>Pay with PayPal</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           )}
 
@@ -404,7 +440,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             Official commercial invoice for tax & milestone accounting.
           </p>
           <div className="flex items-center gap-2">
-            {!isPaid && (
+            {!isPaid && (!isMilestoneSettlement || canInitiateMilestonePayment) && (
               <button
                 onClick={handlePayInvoice}
                 disabled={isPaying}
@@ -422,6 +458,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   </>
                 )}
               </button>
+            )}
+            {!isPaid && isMilestoneSettlement && !canInitiateMilestonePayment && (
+              <p className="text-[11px] text-slate-500">
+                Only the designated payer can initiate this milestone payment.
+              </p>
             )}
             <button
               onClick={handleDownload}

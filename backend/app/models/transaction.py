@@ -117,3 +117,11 @@ class Transaction(Base):
     deal_room = relationship("DealRoom")
     payer = relationship("User", foreign_keys=[payer_user_id])
     payee = relationship("User", foreign_keys=[payee_user_id])
+
+    @property
+    def payer_name(self) -> str | None:
+        return self.payer.full_name if self.payer else None
+
+    @property
+    def payee_name(self) -> str | None:
+        return self.payee.full_name if self.payee else None

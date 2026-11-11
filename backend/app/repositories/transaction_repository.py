@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.transaction import Transaction, TransactionStatus
 from app.schemas.transaction import TransactionCreate
@@ -51,7 +51,14 @@ class TransactionRepository:
         limit: int = 50,
         offset: int = 0,
     ) -> list[Transaction]:
-        query = select(Transaction).where(Transaction.business_id == business_id)
+        query = (
+            select(Transaction)
+            .options(
+                joinedload(Transaction.payer),
+                joinedload(Transaction.payee),
+            )
+            .where(Transaction.business_id == business_id)
+        )
         if status is not None:
             query = query.where(Transaction.status == status)
 
@@ -135,7 +142,14 @@ class TransactionRepository:
         limit: int = 50,
         offset: int = 0,
     ) -> list[Transaction]:
-        query = select(Transaction).where(self._user_scope_condition(user_id, business_id))
+        query = (
+            select(Transaction)
+            .options(
+                joinedload(Transaction.payer),
+                joinedload(Transaction.payee),
+            )
+            .where(self._user_scope_condition(user_id, business_id))
+        )
         if status is not None:
             query = query.where(Transaction.status == status)
 

@@ -44,6 +44,8 @@ describe("InvoiceModal Component & Download Flow", () => {
     customer_email: "seeker1@opnly.com",
     deal_room_id: "room_vance_chen",
     milestone_id: "mil_7c757d229a47",
+    payer_user_id: "usr_vance_01",
+    payee_user_id: "usr_alex_02",
     created_at: "2026-11-05T12:00:00Z",
     updated_at: "2026-11-05T12:00:00Z",
   };
@@ -101,6 +103,26 @@ describe("InvoiceModal Component & Download Flow", () => {
     expect(screen.getByText(/PENDING RELEASE/i)).toBeInTheDocument();
     expect(screen.getByText(/Payment Outstanding: \$5,000\.00/i)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Pay with PayPal/i }).length).toBeGreaterThan(0);
+  });
+
+  it("does not offer milestone checkout to a non-payer", () => {
+    const solverUser = { ...mockUser, id: "usr_alex_02" };
+    render(
+      <InvoiceModal
+        isOpen={true}
+        onClose={vi.fn()}
+        transaction={pendingMilestoneTx}
+        business={mockBusiness}
+        currentUser={solverUser}
+      />
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /Pay with PayPal/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Only the designated payer can initiate this milestone payment/i)
+    ).toBeInTheDocument();
   });
 
   it("calls downloadInvoiceFile when clicking Download Invoice button", () => {
@@ -191,5 +213,48 @@ describe("InvoiceModal Component & Download Flow", () => {
         expect.stringContaining("payment=cancelled")
       );
     });
+    expect(api.fetchMilestoneSettlementStatus).toHaveBeenCalledWith(
+      "room_vance_chen",
+      "mil_7c757d229a47"
+    );
+  });
+
+  it("does not create an order if authoritative settlement status names a different payer", async () => {
+    vi.mocked(api.fetchMilestoneSettlementStatus).mockResolvedValue({
+      milestone_id: "mil_7c757d229a47",
+      room_id: "room_vance_chen",
+      status: "APPROVED",
+      payment_readiness: "READY_FOR_PAYMENT_REVIEW",
+      agreed_amount: "5000.00",
+      currency: "USD",
+      transaction_id: "tx_101",
+      transaction_ref: "TXN-SETTLE-VANCE-001",
+      transaction_status: "PENDING",
+      is_payer: false,
+      payer_user_id: "usr_vance_01",
+      payee_user_id: "usr_alex_02",
+    });
+
+    const unassignedTx = { ...pendingMilestoneTx, payer_user_id: null };
+    const solverUser = { ...mockUser, id: "usr_alex_02" };
+    render(
+      <InvoiceModal
+        isOpen={true}
+        onClose={vi.fn()}
+        transaction={unassignedTx}
+        business={mockBusiness}
+        currentUser={solverUser}
+      />
+    );
+
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Pay with PayPal/i })[0]
+    );
+
+    expect(
+      await screen.findByText(/Only the designated payer can initiate this milestone payment/i)
+    ).toBeInTheDocument();
+    expect(api.prepareMilestoneSettlement).not.toHaveBeenCalled();
+    expect(api.createMilestonePayPalOrder).not.toHaveBeenCalled();
   });
 });

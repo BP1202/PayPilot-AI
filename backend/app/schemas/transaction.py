@@ -50,6 +50,8 @@ class TransactionBase(BaseModel):
     deal_room_id: str | None = Field(default=None, max_length=64)
     payer_user_id: str | None = Field(default=None, max_length=64)
     payee_user_id: str | None = Field(default=None, max_length=64)
+    payer_name: str | None = Field(default=None, max_length=100)
+    payee_name: str | None = Field(default=None, max_length=100)
     paypal_order_id: str | None = Field(default=None, max_length=128)
     paypal_capture_id: str | None = Field(default=None, max_length=128)
     idempotency_key: str | None = Field(default=None, max_length=128)

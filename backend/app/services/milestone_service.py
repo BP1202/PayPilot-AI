@@ -30,6 +30,7 @@ from app.models.milestone_execution import (
     MilestoneReviewDecision,
     PaymentReadinessStatus,
 )
+from app.models.transaction import TransactionStatus
 from app.models.user import User
 from app.schemas.milestone_execution import (
     MilestoneAIAnalysisResponse,

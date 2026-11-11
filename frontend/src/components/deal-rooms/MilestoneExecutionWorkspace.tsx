@@ -1028,27 +1028,47 @@ export function MilestoneExecutionWorkspace({
 
                         {/* Agreement Parties Summary */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-white border border-slate-200/80 text-[11px]">
-                          <div>
-                            <span className="text-slate-400 font-semibold block text-[10px] uppercase tracking-wider">
-                              Designated Payer (Client)
+                          <div className={isPayer ? "p-2.5 rounded-lg bg-indigo-50/80 border border-indigo-200" : "p-1"}>
+                            <span className="text-slate-500 font-semibold flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                              <span>Designated Payer (Client)</span>
+                              {isPayer && (
+                                <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.2 rounded font-bold">
+                                  YOU
+                                </span>
+                              )}
                             </span>
-                            <span className="font-bold text-slate-800">
+                            <span className="font-bold text-slate-800 block text-xs mt-0.5">
                               {milestone.reviewer_user?.name || milestone.reviewer_user?.full_name || "Client"}
                             </span>
                             <span className="text-slate-400 block text-[10px]">
                               {milestone.reviewer_user?.email}
                             </span>
+                            {isPayer && (
+                              <p className="text-[10px] text-indigo-700 font-medium mt-1">
+                                ✓ You authorize and execute the {formattedMilestoneAmount} settlement via PayPal.
+                              </p>
+                            )}
                           </div>
-                          <div>
-                            <span className="text-slate-400 font-semibold block text-[10px] uppercase tracking-wider">
-                              Designated Payee (Worker)
+                          <div className={isResponsible ? "p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200" : "p-1"}>
+                            <span className="text-slate-500 font-semibold flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                              <span>Designated Payee (Worker)</span>
+                              {isResponsible && (
+                                <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.2 rounded font-bold">
+                                  YOU
+                                </span>
+                              )}
                             </span>
-                            <span className="font-bold text-slate-800">
+                            <span className="font-bold text-slate-800 block text-xs mt-0.5">
                               {milestone.responsible_user?.name || milestone.responsible_user?.full_name || "Solver"}
                             </span>
                             <span className="text-slate-400 block text-[10px]">
                               {milestone.responsible_user?.email}
                             </span>
+                            {isResponsible && (
+                              <p className="text-[10px] text-emerald-700 font-medium mt-1">
+                                ✓ You submit deliverables and receive the {formattedMilestoneAmount} payout upon approval.
+                              </p>
+                            )}
                           </div>
                         </div>
 

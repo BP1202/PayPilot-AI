@@ -93,6 +93,8 @@ export interface Transaction {
   deal_room_id?: string | null;
   payer_user_id?: string | null;
   payee_user_id?: string | null;
+  payer_name?: string | null;
+  payee_name?: string | null;
   paypal_order_id?: string | null;
   paypal_capture_id?: string | null;
   idempotency_key?: string | null;
@@ -924,6 +926,8 @@ export interface MilestoneExecution {
   reviewer_user: MilestoneParticipantSummary;
   payer_user_id?: string | null;
   payee_user_id?: string | null;
+  payer_name?: string | null;
+  payee_name?: string | null;
   status: MilestoneExecutionStatus;
   cancellation_reason?: string | null;
   payment_readiness: PaymentReadinessStatus;
@@ -1051,6 +1055,8 @@ export interface MilestoneSettlementStatus {
   currency: string;
   payer_user_id?: string | null;
   payee_user_id?: string | null;
+  payer_name?: string | null;
+  payee_name?: string | null;
   transaction_id?: string | null;
   transaction_ref?: string | null;
   paypal_order_id?: string | null;
