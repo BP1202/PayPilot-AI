@@ -714,6 +714,7 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
           currentUser={currentUser || null}
           agreedMilestones={room.agreed_milestones}
           currency={room.agreed_currency}
+          onMilestoneUpdated={loadRoomData}
         />
       )}
 
@@ -1178,4 +1179,3 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
     </div>
   );
 };
-

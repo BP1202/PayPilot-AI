@@ -46,5 +46,5 @@ class LedgerListResponse(BaseModel):
 
 
 class DashboardOverviewResponse(BaseModel):
-    business: BusinessRead
+    business: BusinessRead | None = None
     totals: DashboardTotals

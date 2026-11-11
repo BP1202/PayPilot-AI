@@ -98,10 +98,10 @@ describe("ProfileWorkspace Component", () => {
     expect(screen.getByText("Fintech")).toBeInTheDocument();
   });
 
-  it("defaults to Individual Profile tab even when activeRole is creator", async () => {
+  it("defaults to Individual Profile tab in the unified account", async () => {
     vi.spyOn(api, "fetchMyProfiles").mockResolvedValue(mockProfilesData);
 
-    render(<ProfileWorkspace currentUser={mockUser} activeRole="creator" />);
+    render(<ProfileWorkspace currentUser={mockUser} />);
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Staff Cloud Engineer")).toBeInTheDocument();

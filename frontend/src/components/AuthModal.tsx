@@ -10,14 +10,9 @@ import {
   AlertCircle,
   Sparkles,
   CheckCircle,
-  Target,
-  Lightbulb,
-  Briefcase,
 } from "lucide-react";
 import { User } from "@/types";
 import { loginUser, registerUser } from "@/lib/api";
-
-export type RoleSelection = "seeker" | "creator";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -33,13 +28,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = "login",
 }) => {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
-  const [selectedRole, setSelectedRole] = useState<RoleSelection>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("opnly_active_role");
-      if (saved === "creator" || saved === "seeker") return saved;
-    }
-    return "seeker";
-  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -67,11 +55,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
 
     try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("opnly_active_role", selectedRole);
-        window.dispatchEvent(new Event("opnly:role_changed"));
-      }
-
       if (mode === "login") {
         const response = await loginUser({
           email: email.trim(),
@@ -101,13 +84,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFillDemo = (demoEmail = "seeker1@opnly.com") => {
-    setEmail(demoEmail);
-    setPassword("Password123!");
-    setMode("login");
-    setErrorMessage(null);
   };
 
   return (
@@ -194,82 +170,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* Workspace Choice: Seeker vs. Contributor (Non-locking dual participation) */}
-        <div className="mb-5 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <label className="block text-xs font-bold text-slate-800">
-              Choose your starting workspace:
-            </label>
-            <span className="text-[10px] font-semibold text-slate-400">
-              Switch anytime
-            </span>
-          </div>
-
-          <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-2.5 text-[11px] text-indigo-950 leading-relaxed">
-            <span className="font-bold">One account supports both paths.</span> Choosing a starting workspace simply tailors your initial view—you can switch between Seeker and Contributor at any time without creating another account.
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            {/* Seeker Workspace: I need a solution */}
-            <button
-              type="button"
-              role="button"
-              aria-pressed={selectedRole === "seeker"}
-              onClick={() => setSelectedRole("seeker")}
-              className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                selectedRole === "seeker"
-                  ? "border-blue-500 bg-blue-50/80 ring-2 ring-blue-500 text-blue-950 shadow-xs"
-                  : "border-slate-200 bg-white hover:bg-slate-50 text-slate-600"
-              }`}
-            >
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-2xs">
-                    <Target className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-xs font-extrabold text-blue-900 leading-none">
-                    I need a solution
-                  </span>
-                </div>
-                <p className="text-[10px] text-blue-700 font-medium leading-tight">
-                  Post problems, structure requirements, and discover proven talent.
-                </p>
-              </div>
-              <span className="mt-2.5 inline-block text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 w-fit">
-                Seeker Workspace
-              </span>
-            </button>
-
-            {/* Contributor Workspace: I have skills to offer */}
-            <button
-              type="button"
-              role="button"
-              aria-pressed={selectedRole === "creator"}
-              onClick={() => setSelectedRole("creator")}
-              className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                selectedRole === "creator"
-                  ? "border-emerald-500 bg-emerald-50/80 ring-2 ring-emerald-500 text-emerald-950 shadow-xs"
-                  : "border-slate-200 bg-white hover:bg-slate-50 text-slate-600"
-              }`}
-            >
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-2xs">
-                    <Briefcase className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-xs font-extrabold text-emerald-900 leading-none">
-                    I have skills to offer
-                  </span>
-                </div>
-                <p className="text-[10px] text-emerald-700 font-medium leading-tight">
-                  Offer technical or domain capabilities, submit proposals, and deliver milestones.
-                </p>
-              </div>
-              <span className="mt-2.5 inline-block text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 w-fit">
-                Contributor Workspace
-              </span>
-            </button>
-          </div>
+        <div className="mb-5 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3 text-xs text-indigo-950 leading-relaxed">
+          Opnly gives you one unified account to both request solutions and offer your capabilities across the network.
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -350,11 +252,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className={`flex w-full items-center justify-center space-x-2 rounded-xl py-2.5 text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition disabled:opacity-50 ${
-              selectedRole === "seeker"
-                ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-600"
-                : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-600"
-            }`}
+            className="flex w-full items-center justify-center space-x-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50"
           >
             {isLoading ? (
               <>
@@ -367,28 +265,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </form>
 
-        {/* Demo Account Quick-Fill */}
-        <div className="mt-6 border-t border-slate-100 pt-4 text-center">
-          <p className="text-xs text-slate-500 mb-2">Testing or evaluating Opnly?</p>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleFillDemo("seeker1@opnly.com")}
-              className="inline-flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-              <span>Use Demo Account (Seeker)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleFillDemo("solver1@opnly.com")}
-              className="inline-flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
-              <span>Solver Account (Alex Chen)</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

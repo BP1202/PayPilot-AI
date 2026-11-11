@@ -445,12 +445,13 @@ class PaymentService:
 
         tx = tx_query.first()
         if not tx:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=(
-                    f"No prepared settlement transaction exists for milestone '{milestone_id}'. "
-                    "Settlement must be prepared before creating a PayPal order."
-                ),
+            # Auto-prepare settlement transaction if not yet created
+            tx = self.prepare_milestone_settlement(
+                caller_user_id=caller_user_id,
+                room_id=room_id,
+                milestone_id=milestone_id,
+                idempotency_key=f"prep_{clean_idemp}",
+                description=f"Milestone Settlement: {milestone.title}",
             )
 
         # Commercial integrity checks against prepared settlement
@@ -466,6 +467,9 @@ class PaymentService:
             )
 
         if tx.status == TransactionStatus.COMPLETED:
+            if milestone.payment_readiness != PaymentReadinessStatus.PAID.value:
+                milestone.payment_readiness = PaymentReadinessStatus.PAID.value
+                self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Milestone settlement is already completed via transaction '{tx.transaction_ref}'.",

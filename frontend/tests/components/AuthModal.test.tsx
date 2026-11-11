@@ -26,7 +26,7 @@ describe("AuthModal Component", () => {
     expect(screen.getByLabelText(/email address/i)).toBeDefined();
     expect(screen.getByLabelText(/password/i)).toBeDefined();
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /use demo account/i })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /demo account|solver account/i })).not.toBeInTheDocument();
   });
 
   it("switches to registration mode and displays full name field", () => {
@@ -39,17 +39,10 @@ describe("AuthModal Component", () => {
     expect(screen.getByLabelText(/full name/i)).toBeDefined();
   });
 
-  it("fills demo credentials when clicking demo account button", () => {
+  it("never renders demo credential quick-fill controls", () => {
     render(<AuthModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-    const demoBtn = screen.getByRole("button", { name: /use demo account/i });
-    fireEvent.click(demoBtn);
-
-    const emailInput = screen.getByLabelText(/email address/i) as HTMLInputElement;
-    const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement;
-
-    expect(emailInput.value).toBe("seeker1@opnly.com");
-    expect(passwordInput.value).toBe("Password123!");
+    expect(screen.queryByRole("button", { name: /demo account|solver account/i })).not.toBeInTheDocument();
   });
 
   it("calls loginUser on valid sign in submission", async () => {
@@ -71,7 +64,12 @@ describe("AuthModal Component", () => {
 
     render(<AuthModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /use demo account/i }));
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: "seeker1@opnly.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/password/i), {
+      target: { value: "Password123!" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {
@@ -81,6 +79,7 @@ describe("AuthModal Component", () => {
       });
       expect(mockOnSuccess).toHaveBeenCalledWith(mockUser);
     });
+    expect(localStorage.getItem("opnly_active_role")).toBeNull();
   });
 
   it("calls registerUser on valid registration submission", async () => {
@@ -131,7 +130,7 @@ describe("AuthModal Component", () => {
     });
   });
 
-  it("allows selecting starting workspace (Seeker vs Contributor) with dual-participation notice and saves choice", async () => {
+  it("explains unified account participation without requiring a workspace choice", async () => {
     const mockUser = {
       id: "usr_789",
       email: "creator@opnly.demo",
@@ -141,39 +140,15 @@ describe("AuthModal Component", () => {
       updated_at: "2026-11-04T00:00:00Z",
     };
 
-    vi.spyOn(api, "loginUser").mockResolvedValueOnce({
-      access_token: "jwt_token_789",
-      token_type: "bearer",
-      expires_in: 86400,
-      user: mockUser,
-    });
-
     render(<AuthModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-    // Verify dual-path notice is rendered
-    expect(screen.getByText(/One account supports both paths/i)).toBeInTheDocument();
-
-    // Verify both workspace choice cards are rendered
-    expect(screen.getByText("I need a solution")).toBeInTheDocument();
-    expect(screen.getByText("I have skills to offer")).toBeInTheDocument();
-    expect(screen.getByText("Seeker Workspace")).toBeInTheDocument();
-    expect(screen.getByText("Contributor Workspace")).toBeInTheDocument();
-
-    // Select Contributor Workspace
-    fireEvent.click(screen.getByText("I have skills to offer"));
-
-    // Fill credentials and submit
-    fireEvent.change(screen.getByLabelText(/email address/i), {
-      target: { value: "creator@opnly.demo" },
-    });
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: "Password123!" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
-
-    await waitFor(() => {
-      expect(localStorage.getItem("opnly_active_role")).toBe("creator");
-      expect(mockOnSuccess).toHaveBeenCalledWith(mockUser);
-    });
+    expect(
+      screen.getByText(
+        "Opnly gives you one unified account to both request solutions and offer your capabilities across the network."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Seeker Workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("Contributor Workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("Initial workspace focus:")).not.toBeInTheDocument();
   });
 });

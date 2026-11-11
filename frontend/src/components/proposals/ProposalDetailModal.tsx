@@ -545,7 +545,7 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
                   <ul className="list-disc list-inside space-y-0.5 text-slate-600">
                     <li>Generate bilateral commercial milestone escrow contracts</li>
                     <li>Connect approved deliverable milestones to verified PayPal settlements</li>
-                    <li>Immutable logging in the Opnly Payments & Earnings Ledger</li>
+                    <li>Immutable logging in the Opnly Payments & Ledger</li>
                   </ul>
                 </div>
               </div>
@@ -695,4 +695,3 @@ export const ProposalDetailModal: React.FC<ProposalDetailModalProps> = ({
     </div>
   );
 };
-

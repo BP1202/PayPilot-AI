@@ -209,3 +209,31 @@ The ultimate measure of success is not the number of ideas published. It is the 
 ---
 
 **Product principle:** Every feature, agent, skill, API integration and engineering task must contribute to making this journey more useful, trustworthy and achievable.
+
+## Local Demo Accounts and PayPal Sandbox
+
+The optional demo fixture creates six **fictional local test accounts**: three business owners with different needs and three individual solvers with different capabilities. It also creates six public demo opportunities and one accepted Deal Room with an approved **$25.00 USD** milestone for testing checkout. The seeded agreement and evidence are synthetic workflow fixtures, not real businesses, people, work, or payment history.
+
+All six accounts share the password you supply as `OPNLY_DEMO_PASSWORD`. The seeder only creates missing demo records; it does not change or delete existing accounts or data. It requires explicit confirmation, a local development/test database, and PayPal Sandbox configuration. It never creates a PayPal order or starts a payment.
+
+From `backend` in PowerShell, configure the local Sandbox settings in `backend/.env`, run database migrations, then enter a local-only password without echoing it:
+
+```powershell
+$securePassword = Read-Host "Choose a local demo password (12+ characters)" -AsSecureString
+$env:OPNLY_DEMO_PASSWORD = [System.Net.NetworkCredential]::new("", $securePassword).Password
+python scripts/seed_demo_data.py --confirm-local-demo-seed
+Remove-Item Env:\OPNLY_DEMO_PASSWORD
+```
+
+Demo sign-ins:
+
+| Demo participant | Login email | Use |
+|---|---|---|
+| Jordan Lee — Northstar Retail Systems | `northstar.owner@opnly-demo.test` | Business with a retail inventory integration need; payer in the prepared Sandbox room |
+| Morgan Patel — Cedar Grove Foods | `cedar.owner@opnly-demo.test` | Business with a wholesale order coordination need |
+| Riley Chen — Solaris Mobility | `solaris.owner@opnly-demo.test` | Business with a fleet charging monitoring need |
+| Priya Nair | `priya.solver@opnly-demo.test` | Solver offering web application and API integration skills |
+| Omar Hassan | `omar.solver@opnly-demo.test` | Solver offering operations and data workflow skills |
+| Mei Tan | `mei.solver@opnly-demo.test` | Solver offering IoT and energy monitoring skills |
+
+Use the same password for each account. Sign in as Jordan Lee and open `/deal-rooms?room_id=demo_room_northstar_priya` to view the seeded Deal Room and its approved milestone. Start checkout yourself when ready. Complete approval only with a **PayPal Sandbox buyer account**; the Opnly login and PayPal buyer login are separate. No live credentials or live payments should be used for testing.

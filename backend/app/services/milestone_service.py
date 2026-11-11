@@ -125,12 +125,15 @@ def _milestone_to_response(
     # Authoritative settlement parties derivation
     payer_user_id: str | None = None
     payee_user_id: str | None = None
+    readiness_val = milestone.payment_readiness
     if hasattr(milestone, "transactions") and milestone.transactions:
         for t in milestone.transactions:
             if t.payer_user_id:
                 payer_user_id = t.payer_user_id
             if t.payee_user_id:
                 payee_user_id = t.payee_user_id
+            if getattr(t, "status", None) == "COMPLETED" or getattr(t, "status", None) == TransactionStatus.COMPLETED:
+                readiness_val = PaymentReadinessStatus.PAID.value
     if not payer_user_id and milestone.reviewer_user_id:
         payer_user_id = milestone.reviewer_user_id
         payee_user_id = milestone.responsible_user_id
@@ -162,7 +165,7 @@ def _milestone_to_response(
         payee_user_id=payee_user_id,
         status=MilestoneExecutionStatus(milestone.status),
         cancellation_reason=milestone.cancellation_reason,
-        payment_readiness=PaymentReadinessStatus(milestone.payment_readiness),
+        payment_readiness=PaymentReadinessStatus(readiness_val),
         current_evidence_submission=evidence_res,
         evidence_history=evidence_history,
         review_history=review_history,

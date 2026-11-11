@@ -7,6 +7,7 @@ import {
   MilestoneListResponse,
   User,
   DealRoomMilestoneItem,
+  Transaction,
 } from "@/types";
 
 // Mock API client functions
@@ -23,6 +24,7 @@ vi.mock("@/lib/api", () => ({
   captureMilestonePayPalOrder: vi.fn(),
   fetchMilestoneSettlementStatus: vi.fn(),
   prepareMilestoneSettlement: vi.fn(),
+  fetchLedgerTransactions: vi.fn(),
   getAccessToken: vi.fn().mockReturnValue("mock-token"),
 }));
 
@@ -71,12 +73,14 @@ describe("Milestone PayPal Sandbox Payment Integration", () => {
     responsible_user: {
       id: "usr_worker_alex",
       user_id: "usr_worker_alex",
+      name: "Alex Chen",
       full_name: "Alex Chen",
       email: "solver1@opnly.com",
     },
     reviewer_user: {
       id: "usr_payer_marcus",
       user_id: "usr_payer_marcus",
+      name: "Marcus Vance",
       full_name: "Marcus Vance",
       email: "seeker1@opnly.com",
     },
@@ -130,6 +134,7 @@ describe("Milestone PayPal Sandbox Payment Integration", () => {
       transaction_id: "1",
       transaction_ref: "TXN-SETTLE-VANCE-001",
     });
+    vi.mocked(api.fetchLedgerTransactions).mockResolvedValue({ items: [], total: 0 });
   });
 
   it("displays clearly visible 'Pay with PayPal (Sandbox)' button for authorized payer on approved milestone", async () => {
@@ -147,7 +152,7 @@ describe("Milestone PayPal Sandbox Payment Integration", () => {
     expect(screen.getByText(/Payment Readiness: Ready for Payment Review/i)).toBeInTheDocument();
 
     // Verify agreed amount and currency
-    expect(screen.getAllByText(/\$5000\.00/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/\$5,000\.00/i).length).toBeGreaterThanOrEqual(1);
 
     // Verify payer sees the Pay with PayPal button
     const payBtns = screen.getAllByRole("button", { name: /Pay with PayPal \(Sandbox\)/i });
@@ -171,7 +176,7 @@ describe("Milestone PayPal Sandbox Payment Integration", () => {
 
     // Restriction message explaining that only the client can authorize
     expect(
-      screen.getByText(/Only the designated client\/payer \(Marcus Vance\) is authorized to initiate PayPal payments/i)
+      screen.getByText("Milestone approved. Waiting for client payment release.")
     ).toBeInTheDocument();
   });
 
@@ -315,5 +320,101 @@ describe("Milestone PayPal Sandbox Payment Integration", () => {
 
     expect(await screen.findByText(/Payment Unavailable/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Pay with PayPal \(Sandbox\)/i })).not.toBeInTheDocument();
+  });
+
+  it("explains that submitted evidence awaits reviewer approval before payment release", async () => {
+    const submittedMilestone: MilestoneExecution = {
+      ...approvedMilestone,
+      status: "SUBMITTED_FOR_REVIEW",
+      payment_readiness: "NOT_READY",
+    };
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValue({
+      ...sampleMilestonesResponse,
+      items: [submittedMilestone],
+    });
+
+    render(
+      <MilestoneExecutionWorkspace
+        roomId="room_vance_chen"
+        currentUser={mockWorkerUser}
+        agreedMilestones={sampleAgreedMilestones}
+        currency="USD"
+      />
+    );
+
+    expect(
+      await screen.findByText(
+        "Deliverable evidence submitted. Awaiting client review and approval before payment release."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("loads the matching verified ledger transaction to view a settled milestone invoice", async () => {
+    const paidMilestone: MilestoneExecution = {
+      ...approvedMilestone,
+      payment_readiness: "PAID",
+    };
+    const paidTransaction: Transaction = {
+      id: 101,
+      transaction_ref: "TXN-SETTLE-VANCE-001",
+      business_id: 1,
+      amount: "5000.00",
+      currency: "USD",
+      status: "COMPLETED",
+      type: "CUSTOMER_PAYMENT",
+      payment_method: "PAYPAL_SANDBOX",
+      description: "Architecture Blueprint & Pipeline",
+      customer_name: "Marcus Vance",
+      customer_email: "seeker1@opnly.com",
+      deal_room_id: "room_vance_chen",
+      milestone_id: "mil_vance_001",
+      payer_user_id: "usr_payer_marcus",
+      payee_user_id: "usr_worker_alex",
+      paypal_order_id: "ORDER-PAYPAL-123",
+      paypal_capture_id: "CAPTURE-PAYPAL-999",
+      created_at: "2026-11-02T12:00:00Z",
+      updated_at: "2026-11-02T12:05:00Z",
+    };
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValue({
+      ...sampleMilestonesResponse,
+      items: [paidMilestone],
+    });
+    vi.mocked(api.fetchMilestoneSettlementStatus).mockResolvedValue({
+      milestone_id: "mil_vance_001",
+      room_id: "room_vance_chen",
+      status: "COMPLETED",
+      payment_readiness: "PAID",
+      agreed_amount: "5000.00",
+      currency: "USD",
+      payer_user_id: "usr_payer_marcus",
+      payee_user_id: "usr_worker_alex",
+      transaction_id: "101",
+      transaction_ref: paidTransaction.transaction_ref,
+      paypal_order_id: paidTransaction.paypal_order_id,
+      paypal_capture_id: paidTransaction.paypal_capture_id,
+    });
+    vi.mocked(api.fetchLedgerTransactions).mockResolvedValue({
+      items: [paidTransaction],
+      total: 1,
+    });
+
+    render(
+      <MilestoneExecutionWorkspace
+        roomId="room_vance_chen"
+        currentUser={mockPayerUser}
+        agreedMilestones={sampleAgreedMilestones}
+        currency="USD"
+      />
+    );
+
+    expect(
+      await screen.findByText("Payment Verified & Settled via PayPal Sandbox")
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/Transaction Reference: TXN-SETTLE-VANCE-001/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View Invoice" }));
+
+    expect(await screen.findByRole("heading", { name: "Opnly Invoice" })).toBeInTheDocument();
+    expect(api.fetchLedgerTransactions).toHaveBeenCalled();
   });
 });

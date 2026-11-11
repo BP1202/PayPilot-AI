@@ -10,6 +10,7 @@ import {
   MilestoneAIAnalysisResponse,
   User,
   DealRoomMilestoneItem,
+  Transaction,
 } from "@/types";
 import {
   initializeDealRoomMilestones,
@@ -23,7 +24,10 @@ import {
   captureMilestonePayPalOrder,
   fetchMilestoneSettlementStatus,
   prepareMilestoneSettlement,
+  fetchLedgerTransactions,
 } from "@/lib/api";
+import { InvoiceModal } from "@/components/invoicing/InvoiceModal";
+import { downloadInvoiceFile } from "@/lib/invoiceGenerator";
 import {
   CheckCircle2,
   Clock,
@@ -48,6 +52,7 @@ import {
   Loader2,
   Lock,
   ArrowRight,
+  Download,
 } from "lucide-react";
 
 interface MilestoneExecutionWorkspaceProps {
@@ -55,6 +60,7 @@ interface MilestoneExecutionWorkspaceProps {
   currentUser: User | null;
   agreedMilestones: DealRoomMilestoneItem[];
   currency: string;
+  onMilestoneUpdated?: () => void;
 }
 
 interface PaymentState {
@@ -66,6 +72,7 @@ interface PaymentState {
   currency?: string;
   message?: string;
   error?: string;
+  transactionRef?: string;
 }
 
 export function MilestoneExecutionWorkspace({
@@ -73,6 +80,7 @@ export function MilestoneExecutionWorkspace({
   currentUser,
   agreedMilestones,
   currency,
+  onMilestoneUpdated,
 }: MilestoneExecutionWorkspaceProps) {
   const [milestonesData, setMilestonesData] = useState<MilestoneListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +98,8 @@ export function MilestoneExecutionWorkspace({
     title: string;
     message: string;
   } | null>(null);
+  const [selectedInvoiceTx, setSelectedInvoiceTx] = useState<Transaction | null>(null);
+  const [invoiceLoadingMilestoneId, setInvoiceLoadingMilestoneId] = useState<string | null>(null);
 
   // Evidence Modal State
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
@@ -135,6 +145,7 @@ export function MilestoneExecutionWorkspace({
                 : "idle",
               orderId: statusRes.paypal_order_id || undefined,
               captureId: statusRes.paypal_capture_id || undefined,
+              transactionRef: statusRes.transaction_ref || undefined,
               approvalUrl: statusRes.approval_url || undefined,
               amount: statusRes.agreed_amount || undefined,
               currency: statusRes.currency,
@@ -176,7 +187,7 @@ export function MilestoneExecutionWorkspace({
       [milestoneId]: {
         ...(prev[milestoneId] || { status: "capturing" }),
         status: "capturing",
-        message: "Verifying buyer approval and capturing funds via PayPal API...",
+        message: "Verifying buyer approval and capturing payment via PayPal API...",
       },
     }));
 
@@ -190,9 +201,10 @@ export function MilestoneExecutionWorkspace({
           status: "completed",
           orderId: captureRes.paypal_order_id,
           captureId: captureRes.paypal_capture_id,
+          transactionRef: captureRes.transaction_ref,
           amount: captureRes.amount,
           currency: captureRes.currency,
-          message: `Verified capture completed! Funds settled (${captureRes.amount} ${captureRes.currency}).`,
+          message: `Verified capture completed! Payment settled (${captureRes.currency} ${captureRes.amount}).`,
         },
       }));
 
@@ -226,6 +238,68 @@ export function MilestoneExecutionWorkspace({
       setPaymentLoadingId(null);
     }
   }, [roomId, loadMilestones]);
+
+  const loadVerifiedInvoiceTransaction = async (
+    milestone: MilestoneExecution
+  ): Promise<Transaction | null> => {
+    const paymentState = paymentStates[milestone.id];
+    if (!paymentState?.transactionRef || !paymentState.captureId) {
+      setPaymentNotice({
+        type: "warning",
+        title: "Invoice not available yet",
+        message: "The verified transaction details are still loading. Please try again shortly.",
+      });
+      return null;
+    }
+
+    setInvoiceLoadingMilestoneId(milestone.id);
+    try {
+      const ledger = await fetchLedgerTransactions();
+      const transaction = ledger.items.find(
+        (item) =>
+          item.transaction_ref === paymentState.transactionRef &&
+          item.status === "COMPLETED" &&
+          item.paypal_capture_id === paymentState.captureId &&
+          item.deal_room_id === roomId &&
+          item.milestone_id === milestone.id
+      );
+      if (!transaction) {
+        setPaymentNotice({
+          type: "warning",
+          title: "Invoice not available yet",
+          message: "We couldn't find the verified settlement record for this milestone. Please try again later.",
+        });
+        return null;
+      }
+      return transaction;
+    } catch (err: unknown) {
+      setPaymentNotice({
+        type: "error",
+        title: "Unable to load invoice",
+        message: err instanceof Error
+          ? err.message
+          : "We couldn't load the verified invoice right now. Please try again.",
+      });
+      return null;
+    } finally {
+      setInvoiceLoadingMilestoneId(null);
+    }
+  };
+
+  const handleViewInvoice = async (milestone: MilestoneExecution) => {
+    const transaction = await loadVerifiedInvoiceTransaction(milestone);
+    if (transaction) {
+      setSelectedInvoiceTx(transaction);
+    }
+  };
+
+  const handleDownloadInvoice = async (milestone: MilestoneExecution) => {
+    const transaction = await loadVerifiedInvoiceTransaction(milestone);
+    if (transaction) {
+      const payee = transaction.payee_user_id === currentUser?.id ? currentUser : null;
+      downloadInvoiceFile(transaction, null, payee);
+    }
+  };
 
   // Handle PayPal return and cancel URL detection
   useEffect(() => {
@@ -353,18 +427,34 @@ export function MilestoneExecutionWorkspace({
       }
     } catch (err: any) {
       const errorMsg = err?.message || "Failed to create PayPal Sandbox order.";
-      setPaymentStates((prev) => ({
-        ...prev,
-        [milestone.id]: {
-          status: "failed",
-          error: errorMsg,
-        },
-      }));
-      setPaymentNotice({
-        type: "error",
-        title: "PayPal Order Creation Failed",
-        message: errorMsg,
-      });
+      if (errorMsg.includes("already completed")) {
+        setPaymentStates((prev) => ({
+          ...prev,
+          [milestone.id]: {
+            status: "completed",
+            message: "Milestone settlement is already completed and verified.",
+          },
+        }));
+        setPaymentNotice({
+          type: "success",
+          title: "Payment Already Completed",
+          message: errorMsg,
+        });
+        onMilestoneUpdated?.();
+      } else {
+        setPaymentStates((prev) => ({
+          ...prev,
+          [milestone.id]: {
+            status: "failed",
+            error: errorMsg,
+          },
+        }));
+        setPaymentNotice({
+          type: "error",
+          title: "PayPal Order Creation Failed",
+          message: errorMsg,
+        });
+      }
     } finally {
       setPaymentLoadingId(null);
     }
@@ -687,6 +777,10 @@ export function MilestoneExecutionWorkspace({
                   : (milestone.reviewer_user?.user_id === currentUser.id || milestone.reviewer_user?.id === currentUser.id)
               );
               const hasEvidence = !!milestone.current_evidence_submission;
+              const formattedMilestoneAmount = new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: milestone.currency,
+              }).format(Number(milestone.agreed_amount || "0"));
 
               // Status styles
               let statusBadgeClass = "bg-slate-100 text-slate-700 border-slate-200";
@@ -855,6 +949,12 @@ export function MilestoneExecutionWorkspace({
                     </div>
                   )}
 
+                  {milestone.status === "SUBMITTED_FOR_REVIEW" && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                      Deliverable evidence submitted. Awaiting client review and approval before payment release.
+                    </div>
+                  )}
+
                   {/* Commercial Settlement & PayPal Sandbox Payment Card */}
                   {milestone.status === "APPROVED" ? (
                     milestone.payment_readiness === "PAID" ? (
@@ -862,19 +962,44 @@ export function MilestoneExecutionWorkspace({
                         <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
                         <div className="space-y-1">
                           <p className="font-bold flex items-center gap-2">
-                            <span>Payment Completed & Settled</span>
+                            <span>Payment Verified & Settled via PayPal Sandbox</span>
                             <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 font-semibold">
                               PAID
                             </span>
                           </p>
                           <p className="text-[11px] text-emerald-800 leading-relaxed">
-                            Commercial settlement verified. Funds of ${milestone.agreed_amount || "0.00"} {milestone.currency} captured via PayPal Sandbox Orders v2. Official ledger receipt generated.
+                            Commercial settlement verified. Payment of {formattedMilestoneAmount} captured via PayPal Sandbox Orders v2.
                           </p>
+                          {paymentStates[milestone.id]?.transactionRef && (
+                            <p className="text-[10px] font-mono text-emerald-700 mt-1">
+                              Transaction Reference: {paymentStates[milestone.id].transactionRef}
+                            </p>
+                          )}
                           {paymentStates[milestone.id]?.captureId && (
                             <p className="text-[10px] font-mono text-emerald-700 mt-1">
                               PayPal Capture ID: {paymentStates[milestone.id].captureId}
                             </p>
                           )}
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            <button
+                              type="button"
+                              onClick={() => handleViewInvoice(milestone)}
+                              disabled={invoiceLoadingMilestoneId === milestone.id}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              <span>View Invoice</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadInvoice(milestone)}
+                              disabled={invoiceLoadingMilestoneId === milestone.id}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>Download Invoice</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -889,13 +1014,13 @@ export function MilestoneExecutionWorkspace({
                                 Payment Readiness: Ready for Payment Review
                               </p>
                               <p className="text-[11px] text-slate-500">
-                                Deliverables approved by designated reviewer. Authorized payer can release funds.
+                                Deliverables approved by designated reviewer. Authorized payer can proceed to payment.
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
                             <span className="text-lg font-black text-slate-900">
-                              ${milestone.agreed_amount || "0.00"}
+                              {formattedMilestoneAmount}
                             </span>
                             <span className="text-xs text-slate-500 ml-1 font-semibold">{milestone.currency}</span>
                           </div>
@@ -936,7 +1061,7 @@ export function MilestoneExecutionWorkspace({
                         ) : paymentStates[milestone.id]?.status === "capturing" ? (
                           <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-100/60 text-indigo-900 text-xs font-medium">
                             <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
-                            <span>Verifying buyer authorization and capturing funds via PayPal API...</span>
+                            <span>Verifying buyer authorization and capturing payment via PayPal API...</span>
                           </div>
                         ) : paymentStates[milestone.id]?.status === "awaiting_approval" ? (
                           <div className="space-y-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950">
@@ -1006,14 +1131,14 @@ export function MilestoneExecutionWorkspace({
                                   <ArrowRight className="h-3.5 w-3.5" />
                                 </button>
                                 <span className="text-[11px] text-slate-500 font-medium">
-                                  Release ${milestone.agreed_amount || "0.00"} {milestone.currency}
+                                  Pay {formattedMilestoneAmount}
                                 </span>
                               </div>
                             ) : (
                               <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-100 text-slate-700 text-[11px] border border-slate-200">
                                 <Lock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                 <span>
-                                  Payment Authorization Restricted: Only the designated client/payer ({milestone.reviewer_user?.name || milestone.reviewer_user?.full_name || "Client"}) is authorized to initiate PayPal payments under the accepted agreement.
+                                  Milestone approved. Waiting for client payment release.
                                 </span>
                               </div>
                             )}
@@ -1025,7 +1150,7 @@ export function MilestoneExecutionWorkspace({
                     <div className="rounded-xl p-3 bg-slate-50 border border-slate-200/80 text-[11px] text-slate-500 flex items-center gap-2">
                       <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                       <span>
-                        Payment Unavailable: Deliverables must be submitted by the solver and approved by the reviewer before commercial payment release.
+                        Payment Unavailable: Deliverables must be submitted by the solver and approved by the reviewer before commercial payment.
                       </span>
                     </div>
                   )}
@@ -1265,7 +1390,7 @@ export function MilestoneExecutionWorkspace({
                             </button>
                           ) : (
                             <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                              Awaiting Client Payout ({milestone.reviewer_user?.name || milestone.reviewer_user?.full_name || "Client"})
+                              Waiting for client payment ({milestone.reviewer_user?.name || milestone.reviewer_user?.full_name || "Client"})
                             </span>
                           )}
                         </>
@@ -1769,6 +1894,14 @@ export function MilestoneExecutionWorkspace({
           </div>
         </div>
       )}
+      <InvoiceModal
+        isOpen={Boolean(selectedInvoiceTx)}
+        onClose={() => setSelectedInvoiceTx(null)}
+        transaction={selectedInvoiceTx}
+        currentUser={
+          selectedInvoiceTx?.payee_user_id === currentUser?.id ? currentUser : null
+        }
+      />
     </div>
   );
 }

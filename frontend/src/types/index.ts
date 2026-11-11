@@ -69,7 +69,7 @@ export interface DashboardTotals {
 }
 
 export interface DashboardOverview {
-  business: Business;
+  business: Business | null;
   totals: DashboardTotals;
 }
 
@@ -375,6 +375,8 @@ export interface BusinessProfileUpdatePayload {
 
 export interface OpportunityPublic {
   id: string;
+  user_id?: string;
+  creator_name?: string | null;
   business_id?: number | null;
   business_name?: string | null;
   submission_type: OpportunityType;
@@ -1003,19 +1005,10 @@ export interface MilestoneAIAnalysisResponse {
 export type DashboardView =
   | "home"
   | "opportunities"
-  | "explore"
-  | "browse"
-  | "my-opportunities"
-  | "matches"
   | "collaborations"
   | "deal-rooms"
   | "ledger"
-  | "trust"
-  | "profile"
-  | "organisations"
-  | "settings";
-
-export type UserRole = "seeker" | "creator";
+  | "profile";
 
 export interface CreatePayPalOrderPayload {
   idempotency_key: string;
@@ -1064,8 +1057,6 @@ export interface MilestoneSettlementStatus {
   paypal_capture_id?: string | null;
   approval_url?: string | null;
 }
-
-
 
 
 

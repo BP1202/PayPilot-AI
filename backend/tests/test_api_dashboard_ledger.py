@@ -1,12 +1,13 @@
 import pytest
-from app.core.database import Base, get_db
-from app.core.security import create_access_token
-from app.core.seed import seed_demo_data
-from app.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+from app.core.database import Base, get_db
+from app.core.security import create_access_token
+from app.core.seed import seed_demo_data
+from app.main import app
 
 
 @pytest.fixture
@@ -56,6 +57,30 @@ def test_get_dashboard_overview_endpoint(client_with_db):
     assert totals["pending_count"] == 1
     assert totals["pending_total"] == "2650.00"
     assert totals["transaction_count"] == 5
+
+
+def test_dashboard_does_not_create_business_for_individual_solver(client_with_db):
+    registration = client_with_db.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "solver.without.business@opnly-demo.test",
+            "password": "SecureDemoPassword123!",
+            "full_name": "Individual Solver",
+        },
+    )
+    assert registration.status_code == 201
+    token = registration.json()["access_token"]
+
+    response = client_with_db.get(
+        "/api/v1/dashboard/overview",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["business"] is None
+    assert data["totals"]["transaction_count"] == 0
+    assert data["totals"]["total_revenue"] == "0.00"
 
 
 def test_get_ledger_transactions_endpoint(client_with_db):

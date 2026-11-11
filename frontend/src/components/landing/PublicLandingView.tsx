@@ -69,7 +69,7 @@ export const PublicLandingView: React.FC<PublicLandingViewProps> = ({
               How It Works
             </a>
             <a href="#examples" className="hover:text-slate-900 transition">
-              Example Opportunities
+              Explore Opportunities
             </a>
             <a href="#trust-reliability" className="hover:text-slate-900 transition">
               Trust & Reliability
@@ -451,147 +451,32 @@ export const PublicLandingView: React.FC<PublicLandingViewProps> = ({
         </section>
 
         {/* ========================================================================= */}
-        {/* 04 · OPPORTUNITIES HAPPENING HERE (EXAMPLE OPPORTUNITIES)                  */}
+        {/* 04 · PUBLIC OPPORTUNITY DISCOVERY                                        */}
         {/* ========================================================================= */}
         <section
           id="examples"
-          aria-label="Example Opportunities"
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8"
+          aria-label="Explore public opportunities"
+          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
         >
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
-                Network Discovery
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 mt-1">
-                Opportunities happening here
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Discover what people need and what others can contribute.
-              </p>
-            </div>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200 self-start sm:self-auto">
-              <span>Example Opportunities</span>
-            </div>
-          </div>
-
-          {/* 2 Clearly Labelled Example Opportunity Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Example 1: Problem / Need */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs hover:border-indigo-300 transition space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200">
-                  <PlusCircle className="h-3 w-3" />
-                  <span>Seeking Solution</span>
-                </span>
-                <span className="text-xs font-bold text-indigo-600">Fintech · USD $4,500</span>
-              </div>
-
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">
-                  Automated Financial Reconciliation Engine
-                </h3>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Seeking an engineer to build deterministic reconciliation rules matching bank
-                  statements with operational commerce events.
-                </p>
-              </div>
-
-              <div className="space-y-1.5 pt-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Milestone Deliverables (3)
-                </p>
-                <div className="flex flex-wrap gap-1.5 text-xs text-slate-600">
-                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium">
-                    1. CSV/API Ingestion Pipeline
-                  </span>
-                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium">
-                    2. Discrepancy Matching Algorithm
-                  </span>
-                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium">
-                    3. Dual-Approval Ledger Sync
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 italic">
-                  Example commercial problem
-                </span>
-                <button
-                  type="button"
-                  onClick={onExploreOpportunities}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition cursor-pointer"
-                >
-                  <span>Explore Network</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Example 2: Offering / Skill */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs hover:border-emerald-300 transition space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-                  <Briefcase className="h-3 w-3" />
-                  <span>Offering Solution</span>
-                </span>
-                <span className="text-xs font-bold text-emerald-700">
-                  Cloud Architecture · USD $6,000
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">
-                  High-Throughput Distributed Microservices Architecture
-                </h3>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Offering proven architectural design, containerized deployment, and high-volume
-                  transaction processing capabilities for scaling platforms.
-                </p>
-              </div>
-
-              <div className="space-y-1.5 pt-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Milestone Deliverables (3)
-                </p>
-                <div className="flex flex-wrap gap-1.5 text-xs text-slate-600">
-                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium">
-                    1. System Architecture Specification
-                  </span>
-                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium">
-                    2. Infrastructure as Code Template
-                  </span>
-                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium">
-                    3. Load Test & Latency Verification
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 italic">
-                  Example capability offering
-                </span>
-                <button
-                  type="button"
-                  onClick={onExploreOpportunities}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 transition cursor-pointer"
-                >
-                  <span>Explore Network</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center pt-2">
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xs space-y-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+              Opportunity Discovery
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+              Explore real public opportunities
+            </h2>
+            <p className="text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Browse opportunities shared by their creators. Listings and commercial terms come
+              from platform records, not fictional examples.
+            </p>
             <button
               type="button"
               onClick={onExploreOpportunities}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 transition cursor-pointer"
             >
-              <Compass className="h-4 w-4 text-indigo-600" />
-              <span>Browse All Open Opportunities</span>
+              <Compass className="h-4 w-4" />
+              <span>Explore Opportunities</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
         </section>
@@ -782,7 +667,7 @@ export const PublicLandingView: React.FC<PublicLandingViewProps> = ({
               onClick={() => onNavigateView?.("ledger")}
               className="hover:text-indigo-600 transition cursor-pointer"
             >
-              Payments & Earnings
+              Payments & Ledger
             </button>
             <button
               type="button"
@@ -801,4 +686,3 @@ export const PublicLandingView: React.FC<PublicLandingViewProps> = ({
     </div>
   );
 };
-

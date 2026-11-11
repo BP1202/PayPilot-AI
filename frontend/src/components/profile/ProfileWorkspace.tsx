@@ -35,14 +35,12 @@ import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 interface ProfileWorkspaceProps {
   currentUser?: UserType | null;
   onOpenAuth?: () => void;
-  activeRole?: "seeker" | "creator";
   initialTab?: "individual" | "organization";
 }
 
 export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
   currentUser,
   onOpenAuth,
-  activeRole = "seeker",
   initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState<"individual" | "organization">(
@@ -1088,7 +1086,7 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Apex Precision Gearworks"
+                  placeholder="Enter your organization name"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-hidden transition"
@@ -1644,4 +1642,3 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
     </div>
   );
 };
-

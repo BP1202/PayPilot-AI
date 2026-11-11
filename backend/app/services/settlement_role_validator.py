@@ -324,23 +324,24 @@ class SettlementRoleValidator:
 
         for p in participants:
             text = (p.assigned_responsibilities or "").lower()
+            combined_text = f"{p.collaboration_role or ''} {p.assigned_responsibilities or ''}".lower()
 
             # Strictly require explicit contractual payment/funding commitment.
             # Operational or communicative references (e.g., "discusses payment", "reviews payment")
             # do NOT constitute financial authorization.
             is_operational_only = bool(
-                re.search(r"\b(reviews|discusses|negotiates|tracks|monitors)\s+(the\s+)?payment", text)
+                re.search(r"\b(reviews|discusses|negotiates|tracks|monitors)\s+(the\s+)?payment\b", text)
             )
             has_payer_clause = (not is_operational_only) and bool(
                 re.search(
-                    r"\b(funds\s+milestone|responsible\s+for\s+(funding|paying|payment)|pays\s+(agreed|milestone|for)|funds\s+payment|client\s+funder|contractual\s+payer|funds\s+milestone\s+releases)\b",
-                    text,
+                    r"\b(funds\s+milestone|responsible\s+for\s+(funding|paying|payment)|pays\s+(agreed|milestone|for)|funds\s+payment|client\s+funder|contractual\s+payer|funds\s+milestone\s+releases|execute\s+(milestone\s+)?settlements?|authorize\s+(milestone\s+)?payments?|client\s*\/\s*approver)\b",
+                    combined_text,
                 )
             )
             has_payee_clause = bool(
                 re.search(
-                    r"\b(receives\s+payment|payee|contractor\s+deliver|delivering\s+features|service\s+provider|receive\s+payment)\b",
-                    text,
+                    r"\b(receives?\s+payments?|payee|contractor|deliver(ing)?\s+(deliverables|features|pipeline|services)|service\s+provider|receive\s+payment|lead\s+(systems\s+)?architect|lead\s+architecture|submit\s+verification\s+evidence|developer|vendor)\b",
+                    combined_text,
                 )
             )
 
@@ -371,7 +372,7 @@ class SettlementRoleValidator:
             return derived_payer, derived_payee, "UNAMBIGUOUS_PARTICIPANT_RESPONSIBILITIES"
 
         # Fallback / assumption prohibition:
-        # We NEVER fall back to proposal creator/recipient or reviewer/worker alone without agreement backing.
+        # We NEVER fall back when roles cannot be determined or are ambiguous.
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(

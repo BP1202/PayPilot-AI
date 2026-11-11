@@ -1,27 +1,19 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { AppSidebar, DashboardView, UserRole } from "@/components/dashboard/AppSidebar";
-import { OpportunityHeroBanner } from "@/components/dashboard/OpportunityHeroBanner";
-import { RecommendedOpportunitiesSection } from "@/components/dashboard/RecommendedOpportunitiesSection";
-import { ActiveCollaborationsSection } from "@/components/dashboard/ActiveCollaborationsSection";
-import { RecentActivitySection } from "@/components/dashboard/RecentActivitySection";
+import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { OpportunityDraftsList } from "@/components/OpportunityDraftsList";
 import { OpportunityDiscoveryFeed } from "@/components/discovery/OpportunityDiscoveryFeed";
 import { ProfileWorkspace } from "@/components/profile/ProfileWorkspace";
-import { AchievementsModal } from "@/components/profile/AchievementsModal";
 import { OpportunityStudioModal } from "@/components/OpportunityStudioModal";
 import { CandidateRecommendationsModal } from "@/components/matching/CandidateRecommendationsModal";
 import { ConnectionsProposalsView } from "@/components/connections/ConnectionsProposalsView";
 import { ConnectionRequestModal } from "@/components/connections/ConnectionRequestModal";
 import { DealRoomsListView } from "@/components/deal-rooms/DealRoomsListView";
 import { DealRoomWorkspaceView } from "@/components/deal-rooms/DealRoomWorkspaceView";
-import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { AuthModal } from "@/components/AuthModal";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
 import { UnifiedWorkspaceView } from "@/components/dashboard/UnifiedWorkspaceView";
-import { SeekerDashboardView } from "@/components/dashboard/SeekerDashboardView";
-import { ContributorDashboardView } from "@/components/dashboard/ContributorDashboardView";
 import { DashboardStats } from "@/components/DashboardStats";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { CommerceLedger } from "@/components/CommerceLedger";
@@ -49,11 +41,9 @@ import {
   getAccessToken,
   clearAccessToken,
   createDealRoom,
-  checkBackendHealth,
   ApiError,
 } from "@/lib/api";
 import {
-  Bell,
   Search,
   RefreshCw,
   AlertCircle,
@@ -65,10 +55,8 @@ import {
   Compass,
   Lightbulb,
   User as UserIcon,
-  Award,
   ChevronDown,
   LogOut,
-  Sparkles,
   Receipt,
   Briefcase,
 } from "lucide-react";
@@ -108,111 +96,25 @@ function sanitizeErrorMessage(rawMessage?: string): string {
   return rawMessage;
 }
 
-const ROLE_STORAGE_KEY = "opnly_active_role";
-
 function getInitialViewFromPath(defaultView: DashboardView = "home"): DashboardView {
-  if (typeof window !== "undefined") {
-    const path = window.location.pathname.replace(/^\/+/g, "").split("/")[0];
-    if (
-      path === "opportunities" ||
-      path === "browse" ||
-      path === "explore" ||
-      path === "my-opportunities"
-    )
-      return "opportunities";
-    if (path === "collaborations") return "collaborations";
-    if (path === "deal-rooms") return "deal-rooms";
-    if (
-      path === "profile" ||
-      path === "trust" ||
-      path === "organisations" ||
-      path === "settings"
-    )
-      return "profile";
-    if (path === "ledger" || path === "payments") return "ledger";
-
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("room_id")) return "deal-rooms";
-    const viewParam = params.get("view") as DashboardView | null;
-    const validViews: string[] = [
-      "home",
-      "opportunities",
-      "browse",
-      "explore",
-      "my-opportunities",
-      "matches",
-      "collaborations",
-      "deal-rooms",
-      "ledger",
-      "trust",
-      "profile",
-      "organisations",
-      "settings",
-    ];
-    if (viewParam && validViews.includes(viewParam)) {
-      if (
-        viewParam === "browse" ||
-        viewParam === "explore" ||
-        viewParam === "my-opportunities" ||
-        viewParam === "matches"
-      ) {
-        return "opportunities";
-      }
-      if (
-        viewParam === "trust" ||
-        viewParam === "organisations" ||
-        viewParam === "settings"
-      ) {
-        return "profile";
-      }
-      return viewParam;
-    }
-  }
   return defaultView;
 }
 
-function getInitialRole(): UserRole {
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    const roleParam = params.get("role") as UserRole | null;
-    if (roleParam === "seeker" || roleParam === "creator") return roleParam;
-    const saved = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole;
-    if (saved === "seeker" || saved === "creator") return saved;
-  }
-  return "seeker";
-}
-
-function getInitialOppTab(): "explore" | "mine" {
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
-    if (tab === "mine" || tab === "explore") return tab;
-    const v = params.get("view");
-    if (v === "browse") return "explore";
-    const path = window.location.pathname.replace(/^\/+/g, "").split("/")[0];
-    if (path === "browse") return "explore";
-    const role = localStorage.getItem(ROLE_STORAGE_KEY);
-    if (role === "creator") return "mine";
-  }
-  return "explore";
+function getInitialOppTab(defaultTab: "explore" | "mine" = "explore"): "explore" | "mine" {
+  return defaultTab;
 }
 
 export interface AppShellProps {
   initialView?: DashboardView;
-  initialRole?: UserRole;
   initialOppTab?: "explore" | "mine";
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
   initialView = "home",
-  initialRole,
   initialOppTab,
 }) => {
   const [currentView, setCurrentView] = useState<DashboardView>(() =>
     getInitialViewFromPath(initialView)
-  );
-  const [activeRole, setActiveRole] = useState<UserRole>(() =>
-    initialRole || getInitialRole()
   );
   const [activeOppTab, setActiveOppTab] = useState<"explore" | "mine">(() =>
     initialOppTab || getInitialOppTab()
@@ -238,7 +140,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [studioInitialCategory, setStudioInitialCategory] = useState<OpportunityCategory | undefined>(undefined);
 
   // Modals & alerts
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -253,63 +154,34 @@ export const AppShell: React.FC<AppShellProps> = ({
     opportunityId?: string | null;
     opportunityTitle?: string | null;
   } | null>(null);
-  const [selectedDealRoomId, setSelectedDealRoomId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("room_id");
-    }
-    return null;
-  });
-  const [backendStatus, setBackendStatus] = useState<"checking" | "connected" | "offline">("checking");
+  const [selectedDealRoomId, setSelectedDealRoomId] = useState<string | null>(null);
   const [globalSearch, setGlobalSearch] = useState("");
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
-  const [profileInitialTab, setProfileInitialTab] = useState<"individual" | "organization">("individual");
 
   // Dynamic Browser URL Route Synchronization
   const handleNavigate = useCallback(
     (view: DashboardView, tab?: "explore" | "mine") => {
-      let targetView: DashboardView = view;
-      let targetTab = tab;
-
-      if (view === "browse" || view === "explore") {
-        targetView = "opportunities";
-        targetTab = "explore";
-      } else if (view === "my-opportunities") {
-        targetView = "opportunities";
-        targetTab = "mine";
-      } else if (view === "matches") {
-        targetView = "opportunities";
-        targetTab = "explore";
-      } else if (view === "trust" || view === "organisations" || view === "settings") {
-        targetView = "profile";
-        if (view === "organisations") {
-          setProfileInitialTab("organization");
-        } else {
-          setProfileInitialTab("individual");
-        }
-      }
-
-      setCurrentView(targetView);
-      if (targetTab) {
-        setActiveOppTab(targetTab);
+      const targetTab = view === "opportunities" ? tab || "explore" : undefined;
+      setCurrentView(view);
+      if (view === "opportunities") {
+        setActiveOppTab(targetTab || "explore");
       }
 
       if (typeof window !== "undefined") {
         let routePath = "/";
-        if (targetView === "opportunities") {
+        if (view === "opportunities") {
           routePath = targetTab ? `/opportunities?tab=${targetTab}` : "/opportunities";
-        } else if (targetView === "collaborations") {
+        } else if (view === "collaborations") {
           routePath = "/collaborations";
-        } else if (targetView === "deal-rooms") {
+        } else if (view === "deal-rooms") {
           routePath = "/deal-rooms";
-        } else if (targetView === "profile") {
+        } else if (view === "profile") {
           routePath = "/profile";
-        } else if (targetView === "ledger") {
+        } else if (view === "ledger") {
           routePath = "/ledger";
         }
 
-        window.history.pushState({ view: targetView, tab: targetTab }, "", routePath);
+        window.history.pushState({ view, tab: targetTab }, "", routePath);
       }
     },
     []
@@ -326,15 +198,28 @@ export const AppShell: React.FC<AppShellProps> = ({
     }
   };
 
-  const handleRoleChange = (newRole: UserRole) => {
-    setActiveRole(newRole);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(ROLE_STORAGE_KEY, newRole);
-    }
-  };
-
-  // Browser Back & Forward URL Synchronization
+  // Browser Back & Forward URL Synchronization + Client Mount Sync
   useEffect(() => {
+    // Initial mount sync from URL
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const rId = params.get("room_id");
+      if (rId) {
+        setSelectedDealRoomId(rId);
+      }
+      const t = params.get("tab") as "explore" | "mine" | null;
+      if (t === "mine" || t === "explore") {
+        setActiveOppTab(t);
+      }
+      const viewParam = params.get("view") as DashboardView | null;
+      if (
+        viewParam &&
+        ["home", "opportunities", "collaborations", "deal-rooms", "ledger", "profile"].includes(viewParam)
+      ) {
+        setCurrentView(viewParam);
+      }
+    }
+
     const handlePopState = () => {
       const pathView = getInitialViewFromPath("home");
       setCurrentView(pathView);
@@ -342,6 +227,8 @@ export const AppShell: React.FC<AppShellProps> = ({
       const t = params.get("tab") as "explore" | "mine" | null;
       if (t === "mine" || t === "explore") {
         setActiveOppTab(t);
+      } else if (pathView === "opportunities") {
+        setActiveOppTab("explore");
       }
       const rId = params.get("room_id");
       if (rId) {
@@ -486,37 +373,14 @@ export const AppShell: React.FC<AppShellProps> = ({
       setOppLoading(false);
     }
 
-    checkBackendHealth()
-      .then((res) => {
-        if (res && res.status === "healthy") {
-          setBackendStatus("connected");
-        } else {
-          setBackendStatus("offline");
-        }
-      })
-      .catch(() => setBackendStatus("offline"));
-
-    const syncRole = () => {
-      const saved = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole;
-      if (saved === "seeker" || saved === "creator") {
-        setActiveRole(saved);
-      }
-    };
-
     window.addEventListener("paypilot:auth_changed", syncAuth);
-    window.addEventListener("opnly:role_changed", syncRole);
     return () => {
       window.removeEventListener("paypilot:auth_changed", syncAuth);
-      window.removeEventListener("opnly:role_changed", syncRole);
     };
   }, []);
 
   const handleAuthSuccess = (user: User) => {
     setCurrentUser(user);
-    const saved = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole;
-    if (saved === "seeker" || saved === "creator") {
-      handleRoleChange(saved);
-    }
     setSuccessToast(`Welcome, ${user.full_name || user.email}!`);
     if (currentView === "ledger") {
       loadData(selectedStatus);
@@ -592,7 +456,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const handleOpenNewStudio = (intent?: OpportunityIntent, category?: OpportunityCategory) => {
     setActiveOpportunity(null);
-    setStudioInitialIntent(intent || (activeRole === "seeker" ? "SEEKING_SOLUTION" : "OFFERING_SOLUTION"));
+    setStudioInitialIntent(intent || "SEEKING_SOLUTION");
     setStudioInitialCategory(category || "BUSINESS");
     setIsStudioOpen(true);
   };
@@ -685,11 +549,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           currentView={currentView}
           onNavigate={handleNavigate}
           currentUser={currentUser}
-          business={overview?.business}
-          activeRole={activeRole}
-          onRoleChange={handleRoleChange}
           onOpenProfile={() => {
-            setProfileInitialTab(activeRole === "seeker" ? "individual" : "organization");
             handleNavigate("profile");
           }}
           onOpenAuth={() => setIsAuthOpen(true)}
@@ -717,11 +577,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                 setIsMobileSidebarOpen(false);
               }}
               currentUser={currentUser}
-              business={overview?.business}
-              activeRole={activeRole}
-              onRoleChange={handleRoleChange}
               onOpenProfile={() => {
-                setIsOnboardingOpen(true);
+                handleNavigate("profile");
                 setIsMobileSidebarOpen(false);
               }}
               onOpenAuth={() => {
@@ -759,48 +616,23 @@ export const AppShell: React.FC<AppShellProps> = ({
               <span className="text-xs font-bold text-slate-800 capitalize">
                 {currentView === "home"
                   ? "Dashboard"
-                  : currentView === "opportunities" || currentView === "browse"
+                  : currentView === "opportunities"
                   ? activeOppTab === "explore"
                     ? "Opportunities / Explore Network"
-                    : "Opportunities / My Workspace"
+                    : "Opportunities / My Opportunities"
                   : currentView === "collaborations"
-                  ? activeRole === "seeker"
-                    ? "Applications & Proposals"
-                    : "Review Proposals"
+                  ? "Connections & Proposals"
                   : currentView === "deal-rooms"
                   ? "Deal Rooms"
                   : currentView === "profile"
-                  ? "Profile System"
-                  : "Payments & Earnings"}
+                  ? "Profile & Capabilities"
+                  : "Payments & Ledger"}
               </span>
-              <span
-                className={`ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold border ${
-                  activeRole === "seeker"
-                    ? "bg-blue-50 text-blue-700 border-blue-200"
-                    : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                }`}
-              >
-                {activeRole === "seeker" ? "Seeker Workspace" : "Contributor Workspace"}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => handleRoleChange(activeRole === "seeker" ? "creator" : "seeker")}
-                className={`ml-1.5 hidden sm:inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold border transition cursor-pointer ${
-                  activeRole === "seeker"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                    : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                }`}
-                title="Switch workspace view (One account supports both paths)"
-              >
-                <Sparkles className="h-2.5 w-2.5" />
-                <span>Switch to {activeRole === "seeker" ? "Contributor" : "Seeker"}</span>
-              </button>
             </div>
           </div>
 
           {/* Global Search Input */}
-          {!((currentView === "opportunities" || currentView === "browse") && activeOppTab === "explore") ? (
+          {!(currentView === "opportunities" && activeOppTab === "explore") ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -828,26 +660,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           )}
 
           <div className="flex items-center gap-3">
-            {/* Network Connectivity Status Badge */}
-            <div className="hidden lg:flex items-center">
-              {backendStatus === "connected" ? (
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200"
-                  title="Opportunity Network services connected"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Network Live</span>
-                </span>
-              ) : backendStatus === "offline" ? (
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 border border-slate-200"
-                  title="Local services disconnected. Verify backend server is running."
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                  <span>Network Standby</span>
-                </span>
-              ) : null}
-            </div>
             {overview?.business && currentView === "ledger" && (
               <div className="hidden lg:flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
                 <Building2 className="h-3.5 w-3.5 text-slate-400" />
@@ -857,37 +669,17 @@ export const AppShell: React.FC<AppShellProps> = ({
               </div>
             )}
 
-            {/* Notification Bell */}
-            <button
-              onClick={() => handleNavigate("browse")}
-              className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
-                2
-              </span>
-            </button>
-
-            {/* Top Right Profile Icon & Menu ("Blue and Green Theory") */}
+            {/* Top Right Profile Icon & Menu */}
             {currentUser ? (
               <div className="relative">
                 <button
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className={`flex items-center gap-2 rounded-2xl p-1.5 pr-2.5 transition cursor-pointer border ${
-                    activeRole === "seeker"
-                      ? "bg-blue-50/70 border-blue-200/80 hover:bg-blue-100/70 text-blue-900"
-                      : "bg-emerald-50/70 border-emerald-200/80 hover:bg-emerald-100/70 text-emerald-900"
-                  }`}
+                  className="flex items-center gap-2 rounded-2xl border border-indigo-200/80 bg-indigo-50/70 p-1.5 pr-2.5 text-indigo-900 transition hover:bg-indigo-100/70 cursor-pointer"
                   aria-label="User profile menu"
                   aria-expanded={isProfileMenuOpen}
                 >
                   <div
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[11px] font-extrabold text-white shadow-2xs ${
-                      activeRole === "seeker"
-                        ? "bg-gradient-to-tr from-blue-600 to-indigo-600 ring-2 ring-blue-200"
-                        : "bg-gradient-to-tr from-emerald-600 to-teal-600 ring-2 ring-emerald-200"
-                    }`}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-[11px] font-extrabold text-white shadow-2xs ring-2 ring-indigo-200"
                   >
                     {currentUser.full_name
                       ? currentUser.full_name
@@ -922,72 +714,22 @@ export const AppShell: React.FC<AppShellProps> = ({
                           {currentUser.email}
                         </p>
                         <div className="pt-1">
-                          <span
-                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-extrabold border ${
-                              activeRole === "seeker"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            }`}
-                          >
-                            {activeRole === "seeker" ? "Seeker Workspace" : "Contributor Workspace"}
+                          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+                            Unified Account
                           </span>
                         </div>
                       </div>
 
-                      {/* Shared Profiles: Both Personal and Organization available under one account */}
+                      {/* Profile & Capabilities */}
                       <button
                         onClick={() => {
-                          setProfileInitialTab("individual");
                           handleNavigate("profile");
                           setIsProfileMenuOpen(false);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50/80 rounded-xl transition cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-indigo-700 hover:bg-indigo-50/80 rounded-xl transition cursor-pointer text-left"
                       >
-                        <UserIcon className="h-4 w-4 text-blue-600" />
-                        <span>Personal Profile & Skills</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setProfileInitialTab("organization");
-                          handleNavigate("profile");
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/80 rounded-xl transition cursor-pointer text-left"
-                      >
-                        <Building2 className="h-4 w-4 text-emerald-600" />
-                        <span>Organization & Business Profile</span>
-                      </button>
-
-                      {/* Achievements Option */}
-                      <button
-                        onClick={() => {
-                          setIsAchievementsOpen(true);
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-amber-700 hover:bg-amber-50/80 rounded-xl transition cursor-pointer text-left"
-                      >
-                        <Award className="h-4 w-4 text-amber-500" />
-                        <span>Achievements & Badges</span>
-                      </button>
-
-                      {/* Workspace Switcher */}
-                      <button
-                        onClick={() => {
-                          handleRoleChange(activeRole === "seeker" ? "creator" : "seeker");
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl transition cursor-pointer text-left ${
-                          activeRole === "seeker"
-                            ? "text-emerald-700 hover:bg-emerald-50"
-                            : "text-blue-700 hover:bg-blue-50"
-                        }`}
-                        title="Switch workspace view (One account supports both paths)"
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        <span>
-                          Switch to {activeRole === "seeker" ? "Contributor Workspace (Offer Skills)" : "Seeker Workspace (Need Solutions)"}
-                        </span>
+                        <UserIcon className="h-4 w-4 text-indigo-600" />
+                        <span>My Profile & Capabilities</span>
                       </button>
 
                       <div className="border-t border-slate-100 my-1" />
@@ -1010,11 +752,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             ) : (
               <button
                 onClick={() => setIsAuthOpen(true)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition cursor-pointer ${
-                  activeRole === "seeker"
-                    ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200"
-                    : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
-                }`}
+                className="rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-indigo-700 cursor-pointer"
               >
                 Sign In
               </button>
@@ -1125,10 +863,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               onViewLedger={() => handleNavigate("ledger")}
               onCompleteProfile={() => handleNavigate("profile")}
             />
-          ) : currentView === "opportunities" ||
-            currentView === "browse" ||
-            currentView === "explore" ||
-            currentView === "my-opportunities" ? (
+          ) : currentView === "opportunities" ? (
             /* ========================================================================= */
             /* UNIFIED OPPORTUNITY NETWORK & WORKSPACE HUB                               */
             /* ========================================================================= */
@@ -1166,7 +901,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                         }`}
                       >
                         <Compass className="h-3.5 w-3.5" />
-                        <span>Explore Network</span>
+                        <span>Discover Network</span>
                       </button>
                       <button
                         onClick={() => handleOppTabChange("mine")}
@@ -1177,7 +912,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                         }`}
                       >
                         <Lightbulb className="h-3.5 w-3.5" />
-                        <span>My Workspace ({opportunities.length})</span>
+                        <span>My Opportunities ({opportunities.length})</span>
                       </button>
                     </div>
 
@@ -1206,6 +941,18 @@ export const AppShell: React.FC<AppShellProps> = ({
                     onCreateOpportunity={(intent, category) =>
                       handleOpenNewStudio(intent, category)
                     }
+                    onConnect={(opp) => {
+                      if (!currentUser) {
+                        setIsAuthOpen(true);
+                        return;
+                      }
+                      setConnectTarget({
+                        recipientUserId: opp.user_id || "owner_default",
+                        recipientName: opp.creator_name || opp.business_name || "Opportunity Creator",
+                        opportunityId: opp.id,
+                        opportunityTitle: opp.title,
+                      });
+                    }}
                   />
                 </section>
               ) : (
@@ -1252,7 +999,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <DealRoomsListView
                   currentUser={currentUser}
                   onSelectRoom={(roomId) => setSelectedDealRoomId(roomId)}
-                  onOpenBrowse={() => handleNavigate("browse")}
+                  onOpenBrowse={() => handleNavigate("opportunities", "explore")}
                 />
               )}
             </div>
@@ -1264,8 +1011,6 @@ export const AppShell: React.FC<AppShellProps> = ({
               <ProfileWorkspace
                 currentUser={currentUser}
                 onOpenAuth={() => setIsAuthOpen(true)}
-                activeRole={activeRole}
-                initialTab={profileInitialTab}
               />
             </div>
           ) : (
@@ -1380,17 +1125,6 @@ export const AppShell: React.FC<AppShellProps> = ({
         />
       )}
 
-      <AchievementsModal
-        isOpen={isAchievementsOpen}
-        onClose={() => setIsAchievementsOpen(false)}
-        currentUser={currentUser}
-        activeRole={activeRole}
-        onViewProfile={() => {
-          setProfileInitialTab(activeRole === "seeker" ? "individual" : "organization");
-          handleNavigate("profile");
-        }}
-      />
-
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
@@ -1399,4 +1133,3 @@ export const AppShell: React.FC<AppShellProps> = ({
     </div>
   );
 };
-

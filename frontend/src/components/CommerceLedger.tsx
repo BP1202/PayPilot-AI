@@ -148,7 +148,9 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
             ) : transactions.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-8 text-center text-slate-400">
-                  No transactions match the selected filter.
+                  {selectedStatus
+                    ? "No transactions match the selected filter."
+                    : "Commercial settlements appear here after milestone deliverables are verified and payment is captured."}
                 </td>
               </tr>
             ) : (

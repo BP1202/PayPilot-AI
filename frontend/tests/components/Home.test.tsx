@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import Home from "@/app/page";
 import * as api from "@/lib/api";
 import {
@@ -158,15 +158,49 @@ describe("Home Page Dashboard & Connectivity", () => {
     vi.mocked(api.fetchUserOpportunities).mockResolvedValue({ items: [], total: 0 });
     vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
     vi.mocked(api.fetchDealRooms).mockResolvedValue({ items: [], total: 0 });
-    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValue({
+      items: [],
+      total: 0,
+      completed_count: 0,
+      in_progress_count: 0,
+      pending_review_count: 0,
+      total_agreed_amount: "0.00",
+      approved_amount: "0.00",
+    });
     vi.mocked(api.fetchProposals).mockResolvedValue({ items: [], total: 0 });
-    vi.mocked(api.fetchConnectionRequests).mockResolvedValue({ items: [], total: 0 });
-    vi.mocked(api.fetchOpportunityCandidates).mockResolvedValue({ items: [], total: 0 });
-    vi.mocked(api.fetchRecommendedOpportunities).mockResolvedValue({ items: [], total: 0 });
-    vi.mocked(api.fetchMyIndividualProfile).mockResolvedValue({ completeness_percent: 80 });
+    vi.mocked(api.fetchConnectionRequests).mockResolvedValue({
+      items: [],
+      total: 0,
+      pending_count: 0,
+      accepted_count: 0,
+    });
+    vi.mocked(api.fetchOpportunityCandidates).mockResolvedValue({
+      opportunity_id: "",
+      opportunity_title: "",
+      items: [],
+      total: 0,
+      mode: "DETERMINISTIC_FALLBACK",
+    });
+    vi.mocked(api.fetchRecommendedOpportunities).mockResolvedValue({
+      items: [],
+      total: 0,
+      mode: "DETERMINISTIC_FALLBACK",
+    });
+    vi.mocked(api.fetchMyIndividualProfile).mockResolvedValue({
+      user_id: mockUser.id,
+      skills: [],
+      experience: [],
+      services: [],
+      resources: [],
+      interests: [],
+      visibility: "PRIVATE",
+      created_at: "2026-11-01T10:00:00Z",
+      completeness_percent: 80,
+      missing_fields: [],
+    });
   });
 
-  it("renders the 6-section public landing page for unauthenticated visitors with two participation paths, lifecycle journey, example opportunities, and trust safeguards", async () => {
+  it("renders the public landing page with participation paths, lifecycle journey, real-opportunity discovery, and trust safeguards", async () => {
     render(<Home />);
 
     await waitFor(() => {
@@ -195,11 +229,10 @@ describe("Home Page Dashboard & Connectivity", () => {
       expect(screen.getByText("05 · Collaborate")).toBeInTheDocument();
       expect(screen.getByText("06 · Get Paid")).toBeInTheDocument();
 
-      // 04 · Example Opportunities clearly labelled
-      expect(screen.getByText("Opportunities happening here")).toBeInTheDocument();
-      expect(screen.getAllByText("Example Opportunities").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("Automated Financial Reconciliation Engine")).toBeInTheDocument();
-      expect(screen.getByText("High-Throughput Distributed Microservices Architecture")).toBeInTheDocument();
+      // 04 · Discovery directs users to actual published records, not fabricated examples.
+      expect(screen.getByText("Explore real public opportunities")).toBeInTheDocument();
+      expect(screen.queryByText("Example Opportunities")).not.toBeInTheDocument();
+      expect(screen.queryByText("Automated Financial Reconciliation Engine")).not.toBeInTheDocument();
 
       // 05 · Trust and Reliability (accurate PayPal & verified payment records copy)
       expect(screen.getByText("Work with greater confidence")).toBeInTheDocument();
@@ -233,11 +266,10 @@ describe("Home Page Dashboard & Connectivity", () => {
     });
   });
 
-  it("renders data successfully when navigating to Payments & Earnings view", async () => {
+  it("renders data successfully when navigating to Payments & Ledger view", async () => {
     render(<Home />);
 
-    // Click Payments & Earnings in sidebar
-    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Ledger/i });
     fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
@@ -250,14 +282,14 @@ describe("Home Page Dashboard & Connectivity", () => {
     });
   });
 
-  it("renders loading skeleton state in Payments & Earnings while requests are in flight", () => {
+  it("renders loading skeleton state in Payments & Ledger while requests are in flight", () => {
     vi.mocked(api.fetchDashboardOverview).mockImplementation(() => new Promise(() => {}));
     vi.mocked(api.fetchCopilotRecommendation).mockImplementation(() => new Promise(() => {}));
     vi.mocked(api.fetchLedgerTransactions).mockImplementation(() => new Promise(() => {}));
 
     const { container } = render(<Home />);
 
-    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Ledger/i });
     fireEvent.click(ledgerBtn);
 
     const pulses = container.querySelectorAll(".animate-pulse");
@@ -271,7 +303,7 @@ describe("Home Page Dashboard & Connectivity", () => {
 
     render(<Home />);
 
-    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Ledger/i });
     fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
@@ -291,7 +323,7 @@ describe("Home Page Dashboard & Connectivity", () => {
 
     render(<Home />);
 
-    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Ledger/i });
     fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
@@ -308,7 +340,7 @@ describe("Home Page Dashboard & Connectivity", () => {
     });
   });
 
-  it("retries fetching data when Try again button is clicked in Payments & Earnings", async () => {
+  it("retries fetching data when Try again button is clicked in Payments & Ledger", async () => {
     vi.mocked(api.fetchDashboardOverview)
       .mockRejectedValueOnce(new Error("Unable to connect to backend server"))
       .mockResolvedValue(mockOverview);
@@ -321,7 +353,7 @@ describe("Home Page Dashboard & Connectivity", () => {
 
     render(<Home />);
 
-    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Ledger/i });
     fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
@@ -346,11 +378,15 @@ describe("Home Page Dashboard & Connectivity", () => {
 
     render(<Home />);
 
-    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Ledger/i });
     fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
-      expect(screen.getByText("No transactions match the selected filter.")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Commercial settlements appear here after milestone deliverables are verified and payment is captured."
+        )
+      ).toBeInTheDocument();
       expect(screen.queryByText("Connection issue")).not.toBeInTheDocument();
     });
   });
@@ -362,7 +398,7 @@ describe("Home Page Dashboard & Connectivity", () => {
 
     render(<Home />);
 
-    const ledgerBtn = screen.getByRole("button", { name: /Payments & Earnings/i });
+    const ledgerBtn = screen.getByRole("button", { name: /Payments & Ledger/i });
     fireEvent.click(ledgerBtn);
 
     await waitFor(() => {
@@ -378,7 +414,6 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     if (typeof window !== "undefined") {
       window.history.pushState({}, "", "/");
     }
-    localStorage.setItem("opnly_active_role", "creator");
     vi.mocked(api.getStoredUser).mockReturnValue(mockUser);
     vi.mocked(api.getAccessToken).mockReturnValue("mock_valid_token");
     vi.mocked(api.fetchDashboardOverview).mockResolvedValue(mockOverview);
@@ -386,10 +421,6 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     vi.mocked(api.fetchLedgerTransactions).mockResolvedValue(mockLedger);
     vi.mocked(api.fetchCurrentUser).mockResolvedValue(mockUser);
     vi.mocked(api.fetchUserOpportunities).mockResolvedValue(mockOppList);
-  });
-
-  afterEach(() => {
-    localStorage.removeItem("opnly_active_role");
   });
 
   it("loads and displays authenticated user's opportunities when user has active session", async () => {
@@ -510,7 +541,7 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
     expect(api.fetchUserOpportunities).toHaveBeenCalledTimes(2);
   });
 
-  it("renders unified workspace with both participation paths and keeps profiles accessible under one account", async () => {
+  it("renders unified workspace, streamlined navigation, and unified account profile access", async () => {
     render(<Home />);
 
     await waitFor(() => {
@@ -520,14 +551,30 @@ describe("Opportunity Drafts Visibility for Authenticated Users", () => {
       expect(screen.getByText("I Have Capabilities to Offer")).toBeInTheDocument();
     });
 
+    for (const destination of [
+      "Dashboard",
+      "Opportunities",
+      "Connections & Proposals",
+      "Deal Rooms",
+      "Payments & Ledger",
+    ]) {
+      expect(screen.getByRole("button", { name: destination })).toBeInTheDocument();
+    }
+    expect(screen.getByText("Unified Account")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Profile" })).toBeInTheDocument();
+    expect(screen.queryByText("Network Live")).not.toBeInTheDocument();
+    expect(screen.queryByText("Network Standby")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Notifications" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /AI Matchmaking|Discover Network|Settings/i })).not.toBeInTheDocument();
+
     // Open profile menu
     const profileBtn = screen.getByLabelText("User profile menu");
     fireEvent.click(profileBtn);
 
     await waitFor(() => {
-      // Both Personal and Organization profile options are visible under one account
-      expect(screen.getByText("Personal Profile & Skills")).toBeInTheDocument();
-      expect(screen.getByText("Organization & Business Profile")).toBeInTheDocument();
+      expect(screen.getByText("My Profile & Capabilities")).toBeInTheDocument();
+      expect(screen.getAllByText("Sign Out")).toHaveLength(2);
+      expect(screen.queryByText("Organization & Business Profile")).not.toBeInTheDocument();
     });
   });
 });
