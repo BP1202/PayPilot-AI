@@ -22,6 +22,7 @@ vi.mock("@/lib/api", () => ({
   createMilestonePayPalOrder: vi.fn(),
   captureMilestonePayPalOrder: vi.fn(),
   fetchMilestoneSettlementStatus: vi.fn(),
+  prepareMilestoneSettlement: vi.fn(),
   getAccessToken: vi.fn().mockReturnValue("mock-token"),
 }));
 

@@ -89,6 +89,13 @@ export interface Transaction {
   customer_name?: string;
   customer_email?: string;
   provider_reference?: string;
+  milestone_id?: string | null;
+  deal_room_id?: string | null;
+  payer_user_id?: string | null;
+  payee_user_id?: string | null;
+  paypal_order_id?: string | null;
+  paypal_capture_id?: string | null;
+  idempotency_key?: string | null;
   created_at: string;
   updated_at: string;
 }

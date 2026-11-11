@@ -667,6 +667,32 @@ class MilestoneService:
             )
             if has_financial_obligation:
                 m.payment_readiness = PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+                # Automatically create official commercial invoice / settlement record in ledger
+                try:
+                    from app.models.transaction import Transaction
+                    from app.services.payment_service import PaymentService
+                    existing_tx = (
+                        db.query(Transaction)
+                        .filter(
+                            Transaction.milestone_id == m.id,
+                            Transaction.deal_room_id == room.id,
+                        )
+                        .first()
+                    )
+                    if not existing_tx:
+                        payment_svc = PaymentService(db)
+                        auto_idemp = f"inv_auto_{m.id}_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
+                        payment_svc.prepare_milestone_settlement(
+                            caller_user_id=user_id,
+                            room_id=room.id,
+                            milestone_id=m.id,
+                            idempotency_key=auto_idemp,
+                            description=f"Commercial Invoice #{m.id[:8].upper()} - {m.title}",
+                        )
+                except Exception as auto_inv_err:
+                    logger.warning(
+                        f"Automatic settlement invoice creation deferred for milestone {m.id}: {auto_inv_err}"
+                    )
             else:
                 m.payment_readiness = PaymentReadinessStatus.NOT_READY.value
             act_title = "Milestone deliverables approved"

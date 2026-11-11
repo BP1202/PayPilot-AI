@@ -22,6 +22,7 @@ import {
   createMilestonePayPalOrder,
   captureMilestonePayPalOrder,
   fetchMilestoneSettlementStatus,
+  prepareMilestoneSettlement,
 } from "@/lib/api";
 import {
   CheckCircle2,
@@ -292,6 +293,25 @@ export function MilestoneExecutionWorkspace({
     }));
 
     try {
+      // Automatically ensure commercial settlement transaction is prepared first if not yet created
+      const currentSettlement = paymentStates[milestone.id];
+      if (!currentSettlement?.orderId) {
+        try {
+          const prepRes = prepareMilestoneSettlement(
+            roomId,
+            milestone.id,
+            `prep_${milestone.id}_${Date.now()}`,
+            `Milestone Settlement: ${milestone.title}`
+          );
+          if (prepRes && typeof (prepRes as any).then === "function") {
+            await prepRes;
+          }
+        } catch (prepErr) {
+          // If already prepared concurrently, continue safely
+          console.warn("Settlement preparation note:", prepErr);
+        }
+      }
+
       const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
       const returnUrl = `${origin}/deal-rooms?room_id=${encodeURIComponent(roomId)}&milestone_id=${encodeURIComponent(milestone.id)}&payment=return`;
       const cancelUrl = `${origin}/deal-rooms?room_id=${encodeURIComponent(roomId)}&milestone_id=${encodeURIComponent(milestone.id)}&payment=cancelled`;

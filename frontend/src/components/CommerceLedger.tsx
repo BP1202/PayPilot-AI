@@ -1,9 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { Filter, CheckCircle, Clock, AlertCircle, Receipt, FileText } from "lucide-react";
+import {
+  Filter,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Receipt,
+  FileText,
+  CreditCard,
+  Download,
+} from "lucide-react";
 import { Transaction, TransactionStatus, Business, User } from "@/types";
 import { InvoiceModal } from "./invoicing/InvoiceModal";
+import { downloadInvoiceFile } from "@/lib/invoiceGenerator";
 
 interface CommerceLedgerProps {
   transactions: Transaction[];
@@ -13,6 +23,7 @@ interface CommerceLedgerProps {
   onFilterChange: (status?: TransactionStatus) => void;
   business?: Business | null;
   currentUser?: User | null;
+  onPaymentSuccess?: (captured: Transaction) => void;
 }
 
 export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
@@ -23,13 +34,14 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
   onFilterChange,
   business,
   currentUser,
+  onPaymentSuccess,
 }) => {
   const [selectedInvoiceTx, setSelectedInvoiceTx] = useState<Transaction | null>(null);
 
   const formatCurrency = (val: string, currency: string = "USD") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency,
+      currency: currency || "USD",
     }).format(parseFloat(val || "0"));
   };
 
@@ -45,13 +57,20 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
     }
   };
 
+  const handleInvoicePaymentSuccess = (captured: Transaction) => {
+    setSelectedInvoiceTx(captured);
+    if (onPaymentSuccess) {
+      onPaymentSuccess(captured);
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Milestone Payouts & Invoices</h2>
           <p className="text-xs text-slate-500">
-            Verified commercial milestone settlements, received earnings, and official invoices
+            Verified commercial milestone settlements, received earnings, and downloadable invoices
           </p>
         </div>
 
@@ -104,7 +123,7 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
               <th className="pb-3 font-semibold">Payment Rail</th>
               <th className="pb-3 font-semibold">Status</th>
               <th className="pb-3 font-semibold text-right">Amount</th>
-              <th className="pb-3 pr-1 text-center font-semibold">Invoice</th>
+              <th className="pb-3 pr-1 text-right font-semibold">Actions & Invoices</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -117,7 +136,7 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
                   <td className="py-4"><div className="h-4 w-24 bg-slate-200 rounded"></div></td>
                   <td className="py-4"><div className="h-4 w-16 bg-slate-200 rounded"></div></td>
                   <td className="py-4 text-right"><div className="h-4 w-20 bg-slate-200 rounded ml-auto"></div></td>
-                  <td className="py-4 pr-1 text-center"><div className="h-4 w-16 bg-slate-200 rounded mx-auto"></div></td>
+                  <td className="py-4 pr-1 text-right"><div className="h-4 w-24 bg-slate-200 rounded ml-auto"></div></td>
                 </tr>
               ))
             ) : error ? (
@@ -169,16 +188,41 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
                   <td className="py-3.5 text-right font-mono font-bold text-slate-900">
                     {formatCurrency(tx.amount, tx.currency)}
                   </td>
-                  <td className="py-3.5 pr-1 text-center">
-                    <button
-                      onClick={() => setSelectedInvoiceTx(tx)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold border border-indigo-200 transition cursor-pointer"
-                      title="View Commercial Invoice"
-                      aria-label={`View invoice for ${tx.transaction_ref}`}
-                    >
-                      <Receipt className="h-3 w-3" />
-                      <span>Invoice</span>
-                    </button>
+                  <td className="py-3.5 pr-1 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {/* Direct Pay Now button for pending transactions */}
+                      {tx.status === "PENDING" && (
+                        <button
+                          onClick={() => setSelectedInvoiceTx(tx)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs transition cursor-pointer"
+                          title="Directly settle and pay this invoice with PayPal"
+                        >
+                          <CreditCard className="h-3 w-3" />
+                          <span>Pay Now</span>
+                        </button>
+                      )}
+
+                      {/* View Invoice button */}
+                      <button
+                        onClick={() => setSelectedInvoiceTx(tx)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold border border-indigo-200 transition cursor-pointer"
+                        title="View Official Commercial Invoice"
+                        aria-label={`View invoice for ${tx.transaction_ref}`}
+                      >
+                        <Receipt className="h-3 w-3" />
+                        <span>Invoice</span>
+                      </button>
+
+                      {/* One-click direct Download Invoice button */}
+                      <button
+                        onClick={() => downloadInvoiceFile(tx, business, currentUser)}
+                        className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer border border-slate-200"
+                        title="Download official standalone HTML/PDF invoice file"
+                        aria-label={`Download invoice for ${tx.transaction_ref}`}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -194,6 +238,7 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
         transaction={selectedInvoiceTx}
         business={business}
         currentUser={currentUser}
+        onPaymentSuccess={handleInvoicePaymentSuccess}
       />
     </div>
   );

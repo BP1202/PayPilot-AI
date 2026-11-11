@@ -1294,6 +1294,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   onFilterChange={handleFilterChange}
                   business={overview?.business}
                   currentUser={currentUser}
+                  onPaymentSuccess={handlePaymentSuccess}
                 />
               </section>
 
