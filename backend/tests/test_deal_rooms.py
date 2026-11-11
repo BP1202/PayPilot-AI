@@ -595,3 +595,55 @@ def test_deal_room_ai_copilot_provenance(
     assert any(
         "12,500.50" in term or "12500.50" in term for term in provenance["AGREED_TERM"]
     )
+
+
+def test_deal_room_resolution_by_proposal_id(test_db_session: Session):
+    """DealRoomService resolves rooms both by DealRoom id and by proposal_id fallback."""
+    from app.models.proposal import Proposal, ProposalStatus
+    from app.schemas.deal_room import DealRoomCreatePayload
+    from app.services.deal_room_service import DealRoomService
+
+    sender, _ = make_user(test_db_session, "u-s-prop-lookup", "s-prop-lookup@test.com")
+    recip, _ = make_user(test_db_session, "u-r-prop-lookup", "r-prop-lookup@test.com")
+    conn = make_accepted_connection(test_db_session, sender.id, recip.id, conn_id="conn-lookup-test")
+    opp = create_test_opportunity(test_db_session, "opp-lookup-test", sender.id)
+
+    prop = Proposal(
+        id="prop_test_lookup_fallback",
+        connection_id=conn.id,
+        opportunity_id=opp.id,
+        proposer_id=sender.id,
+        recipient_id=recip.id,
+        status=ProposalStatus.ACCEPTED.value,
+        title="Lookup Fallback Agreement",
+        description="A test proposal description for fallback resolution testing.",
+        budget_amount=Decimal("1000.00"),
+        currency="USD",
+        scope_of_work="Testing proposal ID fallback resolution",
+        deliverables=["D1"],
+        milestones=[{"title": "M1", "amount": 1000.00}],
+        responsibilities={"payer": sender.id, "payee": recip.id},
+    )
+    test_db_session.add(prop)
+    test_db_session.commit()
+
+    service = DealRoomService()
+    created = service.create_deal_room(
+        db=test_db_session,
+        user_id=sender.id,
+        payload=DealRoomCreatePayload(proposal_id=prop.id),
+    )
+    assert created.id.startswith("room_")
+
+    # 1. Fetch by canonical room.id
+    by_room = service.get_deal_room(test_db_session, sender.id, created.id)
+    assert by_room.id == created.id
+
+    # 2. Fetch by proposal_id ('prop_...')
+    by_proposal = service.get_deal_room(test_db_session, sender.id, prop.id)
+    assert by_proposal.id == created.id
+    assert by_proposal.title == "Lookup Fallback Agreement"
+
+    # 3. Fetch overview by proposal_id ('prop_...')
+    overview = service.get_deal_room_overview(test_db_session, sender.id, prop.id)
+    assert overview.id == created.id

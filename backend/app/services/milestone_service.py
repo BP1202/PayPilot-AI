@@ -10,7 +10,7 @@ from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
@@ -188,7 +188,12 @@ class MilestoneService:
                 joinedload(DealRoom.participants).joinedload(DealRoomParticipant.user),
                 joinedload(DealRoom.proposal),
             )
-            .filter(DealRoom.id == room_id)
+            .filter(
+                or_(
+                    DealRoom.id == room_id,
+                    DealRoom.proposal_id == room_id,
+                )
+            )
             .first()
         )
         if not room:
@@ -207,6 +212,18 @@ class MilestoneService:
     def _get_milestone_or_404(
         self, db: Session, room_id: str, milestone_id: str
     ) -> MilestoneExecution:
+        resolved_room = (
+            db.query(DealRoom)
+            .filter(
+                or_(
+                    DealRoom.id == room_id,
+                    DealRoom.proposal_id == room_id,
+                )
+            )
+            .first()
+        )
+        target_room_id = resolved_room.id if resolved_room else room_id
+
         milestone = (
             db.query(MilestoneExecution)
             .options(
@@ -221,7 +238,7 @@ class MilestoneService:
             )
             .filter(
                 MilestoneExecution.id == milestone_id,
-                MilestoneExecution.room_id == room_id,
+                MilestoneExecution.room_id == target_room_id,
             )
             .first()
         )

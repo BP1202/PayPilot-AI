@@ -117,6 +117,13 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
       ]);
       setRoom(roomData);
       setOverview(overviewData);
+      if (roomData?.id && roomData.id !== roomId && typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("room_id") === roomId) {
+          url.searchParams.set("room_id", roomData.id);
+          window.history.replaceState({}, "", url.toString());
+        }
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load Deal Room workspace";
       setError(msg);
@@ -131,19 +138,20 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
 
   const loadTabContent = async (tab: WorkspaceTab) => {
     setActiveTab(tab);
+    const targetRoomId = room?.id || roomId;
     try {
       if (tab === "NOTES_CLARIFICATIONS") {
         const [nList, cList] = await Promise.all([
-          fetchDealRoomNotes(roomId),
-          fetchDealRoomClarifications(roomId),
+          fetchDealRoomNotes(targetRoomId),
+          fetchDealRoomClarifications(targetRoomId),
         ]);
         setNotes(nList);
         setClarifications(cList);
       } else if (tab === "DOCUMENTS") {
-        const dList = await fetchDealRoomDocuments(roomId);
+        const dList = await fetchDealRoomDocuments(targetRoomId);
         setDocuments(dList);
       } else if (tab === "OVERVIEW") {
-        const aList = await fetchDealRoomActivities(roomId);
+        const aList = await fetchDealRoomActivities(targetRoomId);
         setActivities(aList);
       }
     } catch (err) {
@@ -154,8 +162,9 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
   const handleStatusTransition = async () => {
     if (!targetStatus) return;
     setStatusActionLoading(true);
+    const targetRoomId = room?.id || roomId;
     try {
-      const updated = await updateDealRoomStatus(roomId, {
+      const updated = await updateDealRoomStatus(targetRoomId, {
         status: targetStatus,
         reason: statusReason.trim() || undefined,
       });
@@ -174,8 +183,9 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteTitle.trim() || !noteContent.trim()) return;
+    const targetRoomId = room?.id || roomId;
     try {
-      await createDealRoomNote(roomId, {
+      await createDealRoomNote(targetRoomId, {
         title: noteTitle.trim(),
         content: noteContent.trim(),
         is_pinned: notePinned,
@@ -184,7 +194,7 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
       setNoteContent("");
       setNotePinned(false);
       setIsNoteModalOpen(false);
-      const updatedNotes = await fetchDealRoomNotes(roomId);
+      const updatedNotes = await fetchDealRoomNotes(targetRoomId);
       setNotes(updatedNotes);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to add note");
@@ -194,13 +204,14 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
   const handleAskClarification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clarificationQuestion.trim()) return;
+    const targetRoomId = room?.id || roomId;
     try {
-      await createDealRoomClarification(roomId, {
+      await createDealRoomClarification(targetRoomId, {
         question: clarificationQuestion.trim(),
       });
       setClarificationQuestion("");
       setIsClarificationModalOpen(false);
-      const updatedClars = await fetchDealRoomClarifications(roomId);
+      const updatedClars = await fetchDealRoomClarifications(targetRoomId);
       setClarifications(updatedClars);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to ask clarification");
@@ -209,11 +220,12 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
 
   const handleAnswerClarification = async (clarId: string) => {
     if (!clarificationAnswerText.trim()) return;
+    const targetRoomId = room?.id || roomId;
     try {
-      await answerDealRoomClarification(roomId, clarId, clarificationAnswerText.trim());
+      await answerDealRoomClarification(targetRoomId, clarId, clarificationAnswerText.trim());
       setAnsweringClarId(null);
       setClarificationAnswerText("");
-      const updatedClars = await fetchDealRoomClarifications(roomId);
+      const updatedClars = await fetchDealRoomClarifications(targetRoomId);
       setClarifications(updatedClars);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to submit answer");
@@ -223,8 +235,9 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
   const handleAddDocument = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!docTitle.trim() || !docUrl.trim()) return;
+    const targetRoomId = room?.id || roomId;
     try {
-      await createDealRoomDocument(roomId, {
+      await createDealRoomDocument(targetRoomId, {
         title: docTitle.trim(),
         document_type: docType,
         reference_url: docUrl.trim(),
@@ -234,7 +247,7 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
       setDocUrl("");
       setDocDesc("");
       setIsDocModalOpen(false);
-      const updatedDocs = await fetchDealRoomDocuments(roomId);
+      const updatedDocs = await fetchDealRoomDocuments(targetRoomId);
       setDocuments(updatedDocs);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to attach document reference");
@@ -243,9 +256,10 @@ export const DealRoomWorkspaceView: React.FC<DealRoomWorkspaceViewProps> = ({
 
   const handleDeleteDocument = async (docId: string) => {
     if (!confirm("Are you sure you want to remove this document reference?")) return;
+    const targetRoomId = room?.id || roomId;
     try {
-      await deleteDealRoomDocument(roomId, docId);
-      const updatedDocs = await fetchDealRoomDocuments(roomId);
+      await deleteDealRoomDocument(targetRoomId, docId);
+      const updatedDocs = await fetchDealRoomDocuments(targetRoomId);
       setDocuments(updatedDocs);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to delete document");

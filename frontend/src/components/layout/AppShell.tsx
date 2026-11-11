@@ -359,9 +359,30 @@ export const AppShell: React.FC<AppShellProps> = ({
       handleNavigate("deal-rooms");
     } catch (err) {
       console.error("Failed to open Deal Room from proposal", err);
+      // Fallback: set the ID anyway as the backend now also resolves by proposal_id
+      setSelectedDealRoomId(proposalId);
       handleNavigate("deal-rooms");
     }
   };
+
+  useEffect(() => {
+    if (selectedDealRoomId && selectedDealRoomId.startsWith("prop_")) {
+      createDealRoom(selectedDealRoomId)
+        .then((room) => {
+          setSelectedDealRoomId(room.id);
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get("room_id") === selectedDealRoomId) {
+              url.searchParams.set("room_id", room.id);
+              window.history.replaceState({}, "", url.toString());
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn("Could not pre-resolve proposal to deal room", err);
+        });
+    }
+  }, [selectedDealRoomId]);
 
   const loadData = useCallback(async (statusFilter?: TransactionStatus) => {
     try {
@@ -1090,7 +1111,13 @@ export const AppShell: React.FC<AppShellProps> = ({
               onViewMyOpportunities={() => handleNavigate("opportunities", "mine")}
               onViewConnections={() => handleNavigate("collaborations")}
               onOpenDealRooms={(roomId) => {
-                if (roomId) setSelectedDealRoomId(roomId);
+                if (roomId) {
+                  if (roomId.startsWith("prop_")) {
+                    handleOpenDealRoomFromProposal(roomId);
+                    return;
+                  }
+                  setSelectedDealRoomId(roomId);
+                }
                 handleNavigate("deal-rooms");
               }}
               onSelectOpportunity={handleOpenExistingStudio}
@@ -1205,9 +1232,8 @@ export const AppShell: React.FC<AppShellProps> = ({
               <ConnectionsProposalsView
                 currentUser={currentUser}
                 onOpenAuth={() => setIsAuthOpen(true)}
-                onOpenDealRoom={(roomId) => {
-                  setSelectedDealRoomId(roomId);
-                  handleNavigate("deal-rooms");
+                onOpenDealRoom={(proposalId) => {
+                  handleOpenDealRoomFromProposal(proposalId);
                 }}
               />
             </div>

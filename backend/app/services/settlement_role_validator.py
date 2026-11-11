@@ -20,6 +20,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.deal_room import DealRoom, DealRoomParticipant, DealRoomStatus
@@ -105,7 +106,13 @@ class SettlementRoleValidator:
                                 missing, non-monetary, or unapproved.
         """
         # 1. Parent Deal Room must exist and be active
-        room = db.query(DealRoom).filter(DealRoom.id == room_id).first()
+        room = (
+            db.query(DealRoom)
+            .filter(
+                or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
+            )
+            .first()
+        )
         if not room:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

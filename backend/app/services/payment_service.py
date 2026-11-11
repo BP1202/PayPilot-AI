@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -256,7 +257,13 @@ class PaymentService:
         if payee_biz:
             biz_id = payee_biz.id
         else:
-            room = self.db.query(DealRoom).filter(DealRoom.id == room_id).first()
+            room = (
+                self.db.query(DealRoom)
+                .filter(
+                    or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
+                )
+                .first()
+            )
             if room and room.opportunity and room.opportunity.business_id:
                 biz_id = room.opportunity.business_id
 
@@ -342,7 +349,13 @@ class PaymentService:
             )
 
         # 1. Deal Room check
-        room = self.db.query(DealRoom).filter(DealRoom.id == room_id).first()
+        room = (
+            self.db.query(DealRoom)
+            .filter(
+                or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
+            )
+            .first()
+        )
         if not room:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -357,7 +370,7 @@ class PaymentService:
         # 2. Caller participant check
         participants = (
             self.db.query(DealRoomParticipant)
-            .filter(DealRoomParticipant.room_id == room_id)
+            .filter(DealRoomParticipant.room_id == room.id)
             .all()
         )
         participant_ids = {p.user_id for p in participants}
@@ -593,7 +606,13 @@ class PaymentService:
             )
 
         # 1. Deal Room verification
-        room = self.db.query(DealRoom).filter(DealRoom.id == room_id).first()
+        room = (
+            self.db.query(DealRoom)
+            .filter(
+                or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
+            )
+            .first()
+        )
         if not room:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -608,7 +627,7 @@ class PaymentService:
         # 2. Caller participant verification
         participants = (
             self.db.query(DealRoomParticipant)
-            .filter(DealRoomParticipant.room_id == room_id)
+            .filter(DealRoomParticipant.room_id == room.id)
             .all()
         )
         participant_ids = {p.user_id for p in participants}
@@ -921,7 +940,13 @@ class PaymentService:
         milestone_id: str,
     ) -> dict[str, Any]:
         """Query authoritative settlement and PayPal order status for a milestone."""
-        room = self.db.query(DealRoom).filter(DealRoom.id == room_id).first()
+        room = (
+            self.db.query(DealRoom)
+            .filter(
+                or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
+            )
+            .first()
+        )
         if not room:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -930,7 +955,7 @@ class PaymentService:
 
         participants = (
             self.db.query(DealRoomParticipant)
-            .filter(DealRoomParticipant.room_id == room_id)
+            .filter(DealRoomParticipant.room_id == room.id)
             .all()
         )
         if caller_user_id not in {p.user_id for p in participants}:
