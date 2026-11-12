@@ -411,7 +411,6 @@ class OpportunityService:
         for opp in items:
             biz_name = opp.business.name if opp.business else None
             dto = OpportunityPublicResponse.model_validate(opp)
-            dto.user_id = opp.user_id
             dto.business_name = biz_name
             dto.creator_name = biz_name or "Opportunity Creator"
             public_items.append(dto)

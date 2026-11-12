@@ -446,13 +446,12 @@ class PaymentService:
 
         tx = tx_query.first()
         if not tx:
-            # Auto-prepare settlement transaction if not yet created
-            tx = self.prepare_milestone_settlement(
-                caller_user_id=caller_user_id,
-                room_id=room_id,
-                milestone_id=milestone_id,
-                idempotency_key=f"prep_{clean_idemp}",
-                description=f"Milestone Settlement: {milestone.title}",
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=(
+                    f"No prepared settlement transaction exists for milestone '{milestone_id}'. "
+                    "Settlement must be prepared before creating a PayPal order."
+                ),
             )
 
         # Commercial integrity checks against prepared settlement

@@ -240,7 +240,6 @@ class OpportunityCloseRequest(BaseModel):
 
 class OpportunityPublicResponse(BaseModel):
     id: str
-    user_id: str | None = None
     creator_name: str | None = None
     business_id: int | None = None
     business_name: str | None = None
