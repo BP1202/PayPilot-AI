@@ -1,0 +1,271 @@
+"use client";
+
+import React, { useState } from "react";
+import {
+  X,
+  Lock,
+  Mail,
+  User as UserIcon,
+  Loader2,
+  AlertCircle,
+  Sparkles,
+  CheckCircle,
+} from "lucide-react";
+import { User } from "@/types";
+import { loginUser, registerUser } from "@/lib/api";
+
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (user: User) => void;
+  initialMode?: "login" | "register";
+}
+
+export const AuthModal: React.FC<AuthModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialMode = "login",
+}) => {
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!email.trim() || !password.trim()) {
+      setErrorMessage("Please provide both email and password.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setErrorMessage("Password must be at least 8 characters.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      if (mode === "login") {
+        const response = await loginUser({
+          email: email.trim(),
+          password,
+        });
+        setSuccessMessage("Signed in successfully!");
+        setTimeout(() => {
+          onSuccess(response.user);
+          onClose();
+        }, 300);
+      } else {
+        const response = await registerUser({
+          email: email.trim(),
+          password,
+          full_name: fullName.trim() || undefined,
+        });
+        setSuccessMessage("Account created successfully!");
+        setTimeout(() => {
+          onSuccess(response.user);
+          onClose();
+        }, 300);
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Authentication failed. Please try again.";
+      setErrorMessage(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-modal-title"
+    >
+      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 sm:p-8">
+        <button
+          onClick={onClose}
+          disabled={isLoading}
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+          aria-label="Close dialog"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="mb-6 flex items-center space-x-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-100">
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 id="auth-modal-title" className="text-xl font-bold tracking-tight text-slate-900">
+              {mode === "login" ? "Sign In to Opnly" : "Create Your Account"}
+            </h2>
+            <p className="text-xs text-slate-500">
+              {mode === "login"
+                ? "Access your opportunities and business workspace"
+                : "Join the Idea-to-Business Opportunity Network"}
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Switcher */}
+        <div role="tablist" className="mb-6 flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "login"}
+            onClick={() => {
+              setMode("login");
+              setErrorMessage(null);
+            }}
+            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+              mode === "login"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Sign In Tab
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "register"}
+            onClick={() => {
+              setMode("register");
+              setErrorMessage(null);
+            }}
+            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+              mode === "register"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Create Account Tab
+          </button>
+        </div>
+
+        {/* Error / Success Banners */}
+        {errorMessage && (
+          <div className="mb-4 flex items-start space-x-2 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mb-4 flex items-center space-x-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
+            <CheckCircle className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        <div className="mb-5 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3 text-xs text-indigo-950 leading-relaxed">
+          Opnly gives you one unified account to both request solutions and offer your capabilities across the network.
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "register" && (
+            <div>
+              <label
+                htmlFor="auth-fullname"
+                className="block text-xs font-semibold text-slate-700 mb-1"
+              >
+                Full Name (Optional)
+              </label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                  <UserIcon className="h-4 w-4" />
+                </div>
+                <input
+                  id="auth-fullname"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Jane Doe"
+                  className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label
+              htmlFor="auth-email"
+              className="block text-xs font-semibold text-slate-700 mb-1"
+            >
+              Email Address
+            </label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <Mail className="h-4 w-4" />
+              </div>
+              <input
+                id="auth-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@domain.com"
+                className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="auth-password"
+              className="block text-xs font-semibold text-slate-700 mb-1"
+            >
+              Password
+            </label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <Lock className="h-4 w-4" />
+              </div>
+              <input
+                id="auth-password"
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="flex w-full items-center justify-center space-x-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{mode === "login" ? "Signing In..." : "Creating Account..."}</span>
+              </>
+            ) : (
+              <span>{mode === "login" ? "Sign In" : "Create Account"}</span>
+            )}
+          </button>
+        </form>
+
+      </div>
+    </div>
+  );
+};
