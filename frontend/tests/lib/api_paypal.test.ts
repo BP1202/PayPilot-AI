@@ -11,9 +11,9 @@ describe("PayPal milestone API clients", () => {
       const mockResponse = {
         transaction_id: "123",
         transaction_ref: "TXN-SETTLE-TEST",
-        paypal_order_id: "5O190127TN364715T",
+        paypal_order_id: "ORDER-MOCK-TEST-001",
         order_status: "CREATED",
-        approval_url: "https://www.sandbox.paypal.com/checkoutnow?token=5O190127TN364715T",
+        approval_url: "https://www.sandbox.paypal.com/checkoutnow?token=ORDER-MOCK-TEST-001",
         currency: "USD",
         amount: "1500.00",
       };
@@ -60,8 +60,8 @@ describe("PayPal milestone API clients", () => {
       const mockCaptureResponse = {
         transaction_id: "123",
         transaction_ref: "TXN-SETTLE-TEST",
-        paypal_order_id: "5O190127TN364715T",
-        paypal_capture_id: "3C679366HH252546M",
+        paypal_order_id: "ORDER-MOCK-TEST-001",
+        paypal_capture_id: "CAPTURE-MOCK-TEST-001",
         capture_status: "COMPLETED",
         transaction_status: "COMPLETED",
         payment_readiness: "PAID",

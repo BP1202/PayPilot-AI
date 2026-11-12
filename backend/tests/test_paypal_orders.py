@@ -68,8 +68,8 @@ from app.services.paypal_order_service import (
 )
 
 SANDBOX_BASE = "https://api-m.sandbox.paypal.com"
-FAKE_ORDER_ID = "5O190127TN364715T"
-FAKE_CAPTURE_ID = "3C679366HH252546M"
+FAKE_ORDER_ID = "ORDER-MOCK-TEST-001"
+FAKE_CAPTURE_ID = "CAPTURE-MOCK-TEST-001"
 FAKE_APPROVAL_URL = f"https://www.sandbox.paypal.com/checkoutnow?token={FAKE_ORDER_ID}"
 
 
@@ -857,7 +857,7 @@ def test_api_create_paypal_order_endpoint(test_db, monkeypatch):
         # Mock order service inside endpoint
         def mock_create_order(self, **kwargs):
             return PayPalOrderResult(
-                order_id="5O190127TN364715T",
+                order_id=FAKE_ORDER_ID,
                 status="CREATED",
                 approval_url=FAKE_APPROVAL_URL,
                 currency="USD",
@@ -875,7 +875,7 @@ def test_api_create_paypal_order_endpoint(test_db, monkeypatch):
         )
         assert resp.status_code == 201, resp.text
         data = resp.json()
-        assert data["paypal_order_id"] == "5O190127TN364715T"
+        assert data["paypal_order_id"] == FAKE_ORDER_ID
         assert data["order_status"] == "CREATED"
         assert data["approval_url"] == FAKE_APPROVAL_URL
         assert data["currency"] == "USD"
@@ -896,7 +896,7 @@ def test_api_create_paypal_order_endpoint(test_db, monkeypatch):
             json={"idempotency_key": "api_idemp_001"},
         )
         assert repeat_resp.status_code == 201
-        assert repeat_resp.json()["paypal_order_id"] == "5O190127TN364715T"
+        assert repeat_resp.json()["paypal_order_id"] == FAKE_ORDER_ID
 
     finally:
         app.dependency_overrides.clear()
