@@ -1,5 +1,8 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
 from app.repositories.business_repository import BusinessRepository
@@ -10,8 +13,6 @@ from app.schemas.business import (
     BusinessRead,
 )
 from app.services.business_extractor import BusinessProfileExtractor
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/business", tags=["Business Profile"])
 

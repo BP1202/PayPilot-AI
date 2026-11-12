@@ -464,7 +464,7 @@ describe("UnifiedWorkspaceView Component", () => {
       expect(screen.getByText("Commercial Settlement Overview")).toBeInTheDocument();
       expect(screen.getByText("USD 3200.00")).toBeInTheDocument();
       expect(screen.getByText("USD 1800.00")).toBeInTheDocument();
-      expect(screen.getByText(/PayPal Developer Sandbox/i)).toBeInTheDocument();
+      expect(screen.getByText(/Payment Environment/i)).toBeInTheDocument();
     });
   });
 

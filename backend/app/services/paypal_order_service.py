@@ -23,7 +23,6 @@ from app.core.config import settings
 from app.services.paypal_auth import (
     PayPalAuthConfigError,
     PayPalAuthError,
-    PayPalAuthRequestError,
     PayPalAuthService,
 )
 

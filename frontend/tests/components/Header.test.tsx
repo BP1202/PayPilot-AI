@@ -16,7 +16,7 @@ describe("Header Component", () => {
     render(<Header business={business} />);
     expect(screen.getByText("Opnly")).toBeInTheDocument();
     expect(screen.getByText("Apex Precision Gearworks")).toBeInTheDocument();
-    expect(screen.getByText("PayPal Simulated Sandbox")).toBeInTheDocument();
+    expect(screen.getByText("PayPal Checkout")).toBeInTheDocument();
   });
 });
 

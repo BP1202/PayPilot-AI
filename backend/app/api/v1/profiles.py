@@ -1,5 +1,8 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
 from app.core.auth import get_current_user_id, get_optional_user_id
 from app.core.database import get_db
 from app.schemas.business import BusinessPublicRead, BusinessRead, BusinessUpdate
@@ -10,8 +13,6 @@ from app.schemas.profile import (
     ProfileMeResponse,
 )
 from app.services.profile_service import ProfileService
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
 

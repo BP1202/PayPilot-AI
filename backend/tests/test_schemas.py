@@ -1,13 +1,14 @@
 from decimal import Decimal
 
 import pytest
+from pydantic import ValidationError
+
 from app.schemas.business import BusinessCreate
 from app.schemas.transaction import (
     TransactionCreate,
     TransactionStatusEnum,
     TransactionTypeEnum,
 )
-from pydantic import ValidationError
 
 
 def test_business_schema_validation():

@@ -1,14 +1,15 @@
 from datetime import timedelta
 
 import pytest
-from app.core.database import Base, get_db
-from app.core.security import create_access_token
-from app.core.seed import seed_demo_data
-from app.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+from app.core.database import Base, get_db
+from app.core.security import create_access_token
+from app.core.seed import seed_demo_data
+from app.main import app
 
 
 @pytest.fixture
