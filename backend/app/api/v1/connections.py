@@ -2,9 +2,6 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.orm import Session
-
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models.collaboration_activity import CollaborationActivity
@@ -18,6 +15,8 @@ from app.schemas.connection import (
     ConnectionResponse,
 )
 from app.services.connection_service import ConnectionService
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/connections", tags=["connections"])
 
@@ -135,8 +134,6 @@ def withdraw_connection(
         user_id=current_user.id,
         connection_id=connection_id,
     )
-
-
 
 
 # ---------------------------------------------------------------------------

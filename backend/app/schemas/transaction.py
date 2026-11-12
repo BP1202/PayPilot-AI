@@ -22,7 +22,8 @@ class TransactionBase(BaseModel):
         ..., min_length=3, max_length=64, description="Unique transaction reference"
     )
     business_id: int | None = Field(
-        default=None, description="Associated business ID (nullable for individual settlements)"
+        default=None,
+        description="Associated business ID (nullable for individual settlements)",
     )
     amount: Decimal = Field(
         ...,

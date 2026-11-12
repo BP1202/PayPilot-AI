@@ -1,14 +1,13 @@
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.models.business import Business
 from app.models.user import User
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture

@@ -19,11 +19,6 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
@@ -37,6 +32,10 @@ from app.models.opportunity import (
     OpportunityVisibility,
 )
 from app.models.user import User
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture
@@ -666,7 +665,10 @@ def test_reviewer_rejection_requires_mandatory_reason_and_updates_states(
     assert m_data["status"] == "REJECTED"
     assert m_data["payment_readiness"] == "NOT_READY"
     assert m_data["current_evidence_submission"]["status"] == "REJECTED"
-    assert m_data["current_evidence_submission"]["submission_notes"] == "First draft for review"
+    assert (
+        m_data["current_evidence_submission"]["submission_notes"]
+        == "First draft for review"
+    )
 
 
 def test_resubmission_and_history_traceability_after_rejection(
@@ -732,7 +734,10 @@ def test_resubmission_and_history_traceability_after_rejection(
     ).json()
     assert evi2["submission_version"] == 2
     assert evi2["status"] == "PENDING_REVIEW"
-    assert evi2["submission_notes"] == "Addressed middleware bugs with regression test suite."
+    assert (
+        evi2["submission_notes"]
+        == "Addressed middleware bugs with regression test suite."
+    )
 
     # 5. Reviewer approves v2
     app_resp = client_with_db.post(
@@ -843,9 +848,8 @@ def test_unique_constraint_enforces_no_duplicate_versions_per_milestone(
     test_db_session: Session,
 ):
     """Database unique constraint on (milestone_id, submission_version) rejects duplicate version numbers."""
-    from sqlalchemy.exc import IntegrityError
-
     from app.models.milestone_execution import MilestoneEvidence
+    from sqlalchemy.exc import IntegrityError
 
     evi1 = MilestoneEvidence(
         id="evi_test_uq_1",
@@ -985,9 +989,8 @@ def test_concurrent_submissions_safe_version_allocation_and_conflict_handling(
     """When a concurrent race condition occurs, unique constraint blocks duplicate version, returns 409 Conflict, and preserves history."""
     from unittest.mock import patch
 
-    from sqlalchemy.exc import IntegrityError
-
     from app.models.milestone_execution import MilestoneEvidence
+    from sqlalchemy.exc import IntegrityError
 
     ctx = setup_deal_room_with_milestones(client_with_db, test_db_session)
     room_id = ctx["room_id"]
@@ -1004,7 +1007,9 @@ def test_concurrent_submissions_safe_version_allocation_and_conflict_handling(
     )
 
     # 1. Simulate concurrency race in submit_evidence: IntegrityError triggers clean 409 Conflict
-    with patch.object(test_db_session, "commit", side_effect=IntegrityError("duplicate", {}, None)):
+    with patch.object(
+        test_db_session, "commit", side_effect=IntegrityError("duplicate", {}, None)
+    ):
         resp_conflict = client_with_db.post(
             f"/api/v1/deal-rooms/{room_id}/milestones/{m1_id}/evidence",
             json={
@@ -1087,10 +1092,22 @@ def test_deterministic_role_assignment_independent_of_participant_query_ordering
     from app.models.deal_room import DealRoom, DealRoomParticipant, DealRoomStatus
     from app.models.proposal import Proposal, ProposalStatus
 
-    worker, worker_token = make_user(db=test_db_session, user_id="u-order-worker", email="worker-order@test.com", full_name="Worker Deterministic")
-    reviewer, reviewer_token = make_user(db=test_db_session, user_id="u-order-reviewer", email="reviewer-order@test.com", full_name="Reviewer Deterministic")
+    worker, worker_token = make_user(
+        db=test_db_session,
+        user_id="u-order-worker",
+        email="worker-order@test.com",
+        full_name="Worker Deterministic",
+    )
+    reviewer, reviewer_token = make_user(
+        db=test_db_session,
+        user_id="u-order-reviewer",
+        email="reviewer-order@test.com",
+        full_name="Reviewer Deterministic",
+    )
 
-    conn = make_accepted_connection(test_db_session, worker.id, reviewer.id, conn_id="conn-order-test")
+    conn = make_accepted_connection(
+        test_db_session, worker.id, reviewer.id, conn_id="conn-order-test"
+    )
 
     # Proposal: proposer=worker, recipient=reviewer
     prop = Proposal(
@@ -1226,10 +1243,22 @@ def test_explicit_milestone_and_responsibility_role_overrides(
     from app.models.deal_room import DealRoom, DealRoomParticipant, DealRoomStatus
     from app.models.proposal import Proposal, ProposalStatus
 
-    alice, alice_token = make_user(db=test_db_session, user_id="u-alice-custom", email="alice-custom@test.com", full_name="Alice Custom")
-    bob, bob_token = make_user(db=test_db_session, user_id="u-bob-custom", email="bob-custom@test.com", full_name="Bob Custom")
+    alice, alice_token = make_user(
+        db=test_db_session,
+        user_id="u-alice-custom",
+        email="alice-custom@test.com",
+        full_name="Alice Custom",
+    )
+    bob, _bob_token = make_user(
+        db=test_db_session,
+        user_id="u-bob-custom",
+        email="bob-custom@test.com",
+        full_name="Bob Custom",
+    )
 
-    conn = make_accepted_connection(test_db_session, alice.id, bob.id, conn_id="conn-custom-test")
+    conn = make_accepted_connection(
+        test_db_session, alice.id, bob.id, conn_id="conn-custom-test"
+    )
 
     # Alice proposes, but Milestone 1 explicitly designates Bob as worker and Alice as reviewer!
     prop = Proposal(
@@ -1267,8 +1296,12 @@ def test_explicit_milestone_and_responsibility_role_overrides(
     test_db_session.add(room)
     test_db_session.commit()
 
-    p1 = DealRoomParticipant(room_id=room.id, user_id=alice.id, collaboration_role="Client Reviewer")
-    p2 = DealRoomParticipant(room_id=room.id, user_id=bob.id, collaboration_role="Design Lead")
+    p1 = DealRoomParticipant(
+        room_id=room.id, user_id=alice.id, collaboration_role="Client Reviewer"
+    )
+    p2 = DealRoomParticipant(
+        room_id=room.id, user_id=bob.id, collaboration_role="Design Lead"
+    )
     test_db_session.add_all([p1, p2])
     test_db_session.commit()
 

@@ -103,7 +103,10 @@ class Settings(BaseSettings):
             if not self.PAYPAL_BASE_URL or "sandbox.paypal.com" in self.PAYPAL_BASE_URL:
                 self.PAYPAL_BASE_URL = "https://api-m.paypal.com"
         else:
-            if not self.PAYPAL_BASE_URL or "api-m.paypal.com" == self.PAYPAL_BASE_URL.rstrip("/"):
+            if (
+                not self.PAYPAL_BASE_URL
+                or "api-m.paypal.com" == self.PAYPAL_BASE_URL.rstrip("/")
+            ):
                 self.PAYPAL_BASE_URL = "https://api-m.sandbox.paypal.com"
 
         return self

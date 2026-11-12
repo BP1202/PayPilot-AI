@@ -250,6 +250,3 @@ class MilestoneSettlementStatusResponse(BaseModel):
     paypal_order_id: str | None = None
     paypal_capture_id: str | None = None
     approval_url: str | None = None
-
-
-

@@ -2,11 +2,6 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.database import Base, get_db
 from app.main import app
 from app.models.opportunity import OpportunityType, ProvenanceCategory
@@ -18,6 +13,10 @@ from app.services.opportunity_analyst import (
     GeminiProvider,
     OpportunityAnalystService,
 )
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture

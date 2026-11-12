@@ -2,9 +2,6 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy.orm import Session
-
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models.user import User
@@ -27,6 +24,8 @@ from app.schemas.milestone_execution import (
 from app.schemas.transaction import TransactionRead
 from app.services.milestone_service import MilestoneService
 from app.services.payment_service import PaymentService
+from fastapi import APIRouter, Depends, Response, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/deal-rooms/{room_id}/milestones", tags=["deal-room-milestones"]
@@ -289,5 +288,3 @@ def capture_milestone_paypal_order(
         idempotency_key=payload.idempotency_key,
     )
     return PayPalCaptureResponse.model_validate(res)
-
-

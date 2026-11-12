@@ -21,12 +21,6 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.config import settings
 from app.core.database import Base, get_db
 from app.core.security import create_access_token
@@ -44,6 +38,12 @@ from app.models.transaction import Transaction, TransactionStatus, TransactionTy
 from app.models.user import User
 from app.repositories.business_repository import BusinessRepository
 from app.services.payment_service import PaymentService
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture
@@ -151,8 +151,12 @@ def _setup_settlement_env(
         accepted_proposal_version=1,
         agreed_budget_amount=Decimal("5000.00"),
         agreed_currency=currency,
-        agreed_milestones=agreed_milestones if agreed_milestones is not None else default_milestone_terms,
-        agreed_responsibilities=agreed_responsibilities if agreed_responsibilities is not None else {},
+        agreed_milestones=agreed_milestones
+        if agreed_milestones is not None
+        else default_milestone_terms,
+        agreed_responsibilities=agreed_responsibilities
+        if agreed_responsibilities is not None
+        else {},
     )
     db.add(room)
     db.flush()
@@ -313,7 +317,9 @@ def test_prepare_milestone_settlement_rejects_already_settled_milestone(db_sessi
     assert "already been settled" in exc_info.value.detail.lower()
 
 
-def test_prepare_milestone_settlement_rejects_pending_settlement_with_new_key(db_session):
+def test_prepare_milestone_settlement_rejects_pending_settlement_with_new_key(
+    db_session,
+):
     env = _setup_settlement_env(db_session)
     svc = PaymentService(db_session)
 
@@ -419,7 +425,9 @@ def test_prepare_milestone_settlement_rejects_missing_agreement_roles(db_session
         agreed_responsibilities={},
     )
     # Clear participant text responsibilities so no keywords match
-    for p in db_session.query(DealRoomParticipant).filter(DealRoomParticipant.room_id == env["room"].id):
+    for p in db_session.query(DealRoomParticipant).filter(
+        DealRoomParticipant.room_id == env["room"].id
+    ):
         p.assigned_responsibilities = "Participant member"
     db_session.commit()
 
@@ -498,10 +506,10 @@ def test_postgresql_settlement_service_integration():
         pytest.skip("PostgreSQL not configured in settings")
 
     try:
-        engine = create_engine(pg_url)
-        with engine.connect() as conn:
+        engine = create_engine(pg_url, connect_args={"connect_timeout": 3})
+        with engine.connect():
             pass
-    except Exception:
+    except (SQLAlchemyError, OSError):
         pytest.skip("PostgreSQL connection not reachable")
 
     PgSession = sessionmaker(bind=engine)
@@ -537,7 +545,9 @@ def test_postgresql_settlement_service_integration():
         # Clean up created test fixture from PostgreSQL
         session.delete(tx)
         session.delete(env["milestone"])
-        for p in session.query(DealRoomParticipant).filter(DealRoomParticipant.room_id == env["room"].id):
+        for p in session.query(DealRoomParticipant).filter(
+            DealRoomParticipant.room_id == env["room"].id
+        ):
             session.delete(p)
         session.delete(env["room"])
         session.delete(env["proposal"])
@@ -564,12 +574,18 @@ def test_prepare_milestone_settlement_api_endpoint(db_session):
     client = TestClient(app)
 
     try:
-        payer_token = create_access_token(user_id=env["payer"].id, email=env["payer"].email)
-        outsider_token = create_access_token(user_id=env["outsider"].id, email=env["outsider"].email)
+        payer_token = create_access_token(
+            user_id=env["payer"].id, email=env["payer"].email
+        )
+        outsider_token = create_access_token(
+            user_id=env["outsider"].id, email=env["outsider"].email
+        )
 
         room_id = env["room"].id
         milestone_id = env["milestone"].id
-        endpoint_url = f"/api/v1/deal-rooms/{room_id}/milestones/{milestone_id}/settlement"
+        endpoint_url = (
+            f"/api/v1/deal-rooms/{room_id}/milestones/{milestone_id}/settlement"
+        )
         idemp_key = f"api_idemp_{uuid4().hex[:12]}"
 
         # 1. Payer initiates settlement
@@ -606,10 +622,14 @@ def test_prepare_milestone_settlement_api_endpoint(db_session):
         assert repeat_data["idempotency_key"] == idemp_key
 
         # Verify only 1 row exists in DB
-        tx_count = db_session.query(Transaction).filter(
-            Transaction.milestone_id == milestone_id,
-            Transaction.idempotency_key == idemp_key,
-        ).count()
+        tx_count = (
+            db_session.query(Transaction)
+            .filter(
+                Transaction.milestone_id == milestone_id,
+                Transaction.idempotency_key == idemp_key,
+            )
+            .count()
+        )
         assert tx_count == 1
 
         # 3. Outsider receives 403 Forbidden
@@ -635,4 +655,3 @@ def test_prepare_milestone_settlement_api_endpoint(db_session):
 
     finally:
         app.dependency_overrides.clear()
-

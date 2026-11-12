@@ -84,8 +84,29 @@ class SettlementRoleValidator:
         "worker",
     )
 
-    PAYER_KEYWORDS = ("pay", "payer", "pays", "paying", "payment", "fund", "funder", "funding", "client", "buyer")
-    PAYEE_KEYWORDS = ("receive", "receives", "payee", "contractor", "deliver", "delivering", "developer", "vendor", "seller")
+    PAYER_KEYWORDS = (
+        "pay",
+        "payer",
+        "pays",
+        "paying",
+        "payment",
+        "fund",
+        "funder",
+        "funding",
+        "client",
+        "buyer",
+    )
+    PAYEE_KEYWORDS = (
+        "receive",
+        "receives",
+        "payee",
+        "contractor",
+        "deliver",
+        "delivering",
+        "developer",
+        "vendor",
+        "seller",
+    )
 
     def validate_settlement_roles(
         self,
@@ -108,9 +129,7 @@ class SettlementRoleValidator:
         # 1. Parent Deal Room must exist and be active
         room = (
             db.query(DealRoom)
-            .filter(
-                or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
-            )
+            .filter(or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id))
             .first()
         )
         if not room:
@@ -180,7 +199,9 @@ class SettlementRoleValidator:
             )
 
         # 5. Financial obligation check: agreed amount must be positive
-        if milestone.agreed_amount is None or milestone.agreed_amount <= Decimal("0.00"):
+        if milestone.agreed_amount is None or milestone.agreed_amount <= Decimal(
+            "0.00"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
@@ -304,16 +325,24 @@ class SettlementRoleValidator:
                         break
 
         if m_item:
-            m_payer = self._extract_user_id(m_item, self.PAYER_ROLE_KEYS, participant_ids)
-            m_payee = self._extract_user_id(m_item, self.PAYEE_ROLE_KEYS, participant_ids)
+            m_payer = self._extract_user_id(
+                m_item, self.PAYER_ROLE_KEYS, participant_ids
+            )
+            m_payee = self._extract_user_id(
+                m_item, self.PAYEE_ROLE_KEYS, participant_ids
+            )
             if m_payer and m_payee:
                 return m_payer, m_payee, "EXPLICIT_MILESTONE_SNAPSHOT"
 
         # --- Level 2: Explicit room-level responsibility mapping ---
         resp_map = room.agreed_responsibilities or {}
         if isinstance(resp_map, dict) and resp_map:
-            r_payer = self._extract_user_id(resp_map, self.PAYER_ROLE_KEYS, participant_ids)
-            r_payee = self._extract_user_id(resp_map, self.PAYEE_ROLE_KEYS, participant_ids)
+            r_payer = self._extract_user_id(
+                resp_map, self.PAYER_ROLE_KEYS, participant_ids
+            )
+            r_payee = self._extract_user_id(
+                resp_map, self.PAYEE_ROLE_KEYS, participant_ids
+            )
             if r_payer and r_payee:
                 return r_payer, r_payee, "EXPLICIT_AGREED_RESPONSIBILITIES"
 
@@ -330,7 +359,10 @@ class SettlementRoleValidator:
             # Operational or communicative references (e.g., "discusses payment", "reviews payment")
             # do NOT constitute financial authorization.
             is_operational_only = bool(
-                re.search(r"\b(reviews|discusses|negotiates|tracks|monitors)\s+(the\s+)?payment\b", text)
+                re.search(
+                    r"\b(reviews|discusses|negotiates|tracks|monitors)\s+(the\s+)?payment\b",
+                    text,
+                )
             )
             has_payer_clause = (not is_operational_only) and bool(
                 re.search(
@@ -369,7 +401,11 @@ class SettlementRoleValidator:
                 derived_payee = p.user_id
 
         if derived_payer and derived_payee:
-            return derived_payer, derived_payee, "UNAMBIGUOUS_PARTICIPANT_RESPONSIBILITIES"
+            return (
+                derived_payer,
+                derived_payee,
+                "UNAMBIGUOUS_PARTICIPANT_RESPONSIBILITIES",
+            )
 
         # Fallback / assumption prohibition:
         # We NEVER fall back when roles cannot be determined or are ambiguous.

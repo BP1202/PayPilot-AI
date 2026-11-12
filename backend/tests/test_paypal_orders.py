@@ -33,12 +33,6 @@ from uuid import uuid4
 
 import httpx
 import pytest
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.config import settings
 from app.core.database import Base, get_db
 from app.core.security import create_access_token
@@ -63,6 +57,11 @@ from app.services.paypal_order_service import (
     PayPalOrderTimeoutError,
     PayPalOrderValidationError,
 )
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 SANDBOX_BASE = "https://api-m.sandbox.paypal.com"
 FAKE_ORDER_ID = "ORDER-MOCK-TEST-001"
@@ -260,12 +259,16 @@ def test_order_service_validates_domain_security():
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             201,
-            json=_mock_order_response(approval_url="https://evil-phishing.com/checkout"),
+            json=_mock_order_response(
+                approval_url="https://evil-phishing.com/checkout"
+            ),
         )
 
     service = _build_mock_order_service(handler)
 
-    with pytest.raises(PayPalOrderValidationError, match="Untrusted PayPal approval host"):
+    with pytest.raises(
+        PayPalOrderValidationError, match="Untrusted PayPal approval host"
+    ):
         service.create_order(
             amount=Decimal("100.00"),
             currency="USD",
@@ -339,7 +342,10 @@ def test_order_service_capture_order_success():
     def handler(request: httpx.Request) -> httpx.Response:
         sent_requests.append(request)
         assert request.method == "POST"
-        assert str(request.url) == f"{SANDBOX_BASE}/v2/checkout/orders/{FAKE_ORDER_ID}/capture"
+        assert (
+            str(request.url)
+            == f"{SANDBOX_BASE}/v2/checkout/orders/{FAKE_ORDER_ID}/capture"
+        )
         assert request.headers["PayPal-Request-Id"] == "cap_idemp_999"
         return httpx.Response(201, json=_mock_capture_response())
 
@@ -386,7 +392,6 @@ def test_order_service_capture_reconciles_already_captured():
 
     assert cap_res.capture_id == FAKE_CAPTURE_ID
     assert cap_res.status == "COMPLETED"
-
 
 
 # ==============================================================================
@@ -558,7 +563,11 @@ def test_payment_service_create_paypal_order_success(test_db):
     assert order_call_count == 1
 
     # Verify transaction in database
-    tx = test_db.query(Transaction).filter(Transaction.id == int(res["transaction_id"])).first()
+    tx = (
+        test_db.query(Transaction)
+        .filter(Transaction.id == int(res["transaction_id"]))
+        .first()
+    )
     assert tx is not None
     assert tx.paypal_order_id == FAKE_ORDER_ID
     # STRICT RULE: Transaction remains PENDING
@@ -567,7 +576,11 @@ def test_payment_service_create_paypal_order_success(test_db):
     assert tx.provider == "paypal"
 
     # STRICT RULE: Milestone remains APPROVED (not marked settled)
-    m = test_db.query(MilestoneExecution).filter(MilestoneExecution.id == fix["milestone"].id).first()
+    m = (
+        test_db.query(MilestoneExecution)
+        .filter(MilestoneExecution.id == fix["milestone"].id)
+        .first()
+    )
     assert m.status == MilestoneExecutionStatus.APPROVED.value
 
     # Repeat call with same key -> Idempotent return (does NOT invoke PayPal again)
@@ -696,11 +709,19 @@ def test_payment_service_capture_paypal_order_success(test_db):
     assert res["payment_readiness"] == "PAID"
 
     # Verify database state
-    tx = test_db.query(Transaction).filter(Transaction.id == int(res["transaction_id"])).first()
+    tx = (
+        test_db.query(Transaction)
+        .filter(Transaction.id == int(res["transaction_id"]))
+        .first()
+    )
     assert tx.status == TransactionStatus.COMPLETED
     assert tx.paypal_capture_id == FAKE_CAPTURE_ID
 
-    m = test_db.query(MilestoneExecution).filter(MilestoneExecution.id == fix["milestone"].id).first()
+    m = (
+        test_db.query(MilestoneExecution)
+        .filter(MilestoneExecution.id == fix["milestone"].id)
+        .first()
+    )
     assert m.payment_readiness == PaymentReadinessStatus.PAID.value
 
     # Idempotent repeat on completed settlement
@@ -740,7 +761,11 @@ def test_payment_service_capture_rejects_unapproved_order(test_db):
     assert "has not been approved by the buyer" in exc_info.value.detail
 
     # Transaction MUST remain PENDING
-    tx = test_db.query(Transaction).filter(Transaction.id == fix["settlement_tx"].id).first()
+    tx = (
+        test_db.query(Transaction)
+        .filter(Transaction.id == fix["settlement_tx"].id)
+        .first()
+    )
     assert tx.status == TransactionStatus.PENDING
     assert tx.paypal_capture_id is None
 
@@ -783,7 +808,9 @@ def test_payment_service_capture_rejects_amount_mismatch(test_db):
 
     # PayPal reports order amount 3000.00 while transaction is 2500.00
     def handler(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=_mock_get_order_response(status="APPROVED", amount="3000.00"))
+        return httpx.Response(
+            200, json=_mock_get_order_response(status="APPROVED", amount="3000.00")
+        )
 
     mock_svc = _build_mock_order_service(handler)
 
@@ -826,9 +853,12 @@ def test_payment_service_capture_handles_pending_capture(test_db):
     assert "PENDING provider clearance" in exc_info.value.detail
 
     # Transaction must NOT be marked COMPLETED
-    tx = test_db.query(Transaction).filter(Transaction.id == fix["settlement_tx"].id).first()
+    tx = (
+        test_db.query(Transaction)
+        .filter(Transaction.id == fix["settlement_tx"].id)
+        .first()
+    )
     assert tx.status == TransactionStatus.PENDING
-
 
 
 # ==============================================================================
@@ -846,8 +876,12 @@ def test_api_create_paypal_order_endpoint(test_db, monkeypatch):
     client = TestClient(app)
 
     try:
-        payer_token = create_access_token(user_id=fix["payer"].id, email=fix["payer"].email)
-        worker_token = create_access_token(user_id=fix["worker"].id, email=fix["worker"].email)
+        payer_token = create_access_token(
+            user_id=fix["payer"].id, email=fix["payer"].email
+        )
+        worker_token = create_access_token(
+            user_id=fix["worker"].id, email=fix["worker"].email
+        )
 
         url = f"/api/v1/deal-rooms/{fix['room'].id}/milestones/{fix['milestone'].id}/paypal/create-order"
 
@@ -911,8 +945,12 @@ def test_api_capture_paypal_order_endpoint(test_db, monkeypatch):
     client = TestClient(app)
 
     try:
-        payer_token = create_access_token(user_id=fix["payer"].id, email=fix["payer"].email)
-        worker_token = create_access_token(user_id=fix["worker"].id, email=fix["worker"].email)
+        payer_token = create_access_token(
+            user_id=fix["payer"].id, email=fix["payer"].email
+        )
+        worker_token = create_access_token(
+            user_id=fix["worker"].id, email=fix["worker"].email
+        )
 
         url = f"/api/v1/deal-rooms/{fix['room'].id}/milestones/{fix['milestone'].id}/paypal/capture-order"
 
@@ -959,7 +997,6 @@ def test_api_capture_paypal_order_endpoint(test_db, monkeypatch):
         app.dependency_overrides.clear()
 
 
-
 # ==============================================================================
 # 4. Direct PostgreSQL Integration Test
 # ==============================================================================
@@ -996,7 +1033,11 @@ def test_postgresql_order_creation_integration():
         assert res["order_status"] == "CREATED"
 
         # Verify transaction record in PostgreSQL
-        tx = session.query(Transaction).filter(Transaction.id == int(res["transaction_id"])).first()
+        tx = (
+            session.query(Transaction)
+            .filter(Transaction.id == int(res["transaction_id"]))
+            .first()
+        )
         assert tx is not None
         assert tx.paypal_order_id == FAKE_ORDER_ID
         assert tx.status == TransactionStatus.PENDING
@@ -1004,7 +1045,9 @@ def test_postgresql_order_creation_integration():
         # Clean up created PostgreSQL records
         session.delete(tx)
         session.delete(fix["milestone"])
-        for p in session.query(DealRoomParticipant).filter(DealRoomParticipant.room_id == fix["room"].id):
+        for p in session.query(DealRoomParticipant).filter(
+            DealRoomParticipant.room_id == fix["room"].id
+        ):
             session.delete(p)
         session.delete(fix["room"])
         session.delete(fix["proposal"])
@@ -1038,7 +1081,9 @@ def test_postgresql_capture_integration():
 
         def handler(request: httpx.Request) -> httpx.Response:
             if request.method == "GET":
-                return httpx.Response(200, json=_mock_get_order_response(status="APPROVED"))
+                return httpx.Response(
+                    200, json=_mock_get_order_response(status="APPROVED")
+                )
             if request.method == "POST":
                 return httpx.Response(201, json=_mock_capture_response())
             return httpx.Response(404)
@@ -1059,18 +1104,28 @@ def test_postgresql_capture_integration():
         assert res["payment_readiness"] == "PAID"
 
         # Verify transaction and milestone record in PostgreSQL
-        tx = session.query(Transaction).filter(Transaction.id == int(res["transaction_id"])).first()
+        tx = (
+            session.query(Transaction)
+            .filter(Transaction.id == int(res["transaction_id"]))
+            .first()
+        )
         assert tx is not None
         assert tx.status == TransactionStatus.COMPLETED
         assert tx.paypal_capture_id == FAKE_CAPTURE_ID
 
-        m = session.query(MilestoneExecution).filter(MilestoneExecution.id == fix["milestone"].id).first()
+        m = (
+            session.query(MilestoneExecution)
+            .filter(MilestoneExecution.id == fix["milestone"].id)
+            .first()
+        )
         assert m.payment_readiness == PaymentReadinessStatus.PAID.value
 
         # Clean up created PostgreSQL records
         session.delete(tx)
         session.delete(fix["milestone"])
-        for p in session.query(DealRoomParticipant).filter(DealRoomParticipant.room_id == fix["room"].id):
+        for p in session.query(DealRoomParticipant).filter(
+            DealRoomParticipant.room_id == fix["room"].id
+        ):
             session.delete(p)
         session.delete(fix["room"])
         session.delete(fix["proposal"])
@@ -1083,4 +1138,3 @@ def test_postgresql_capture_integration():
     finally:
         session.close()
         engine.dispose()
-

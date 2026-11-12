@@ -191,10 +191,14 @@ class DeterministicMatchmakingEngine:
 
         unmatched_resources = [r for r in resources if r not in matched_resources][:2]
         if unmatched_resources:
-            partial_signals.append(f"Available tooling: {', '.join(unmatched_resources)}")
+            partial_signals.append(
+                f"Available tooling: {', '.join(unmatched_resources)}"
+            )
 
         if aligned_interests:
-            partial_signals.append(f"Aligned interests: {', '.join(aligned_interests[:2])}")
+            partial_signals.append(
+                f"Aligned interests: {', '.join(aligned_interests[:2])}"
+            )
 
         potential_gaps = [f"Unmatched requirement: {m}" for m in missing_reqs[:4]]
 
@@ -217,7 +221,9 @@ class DeterministicMatchmakingEngine:
         if matched_resources:
             matched_summaries.append(f"tooling ({', '.join(matched_resources[:2])})")
         if matched_experience:
-            matched_summaries.append(f"experience in {', '.join(matched_experience[:2])}")
+            matched_summaries.append(
+                f"experience in {', '.join(matched_experience[:2])}"
+            )
 
         if matched_summaries:
             summary = (

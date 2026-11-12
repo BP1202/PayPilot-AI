@@ -2,11 +2,6 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
@@ -21,6 +16,10 @@ from app.models.opportunity import (
 )
 from app.models.profile import IndividualProfile, ProfileVisibility
 from app.models.user import User
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture
@@ -448,7 +447,9 @@ def test_matching_with_services_overlap(
     client_with_db: TestClient, test_db_session: Session
 ):
     """Verifies service offerings match opportunity requirements with explicit signals."""
-    creator, creator_token = make_user(test_db_session, "creator-srv-1", "creator-srv@test.com")
+    creator, creator_token = make_user(
+        test_db_session, "creator-srv-1", "creator-srv@test.com"
+    )
     candidate, _ = make_user(
         test_db_session, "cand-srv-1", "cand-srv@test.com", "Sarah Security Consultant"
     )
@@ -483,14 +484,19 @@ def test_matching_with_services_overlap(
     assert data["total"] >= 1
     cand = next(c for c in data["items"] if c["name"] == "Sarah Security Consultant")
     assert "Penetration Testing" in cand["services"]
-    assert any("Service offering: Penetration Testing" in sig for sig in cand["explanation"]["strong_signals"])
+    assert any(
+        "Service offering: Penetration Testing" in sig
+        for sig in cand["explanation"]["strong_signals"]
+    )
 
 
 def test_matching_with_resources_and_tools_overlap(
     client_with_db: TestClient, test_db_session: Session
 ):
     """Verifies equipment and infrastructure match opportunity requirements."""
-    creator, creator_token = make_user(test_db_session, "creator-res-1", "creator-res@test.com")
+    creator, creator_token = make_user(
+        test_db_session, "creator-res-1", "creator-res@test.com"
+    )
     candidate, _ = make_user(
         test_db_session, "cand-res-1", "cand-res@test.com", "David Infrastructure Pro"
     )
@@ -525,15 +531,23 @@ def test_matching_with_resources_and_tools_overlap(
     assert data["total"] >= 1
     cand = next(c for c in data["items"] if c["name"] == "David Infrastructure Pro")
     assert "AWS GovCloud" in cand["resources"]
-    assert any("Equipped with: AWS GovCloud" in sig for sig in cand["explanation"]["strong_signals"])
-    assert any("Proficient in Kubernetes" in sig for sig in cand["explanation"]["strong_signals"])
+    assert any(
+        "Equipped with: AWS GovCloud" in sig
+        for sig in cand["explanation"]["strong_signals"]
+    )
+    assert any(
+        "Proficient in Kubernetes" in sig
+        for sig in cand["explanation"]["strong_signals"]
+    )
 
 
 def test_matching_with_experience_overlap(
     client_with_db: TestClient, test_db_session: Session
 ):
     """Verifies experience milestones and domain background match requirements."""
-    creator, creator_token = make_user(test_db_session, "creator-exp-1", "creator-exp@test.com")
+    creator, creator_token = make_user(
+        test_db_session, "creator-exp-1", "creator-exp@test.com"
+    )
     candidate, _ = make_user(
         test_db_session, "cand-exp-1", "cand-exp@test.com", "Elena Fintech Lead"
     )
@@ -567,16 +581,24 @@ def test_matching_with_experience_overlap(
     assert data["total"] >= 1
     cand = next(c for c in data["items"] if c["name"] == "Elena Fintech Lead")
     assert "10+ Years FinTech Executive" in cand["experience"]
-    assert any("Domain experience: 10+ Years FinTech Executive" in sig for sig in cand["explanation"]["strong_signals"])
+    assert any(
+        "Domain experience: 10+ Years FinTech Executive" in sig
+        for sig in cand["explanation"]["strong_signals"]
+    )
 
 
 def test_combined_multidimensional_capability_matching(
     client_with_db: TestClient, test_db_session: Session
 ):
     """Verifies combined skills, services, resources, and experience create a Strong Match."""
-    creator, creator_token = make_user(test_db_session, "creator-multi-1", "creator-multi@test.com")
+    creator, creator_token = make_user(
+        test_db_session, "creator-multi-1", "creator-multi@test.com"
+    )
     candidate, _ = make_user(
-        test_db_session, "cand-multi-1", "cand-multi@test.com", "Marcus AI Platform Lead"
+        test_db_session,
+        "cand-multi-1",
+        "cand-multi@test.com",
+        "Marcus AI Platform Lead",
     )
 
     opp = create_test_opportunity(
@@ -621,7 +643,9 @@ def test_private_profile_exclusion_with_expanded_capabilities(
     client_with_db: TestClient, test_db_session: Session
 ):
     """Verifies profiles with PRIVATE visibility are strictly excluded even with matching services/resources."""
-    creator, creator_token = make_user(test_db_session, "creator-priv-1", "creator-priv@test.com")
+    creator, creator_token = make_user(
+        test_db_session, "creator-priv-1", "creator-priv@test.com"
+    )
     private_cand, _ = make_user(
         test_db_session, "cand-priv-1", "cand-priv@test.com", "Private Provider Person"
     )
@@ -659,7 +683,9 @@ def test_business_candidate_expanded_capabilities(
     client_with_db: TestClient, test_db_session: Session
 ):
     """Verifies business organizations matching on services and tooling return full capability structures."""
-    creator, creator_token = make_user(test_db_session, "creator-biz-exp", "creator-biz-exp@test.com")
+    creator, creator_token = make_user(
+        test_db_session, "creator-biz-exp", "creator-biz-exp@test.com"
+    )
 
     opp = create_test_opportunity(
         test_db_session,
@@ -696,4 +722,3 @@ def test_business_candidate_expanded_capabilities(
     strong_sigs = cand["explanation"]["strong_signals"]
     assert any("Service offering: Enterprise Cloud Migration" in s for s in strong_sigs)
     assert any("Equipped with: Dedicated Data Center" in s for s in strong_sigs)
-

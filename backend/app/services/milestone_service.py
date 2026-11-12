@@ -133,7 +133,10 @@ def _milestone_to_response(
                 payer_user_id = t.payer_user_id
             if t.payee_user_id:
                 payee_user_id = t.payee_user_id
-            if getattr(t, "status", None) == "COMPLETED" or getattr(t, "status", None) == TransactionStatus.COMPLETED:
+            if (
+                getattr(t, "status", None) == "COMPLETED"
+                or getattr(t, "status", None) == TransactionStatus.COMPLETED
+            ):
                 readiness_val = PaymentReadinessStatus.PAID.value
     if not payer_user_id and milestone.reviewer_user_id:
         payer_user_id = milestone.reviewer_user_id
@@ -275,9 +278,13 @@ class MilestoneService:
         # 2. Check room-level agreed responsibilities
         resp_map = room.agreed_responsibilities or {}
         if not responsible_id:
-            responsible_id = resp_map.get("worker_id") or resp_map.get("responsible_user_id")
+            responsible_id = resp_map.get("worker_id") or resp_map.get(
+                "responsible_user_id"
+            )
         if not reviewer_id:
-            reviewer_id = resp_map.get("reviewer_id") or resp_map.get("reviewer_user_id")
+            reviewer_id = resp_map.get("reviewer_id") or resp_map.get(
+                "reviewer_user_id"
+            )
 
         # 3. Check authoritative accepted proposal parties
         if room.proposal:
@@ -291,7 +298,9 @@ class MilestoneService:
             responsible_id = fallback_user_id
         if not reviewer_id:
             other_participants = [uid for uid in room_user_ids if uid != responsible_id]
-            reviewer_id = other_participants[0] if other_participants else responsible_id
+            reviewer_id = (
+                other_participants[0] if other_participants else responsible_id
+            )
 
         # Validate against Deal Room participants
         if room_user_ids:
@@ -583,9 +592,7 @@ class MilestoneService:
             attachments=payload.attachments or [],
             status=EvidenceReviewStatus.PENDING_REVIEW.value,
             submission_notes=(
-                payload.submission_notes.strip()
-                if payload.submission_notes
-                else None
+                payload.submission_notes.strip() if payload.submission_notes else None
             ),
         )
         db.add(evidence)
@@ -682,16 +689,18 @@ class MilestoneService:
             evidence.status = EvidenceReviewStatus.APPROVED.value
             m.status = MilestoneExecutionStatus.APPROVED.value
             m.approved_at = datetime.now(UTC)
-            has_financial_obligation = (
-                m.agreed_amount is not None
-                and Decimal(str(m.agreed_amount)) > Decimal("0.00")
-            )
+            has_financial_obligation = m.agreed_amount is not None and Decimal(
+                str(m.agreed_amount)
+            ) > Decimal("0.00")
             if has_financial_obligation:
-                m.payment_readiness = PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+                m.payment_readiness = (
+                    PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+                )
                 # Automatically create official commercial invoice / settlement record in ledger
                 try:
                     from app.models.transaction import Transaction
                     from app.services.payment_service import PaymentService
+
                     existing_tx = (
                         db.query(Transaction)
                         .filter(
@@ -710,7 +719,12 @@ class MilestoneService:
                             idempotency_key=auto_idemp,
                             description=f"Commercial Invoice #{m.id[:8].upper()} - {m.title}",
                         )
-                except Exception as auto_inv_err:
+                except (
+                    HTTPException,
+                    IntegrityError,
+                    ValueError,
+                    RuntimeError,
+                ) as auto_inv_err:
                     logger.warning(
                         f"Automatic settlement invoice creation deferred for milestone {m.id}: {auto_inv_err}"
                     )
@@ -831,25 +845,17 @@ class MilestoneService:
             .first()
         )
 
-        has_financial_obligation = (
-            m.agreed_amount is not None
-            and Decimal(str(m.agreed_amount)) > Decimal("0.00")
-        )
+        has_financial_obligation = m.agreed_amount is not None and Decimal(
+            str(m.agreed_amount)
+        ) > Decimal("0.00")
         if not has_financial_obligation:
-            settlement_note = (
-                "Non-monetary milestone: No financial settlement required upon completion."
-            )
+            settlement_note = "Non-monetary milestone: No financial settlement required upon completion."
         elif (
-            m.payment_readiness
-            == PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+            m.payment_readiness == PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
         ):
-            settlement_note = (
-                "Verified human approval on record. Eligible for PayPal checkout review."
-            )
+            settlement_note = "Verified human approval on record. Eligible for PayPal checkout review."
         else:
-            settlement_note = (
-                "Deliverables not yet approved. Not eligible for payment."
-            )
+            settlement_note = "Deliverables not yet approved. Not eligible for payment."
 
         return MilestonePaymentReadinessResponse(
             milestone_id=m.id,

@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 import pytest
-
 from app.services.payment_provider import MockPaymentProvider, PaymentProviderError
 
 

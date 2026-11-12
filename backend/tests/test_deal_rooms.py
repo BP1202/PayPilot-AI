@@ -18,11 +18,6 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
@@ -36,6 +31,10 @@ from app.models.opportunity import (
     OpportunityVisibility,
 )
 from app.models.user import User
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture
@@ -606,7 +605,9 @@ def test_deal_room_resolution_by_proposal_id(test_db_session: Session):
 
     sender, _ = make_user(test_db_session, "u-s-prop-lookup", "s-prop-lookup@test.com")
     recip, _ = make_user(test_db_session, "u-r-prop-lookup", "r-prop-lookup@test.com")
-    conn = make_accepted_connection(test_db_session, sender.id, recip.id, conn_id="conn-lookup-test")
+    conn = make_accepted_connection(
+        test_db_session, sender.id, recip.id, conn_id="conn-lookup-test"
+    )
     opp = create_test_opportunity(test_db_session, "opp-lookup-test", sender.id)
 
     prop = Proposal(

@@ -1,8 +1,5 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
-
 from app.core.auth import get_optional_user_id
 from app.core.database import get_db
 from app.models.transaction import TransactionStatus
@@ -10,6 +7,9 @@ from app.repositories.business_repository import BusinessRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.payment import LedgerListResponse
 from app.schemas.transaction import TransactionRead, TransactionStatusEnum
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/ledger", tags=["Commerce Ledger"])
 
@@ -61,14 +61,16 @@ def get_ledger_transactions(
     )
 
 
-@router.get("/{transaction_ref}/invoice", summary="Get commercial invoice details for transaction")
+@router.get(
+    "/{transaction_ref}/invoice",
+    summary="Get commercial invoice details for transaction",
+)
 def get_transaction_invoice(
     transaction_ref: str,
     db: Annotated[Session, Depends(get_db)],
 ):
-    from sqlalchemy import or_
-
     from app.models.transaction import Transaction
+    from sqlalchemy import or_
 
     tx = (
         db.query(Transaction)
@@ -83,7 +85,7 @@ def get_transaction_invoice(
     )
     if not tx:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Invoice / transaction '{transaction_ref}' not found.",
         )
 
@@ -122,9 +124,8 @@ def download_transaction_invoice_html(
     transaction_ref: str,
     db: Annotated[Session, Depends(get_db)],
 ):
-    from sqlalchemy import or_
-
     from app.models.transaction import Transaction
+    from sqlalchemy import or_
 
     tx = (
         db.query(Transaction)
@@ -139,7 +140,7 @@ def download_transaction_invoice_html(
     )
     if not tx:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Invoice / transaction '{transaction_ref}' not found.",
         )
 

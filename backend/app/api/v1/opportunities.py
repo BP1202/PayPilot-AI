@@ -1,8 +1,5 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.orm import Session
-
 from app.core.auth import (
     get_current_user_id,
     get_optional_user,
@@ -29,6 +26,8 @@ from app.schemas.opportunity import (
     OpportunityVisibilityUpdateRequest,
 )
 from app.services.opportunity_service import OpportunityService
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/opportunities", tags=["opportunities"])
 

@@ -1,8 +1,5 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-
 from app.core.auth import get_current_user_id, get_optional_user_id
 from app.core.database import get_db
 from app.schemas.matching import (
@@ -10,6 +7,8 @@ from app.schemas.matching import (
     ParticipantMatchesResponse,
 )
 from app.services.matchmaking_service import MatchmakingService
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/matches", tags=["matches"])
 

@@ -12,10 +12,6 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 from app.core.database import Base
 from app.models.connection import Connection, ConnectionStatus
 from app.models.deal_room import DealRoom, DealRoomParticipant, DealRoomStatus
@@ -30,6 +26,9 @@ from app.services.settlement_role_validator import (
     SettlementRoleValidator,
     ValidatedSettlementRoles,
 )
+from fastapi import HTTPException
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
 @pytest.fixture
@@ -115,7 +114,9 @@ def _create_test_fixture(
         agreed_budget_amount=Decimal("5000.00"),
         agreed_currency=currency,
         agreed_milestones=agreed_milestones if agreed_milestones is not None else [],
-        agreed_responsibilities=agreed_responsibilities if agreed_responsibilities is not None else {},
+        agreed_responsibilities=agreed_responsibilities
+        if agreed_responsibilities is not None
+        else {},
     )
     db.add(room)
     db.flush()

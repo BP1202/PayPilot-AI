@@ -2,9 +2,6 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.orm import Session
-
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models.deal_room import DealRoomStatus
@@ -27,6 +24,8 @@ from app.schemas.deal_room import (
     DealRoomStatusUpdatePayload,
 )
 from app.services.deal_room_service import DealRoomService
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/deal-rooms", tags=["deal-rooms"])
 

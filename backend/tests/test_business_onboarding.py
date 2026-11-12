@@ -1,12 +1,11 @@
 import pytest
+from app.core.database import Base, get_db
+from app.main import app
+from app.services.business_extractor import BusinessProfileExtractor
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-
-from app.core.database import Base, get_db
-from app.main import app
-from app.services.business_extractor import BusinessProfileExtractor
 
 
 @pytest.fixture

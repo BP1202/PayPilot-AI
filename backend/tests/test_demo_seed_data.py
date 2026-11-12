@@ -1,10 +1,6 @@
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.database import Base
 from app.core.security import verify_password
 from app.models import (
@@ -23,6 +19,9 @@ from scripts.seed_demo_data import (
     seed_demo_data,
     validate_local_seed_environment,
 )
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture
@@ -54,10 +53,7 @@ def test_seed_creates_six_distinct_profiles_and_sandbox_ready_workflow(demo_db):
     assert demo_db.query(IndividualProfile).count() == 6
     assert demo_db.query(Business).count() == 3
     assert demo_db.query(Opportunity).count() == 6
-    assert all(
-        email.endswith("@opnly-demo.test")
-        for email in summary.accounts
-    )
+    assert all(email.endswith("@opnly-demo.test") for email in summary.accounts)
     assert verify_password(
         password,
         demo_db.query(User).filter_by(id="demo_org_northstar").one().hashed_password,

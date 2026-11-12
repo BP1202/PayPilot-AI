@@ -9,11 +9,6 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
@@ -27,6 +22,10 @@ from app.models.opportunity import (
     OpportunityVisibility,
 )
 from app.models.user import User
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -195,7 +194,9 @@ def test_connection_request_via_base_path(
     client_with_db: TestClient, test_db_session: Session
 ):
     """Successful connection request creation via base /api/v1/connections path."""
-    sender, sender_token = make_user(test_db_session, "u-sender-base", "sender_base@test.com")
+    sender, sender_token = make_user(
+        test_db_session, "u-sender-base", "sender_base@test.com"
+    )
     recipient, _ = make_user(test_db_session, "u-recip-base", "recip_base@test.com")
 
     resp = client_with_db.post(

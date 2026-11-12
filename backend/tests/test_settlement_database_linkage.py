@@ -14,10 +14,6 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
-
 from app.core.config import settings
 from app.core.database import Base
 from app.models.business import Business
@@ -31,6 +27,9 @@ from app.models.milestone_execution import (
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.models.user import User
+from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
 
 
 @pytest.fixture
@@ -360,11 +359,13 @@ def test_postgresql_constraint_enforcement():
         pytest.skip("PostgreSQL is not configured in settings")
 
     try:
-        pg_engine = create_engine(pg_url)
-        with pg_engine.connect() as conn:
+        pg_engine = create_engine(pg_url, connect_args={"connect_timeout": 3})
+        with pg_engine.connect():
             pass
-    except Exception:
-        pytest.skip("PostgreSQL connection not reachable in current execution environment")
+    except (SQLAlchemyError, OSError):
+        pytest.skip(
+            "PostgreSQL connection not reachable in current execution environment"
+        )
 
     PgSession = sessionmaker(bind=pg_engine)
     session = PgSession()

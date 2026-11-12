@@ -1,7 +1,7 @@
 import json
 import uuid
 from datetime import UTC, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -258,9 +258,7 @@ class PaymentService:
         else:
             room = (
                 self.db.query(DealRoom)
-                .filter(
-                    or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
-                )
+                .filter(or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id))
                 .first()
             )
             if room and room.opportunity and room.opportunity.business_id:
@@ -288,7 +286,8 @@ class PaymentService:
             status=TransactionStatus.PENDING,
             type=TransactionType.CUSTOMER_PAYMENT,
             payment_method="PAYPAL_SIMULATED",
-            description=description or f"Commercial settlement for milestone: {milestone.title}",
+            description=description
+            or f"Commercial settlement for milestone: {milestone.title}",
             metadata_json=json.dumps(meta, default=str),
         )
 
@@ -350,9 +349,7 @@ class PaymentService:
         # 1. Deal Room check
         room = (
             self.db.query(DealRoom)
-            .filter(
-                or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
-            )
+            .filter(or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id))
             .first()
         )
         if not room:
@@ -400,7 +397,10 @@ class PaymentService:
                 detail=f"Milestone '{milestone_id}' is not approved (status: {milestone.status}).",
             )
 
-        if milestone.payment_readiness != PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value:
+        if (
+            milestone.payment_readiness
+            != PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+        ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
@@ -409,7 +409,9 @@ class PaymentService:
                 ),
             )
 
-        if milestone.agreed_amount is None or milestone.agreed_amount <= Decimal("0.00"):
+        if milestone.agreed_amount is None or milestone.agreed_amount <= Decimal(
+            "0.00"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Milestone '{milestone_id}' has no financial settlement amount.",
@@ -484,8 +486,12 @@ class PaymentService:
             meta: dict[str, Any] = {}
             if tx.metadata_json:
                 try:
-                    meta = json.loads(tx.metadata_json) if isinstance(tx.metadata_json, str) else dict(tx.metadata_json)
-                except Exception:
+                    meta = (
+                        json.loads(tx.metadata_json)
+                        if isinstance(tx.metadata_json, str)
+                        else dict(tx.metadata_json)
+                    )
+                except (json.JSONDecodeError, TypeError, ValueError):
                     meta = {}
             return {
                 "transaction_id": str(tx.id),
@@ -549,17 +555,23 @@ class PaymentService:
         existing_meta: dict[str, Any] = {}
         if tx.metadata_json:
             try:
-                existing_meta = json.loads(tx.metadata_json) if isinstance(tx.metadata_json, str) else dict(tx.metadata_json)
-            except Exception:
+                existing_meta = (
+                    json.loads(tx.metadata_json)
+                    if isinstance(tx.metadata_json, str)
+                    else dict(tx.metadata_json)
+                )
+            except (json.JSONDecodeError, TypeError, ValueError):
                 existing_meta = {}
 
-        existing_meta.update({
-            "paypal_order_id": result.order_id,
-            "paypal_order_status": result.status,
-            "paypal_approval_url": result.approval_url,
-            "paypal_order_created_at": datetime.now(UTC).isoformat(),
-            "paypal_request_id": paypal_request_id,
-        })
+        existing_meta.update(
+            {
+                "paypal_order_id": result.order_id,
+                "paypal_order_status": result.status,
+                "paypal_approval_url": result.approval_url,
+                "paypal_order_created_at": datetime.now(UTC).isoformat(),
+                "paypal_request_id": paypal_request_id,
+            }
+        )
         tx.metadata_json = json.dumps(existing_meta, default=str)
 
         self.db.commit()
@@ -613,9 +625,7 @@ class PaymentService:
         # 1. Deal Room verification
         room = (
             self.db.query(DealRoom)
-            .filter(
-                or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
-            )
+            .filter(or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id))
             .first()
         )
         if not room:
@@ -737,7 +747,10 @@ class PaymentService:
             }
 
         # For uncompleted transactions, milestone must be in READY_FOR_PAYMENT_REVIEW
-        if milestone.payment_readiness != PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value:
+        if (
+            milestone.payment_readiness
+            != PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+        ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
@@ -813,7 +826,7 @@ class PaymentService:
 
         try:
             pu_value_dec = Decimal(str(pu_value))
-        except Exception:
+        except (InvalidOperation, TypeError, ValueError):
             pu_value_dec = Decimal("0.00")
 
         if pu_value_dec != tx.amount or pu_currency != tx.currency:
@@ -838,7 +851,9 @@ class PaymentService:
             try:
                 check_order = order_svc.get_order(tx.paypal_order_id)
                 if check_order.get("status") == "COMPLETED":
-                    capture_res = order_svc._extract_capture_from_order_data(check_order)
+                    capture_res = order_svc._extract_capture_from_order_data(
+                        check_order
+                    )
                 else:
                     raise HTTPException(
                         status_code=status.HTTP_504_GATEWAY_TIMEOUT,
@@ -909,16 +924,22 @@ class PaymentService:
         meta: dict[str, Any] = {}
         if tx.metadata_json:
             try:
-                meta = json.loads(tx.metadata_json) if isinstance(tx.metadata_json, str) else dict(tx.metadata_json)
-            except Exception:
+                meta = (
+                    json.loads(tx.metadata_json)
+                    if isinstance(tx.metadata_json, str)
+                    else dict(tx.metadata_json)
+                )
+            except (json.JSONDecodeError, TypeError, ValueError):
                 meta = {}
 
-        meta.update({
-            "paypal_capture_id": capture_result.capture_id,
-            "paypal_capture_status": capture_result.status,
-            "paypal_captured_at": datetime.now(UTC).isoformat(),
-            "capture_request_id": capture_request_id,
-        })
+        meta.update(
+            {
+                "paypal_capture_id": capture_result.capture_id,
+                "paypal_capture_status": capture_result.status,
+                "paypal_captured_at": datetime.now(UTC).isoformat(),
+                "capture_request_id": capture_request_id,
+            }
+        )
         tx.metadata_json = json.dumps(meta, default=str)
 
         self.db.commit()
@@ -947,9 +968,7 @@ class PaymentService:
         """Query authoritative settlement and PayPal order status for a milestone."""
         room = (
             self.db.query(DealRoom)
-            .filter(
-                or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id)
-            )
+            .filter(or_(DealRoom.id == room_id, DealRoom.proposal_id == room_id))
             .first()
         )
         if not room:
@@ -996,7 +1015,7 @@ class PaymentService:
             )
             payer_id = roles.payer_user_id
             payee_id = roles.payee_user_id
-        except Exception:
+        except (HTTPException, ValueError):
             if milestone.reviewer_user_id:
                 payer_id = milestone.reviewer_user_id
                 payee_id = milestone.responsible_user_id
@@ -1040,9 +1059,13 @@ class PaymentService:
 
             if tx.metadata_json:
                 try:
-                    meta = json.loads(tx.metadata_json) if isinstance(tx.metadata_json, str) else dict(tx.metadata_json)
+                    meta = (
+                        json.loads(tx.metadata_json)
+                        if isinstance(tx.metadata_json, str)
+                        else dict(tx.metadata_json)
+                    )
                     approval_url = meta.get("paypal_approval_url")
-                except Exception:
+                except (json.JSONDecodeError, TypeError, ValueError):
                     approval_url = None
 
         return {
@@ -1050,7 +1073,9 @@ class PaymentService:
             "room_id": room_id,
             "status": status_str,
             "payment_readiness": milestone.payment_readiness,
-            "agreed_amount": str(milestone.agreed_amount) if milestone.agreed_amount is not None else None,
+            "agreed_amount": str(milestone.agreed_amount)
+            if milestone.agreed_amount is not None
+            else None,
             "currency": milestone.currency or "USD",
             "payer_user_id": payer_id,
             "payee_user_id": payee_id,
@@ -1060,7 +1085,3 @@ class PaymentService:
             "paypal_capture_id": paypal_capture_id,
             "approval_url": approval_url,
         }
-
-
-
-
