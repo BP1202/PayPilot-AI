@@ -17,7 +17,6 @@ from app.models.milestone_execution import (
     PaymentReadinessStatus,
 )
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
-from app.repositories.business_repository import BusinessRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.transaction import TransactionCreate
 from app.services.payment_provider import MockPaymentProvider, PaymentProviderInterface

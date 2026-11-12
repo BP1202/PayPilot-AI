@@ -19,6 +19,11 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
@@ -32,10 +37,6 @@ from app.models.opportunity import (
     OpportunityVisibility,
 )
 from app.models.user import User
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture
@@ -766,7 +767,11 @@ def test_zero_amount_milestone_payment_readiness_on_approval(
     client_with_db: TestClient, test_db_session: Session
 ):
     """Approval of a milestone with zero agreed amount does NOT set payment readiness to READY_FOR_PAYMENT_REVIEW."""
-    from app.models.milestone_execution import MilestoneExecution, MilestoneExecutionStatus, PaymentReadinessStatus
+    from app.models.milestone_execution import (
+        MilestoneExecution,
+        MilestoneExecutionStatus,
+        PaymentReadinessStatus,
+    )
 
     ctx = setup_deal_room_with_milestones(client_with_db, test_db_session)
     room_id = ctx["room_id"]
@@ -838,8 +843,9 @@ def test_unique_constraint_enforces_no_duplicate_versions_per_milestone(
     test_db_session: Session,
 ):
     """Database unique constraint on (milestone_id, submission_version) rejects duplicate version numbers."""
-    from app.models.milestone_execution import MilestoneEvidence
     from sqlalchemy.exc import IntegrityError
+
+    from app.models.milestone_execution import MilestoneEvidence
 
     evi1 = MilestoneEvidence(
         id="evi_test_uq_1",
@@ -978,8 +984,10 @@ def test_concurrent_submissions_safe_version_allocation_and_conflict_handling(
 ):
     """When a concurrent race condition occurs, unique constraint blocks duplicate version, returns 409 Conflict, and preserves history."""
     from unittest.mock import patch
-    from app.models.milestone_execution import MilestoneEvidence
+
     from sqlalchemy.exc import IntegrityError
+
+    from app.models.milestone_execution import MilestoneEvidence
 
     ctx = setup_deal_room_with_milestones(client_with_db, test_db_session)
     room_id = ctx["room_id"]

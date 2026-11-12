@@ -1,5 +1,8 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
 from app.core.auth import get_optional_user_id
 from app.core.database import get_db
 from app.schemas.copilot import (
@@ -8,8 +11,6 @@ from app.schemas.copilot import (
     CopilotRecommendation,
 )
 from app.services.copilot_service import CopilotService
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/copilot", tags=["AI Business Copilot"])
 

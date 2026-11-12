@@ -1,10 +1,11 @@
 from unittest.mock import MagicMock
 
 import pytest
-from app.core.config import settings
-from app.core.database import Base, get_db
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+
+from app.core.config import settings
+from app.core.database import Base, get_db
 
 
 def test_production_database_target_is_postgresql():

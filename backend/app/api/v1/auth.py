@@ -1,6 +1,9 @@
 from datetime import timedelta
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
@@ -9,8 +12,6 @@ from app.models.user import User
 from app.repositories.individual_profile_repository import IndividualProfileRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import TokenResponse, UserLogin, UserRead, UserRegister
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

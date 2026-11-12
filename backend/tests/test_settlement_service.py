@@ -22,12 +22,15 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
-from app.core.database import Base
+from app.core.database import Base, get_db
+from app.core.security import create_access_token
+from app.main import app
 from app.models.business import Business
 from app.models.connection import Connection, ConnectionStatus
 from app.models.deal_room import DealRoom, DealRoomParticipant, DealRoomStatus
@@ -41,10 +44,6 @@ from app.models.transaction import Transaction, TransactionStatus, TransactionTy
 from app.models.user import User
 from app.repositories.business_repository import BusinessRepository
 from app.services.payment_service import PaymentService
-from app.core.database import get_db
-from app.core.security import create_access_token
-from app.main import app
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture

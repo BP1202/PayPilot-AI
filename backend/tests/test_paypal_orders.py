@@ -43,7 +43,6 @@ from app.core.config import settings
 from app.core.database import Base, get_db
 from app.core.security import create_access_token
 from app.main import app
-from app.models.business import Business
 from app.models.connection import Connection, ConnectionStatus
 from app.models.deal_room import DealRoom, DealRoomParticipant, DealRoomStatus
 from app.models.milestone_execution import (
@@ -52,15 +51,13 @@ from app.models.milestone_execution import (
     PaymentReadinessStatus,
 )
 from app.models.proposal import Proposal, ProposalStatus
-from app.models.transaction import Transaction, TransactionStatus, TransactionType
+from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User
 from app.services.payment_service import PaymentService
 from app.services.paypal_auth import PayPalAuthService
 from app.services.paypal_order_service import (
     PayPalCaptureResult,
     PayPalOrderAPIError,
-    PayPalOrderConfigError,
-    PayPalOrderNetworkError,
     PayPalOrderResult,
     PayPalOrderService,
     PayPalOrderTimeoutError,

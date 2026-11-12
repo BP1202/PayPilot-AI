@@ -3,6 +3,7 @@ from pathlib import Path
 
 from alembic.config import Config
 from alembic.script import ScriptDirectory
+
 from app.core.config import settings
 from app.core.database import Base
 

@@ -1,3 +1,5 @@
+from fastapi import APIRouter
+
 from app.api.v1.auth import router as auth_router
 from app.api.v1.business import router as business_router
 from app.api.v1.connections import router as connections_router
@@ -11,7 +13,6 @@ from app.api.v1.opportunities import router as opportunities_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.profiles import router as profiles_router
 from app.api.v1.proposals import router as proposals_router
-from fastapi import APIRouter
 
 api_v1_router = APIRouter()
 

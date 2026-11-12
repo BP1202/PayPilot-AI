@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
+
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models.user import User
@@ -13,8 +16,6 @@ from app.schemas.proposal import (
     ProposalRevisionPayload,
 )
 from app.services.proposal_service import ProposalService
-from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/proposals", tags=["proposals"])
 
