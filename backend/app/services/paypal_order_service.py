@@ -201,6 +201,7 @@ class PayPalOrderService:
             "brand_name": "Opnly",
             "landing_page": "NO_PREFERENCE",
             "user_action": "PAY_NOW",
+            "shipping_preference": "NO_SHIPPING",
         }
         if return_url and return_url.strip():
             app_context["return_url"] = return_url.strip()

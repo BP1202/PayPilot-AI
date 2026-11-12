@@ -39,7 +39,7 @@ export function generateInvoiceHtml(
   const payerEmail = transaction.customer_email || "counterparty@opnly.network";
 
   const description = transaction.description || "Core Architecture & Milestone Deliverables";
-  const paymentRail = transaction.payment_method || "PAYPAL_SANDBOX";
+  const paymentRail = (transaction.payment_method || "PAYPAL").replace(/_SANDBOX/i, "").replace(/_/g, " ");
   const captureId = transaction.paypal_capture_id || transaction.provider_reference || "N/A";
   const orderId = transaction.paypal_order_id || "N/A";
 
@@ -372,5 +372,5 @@ export function downloadInvoiceFile(
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

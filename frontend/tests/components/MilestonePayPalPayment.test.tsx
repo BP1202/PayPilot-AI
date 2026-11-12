@@ -9,6 +9,7 @@ import {
   DealRoomMilestoneItem,
   Transaction,
 } from "@/types";
+import * as invoiceGenerator from "@/lib/invoiceGenerator";
 
 // Mock API client functions
 vi.mock("@/lib/api", () => ({
@@ -379,7 +380,9 @@ describe("Milestone PayPal Sandbox Payment Integration", () => {
       ...sampleMilestonesResponse,
       items: [paidMilestone],
     });
-    vi.mocked(api.fetchMilestoneSettlementStatus).mockResolvedValue({
+    vi.mocked(api.fetchMilestoneSettlementStatus)
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValue({
       milestone_id: "mil_vance_001",
       room_id: "room_vance_chen",
       status: "COMPLETED",
@@ -392,7 +395,7 @@ describe("Milestone PayPal Sandbox Payment Integration", () => {
       transaction_ref: paidTransaction.transaction_ref,
       paypal_order_id: paidTransaction.paypal_order_id,
       paypal_capture_id: paidTransaction.paypal_capture_id,
-    });
+      });
     vi.mocked(api.fetchLedgerTransactions).mockResolvedValue({
       items: [paidTransaction],
       total: 1,
@@ -410,11 +413,120 @@ describe("Milestone PayPal Sandbox Payment Integration", () => {
     expect(
       await screen.findByText("Payment Verified & Settled via PayPal Sandbox")
     ).toBeInTheDocument();
-    expect(await screen.findByText(/Transaction Reference: TXN-SETTLE-VANCE-001/)).toBeInTheDocument();
-
     fireEvent.click(screen.getByRole("button", { name: "View Invoice" }));
 
     expect(await screen.findByRole("heading", { name: "Opnly Invoice" })).toBeInTheDocument();
+    expect(api.fetchMilestoneSettlementStatus).toHaveBeenCalledTimes(2);
+    expect(api.fetchLedgerTransactions).toHaveBeenCalledWith();
+  });
+
+  it("downloads a receipt only after the backend confirms settlement", async () => {
+    const paidMilestone: MilestoneExecution = {
+      ...approvedMilestone,
+      payment_readiness: "PAID",
+    };
+    const paidTransaction: Transaction = {
+      id: 101,
+      transaction_ref: "TXN-SETTLE-VANCE-001",
+      business_id: 1,
+      amount: "5000.00",
+      currency: "USD",
+      status: "COMPLETED",
+      type: "CUSTOMER_PAYMENT",
+      payment_method: "PAYPAL_SANDBOX",
+      deal_room_id: "room_vance_chen",
+      milestone_id: "mil_vance_001",
+      payer_user_id: "usr_payer_marcus",
+      payee_user_id: "usr_worker_alex",
+      paypal_order_id: "ORDER-PAYPAL-123",
+      paypal_capture_id: "CAPTURE-PAYPAL-999",
+      created_at: "2026-11-02T12:00:00Z",
+      updated_at: "2026-11-02T12:05:00Z",
+    };
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValue({
+      ...sampleMilestonesResponse,
+      items: [paidMilestone],
+    });
+    vi.mocked(api.fetchMilestoneSettlementStatus).mockResolvedValue({
+      milestone_id: "mil_vance_001",
+      room_id: "room_vance_chen",
+      status: "COMPLETED",
+      payment_readiness: "PAID",
+      agreed_amount: "5000.00",
+      currency: "USD",
+      transaction_id: "101",
+      transaction_ref: paidTransaction.transaction_ref,
+      paypal_order_id: paidTransaction.paypal_order_id,
+      paypal_capture_id: paidTransaction.paypal_capture_id,
+    });
+    vi.mocked(api.fetchLedgerTransactions).mockResolvedValue({
+      items: [paidTransaction],
+      total: 1,
+    });
+    const downloadSpy = vi
+      .spyOn(invoiceGenerator, "downloadInvoiceFile")
+      .mockImplementation(() => {});
+
+    render(
+      <MilestoneExecutionWorkspace
+        roomId="room_vance_chen"
+        currentUser={mockPayerUser}
+        agreedMilestones={sampleAgreedMilestones}
+        currency="USD"
+      />
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Download Invoice" })
+    );
+
+    await waitFor(() => {
+      expect(downloadSpy).toHaveBeenCalledWith(
+        paidTransaction,
+        null,
+        null
+      );
+    });
     expect(api.fetchLedgerTransactions).toHaveBeenCalled();
+    downloadSpy.mockRestore();
+  });
+
+  it("does not show an invoice if the server does not confirm the milestone is paid", async () => {
+    const paidMilestone: MilestoneExecution = {
+      ...approvedMilestone,
+      payment_readiness: "PAID",
+    };
+    vi.mocked(api.fetchDealRoomMilestones).mockResolvedValue({
+      ...sampleMilestonesResponse,
+      items: [paidMilestone],
+    });
+    vi.mocked(api.fetchMilestoneSettlementStatus).mockResolvedValue({
+      milestone_id: "mil_vance_001",
+      room_id: "room_vance_chen",
+      status: "AWAITING_APPROVAL",
+      payment_readiness: "READY_FOR_PAYMENT_REVIEW",
+      currency: "USD",
+      transaction_ref: "TXN-SETTLE-VANCE-001",
+      paypal_capture_id: null,
+    });
+
+    render(
+      <MilestoneExecutionWorkspace
+        roomId="room_vance_chen"
+        currentUser={mockPayerUser}
+        agreedMilestones={sampleAgreedMilestones}
+        currency="USD"
+      />
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "View Invoice" })
+    );
+
+    expect(
+      await screen.findByText("This milestone payment has not been confirmed as completed yet.")
+    ).toBeInTheDocument();
+    expect(api.fetchLedgerTransactions).not.toHaveBeenCalled();
+    expect(screen.queryByRole("heading", { name: "Opnly Invoice" })).not.toBeInTheDocument();
   });
 });

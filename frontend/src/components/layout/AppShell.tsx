@@ -59,6 +59,7 @@ import {
   LogOut,
   Receipt,
   Briefcase,
+  ShieldCheck,
 } from "lucide-react";
 
 function sanitizeErrorMessage(rawMessage?: string): string {
@@ -1069,13 +1070,14 @@ export const AppShell: React.FC<AppShellProps> = ({
                 />
               </section>
 
-              {/* Contextual simulated operations disclaimer */}
+              {/* Payment environment disclosure */}
               <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-xs text-slate-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <span className="font-medium text-slate-700">
-                  Simulated Commercial Environment (Local Dev Mode)
+                <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  <span>Payment Environment Configuration</span>
                 </span>
-                <span>
-                  Payments run against sandbox/simulated rails. No real credit card charges occur.
+                <span className="text-slate-500">
+                  Payment actions require your approval. Confirm whether the server is configured for Sandbox or Live.
                 </span>
               </div>
             </div>

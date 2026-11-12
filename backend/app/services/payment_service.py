@@ -541,7 +541,9 @@ class PaymentService:
 
         # 9. Persist returned PayPal order ID into existing transaction
         # Strict rule: status MUST remain PENDING; milestone is NOT marked SETTLED
+        tx.status = TransactionStatus.PENDING
         tx.paypal_order_id = result.order_id
+        tx.paypal_capture_id = None
         tx.payment_method = "PAYPAL"
         tx.provider = "paypal"
 

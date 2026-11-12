@@ -242,24 +242,50 @@ export function MilestoneExecutionWorkspace({
   const loadVerifiedInvoiceTransaction = async (
     milestone: MilestoneExecution
   ): Promise<Transaction | null> => {
-    const paymentState = paymentStates[milestone.id];
-    if (!paymentState?.transactionRef || !paymentState.captureId) {
-      setPaymentNotice({
-        type: "warning",
-        title: "Invoice not available yet",
-        message: "The verified transaction details are still loading. Please try again shortly.",
-      });
-      return null;
-    }
-
     setInvoiceLoadingMilestoneId(milestone.id);
+    setPaymentNotice(null);
     try {
+      const settlement = await fetchMilestoneSettlementStatus(roomId, milestone.id);
+      if (
+        settlement.status !== "COMPLETED" ||
+        settlement.payment_readiness !== "PAID"
+      ) {
+        setPaymentNotice({
+          type: "warning",
+          title: "Invoice available after payment",
+          message: "This milestone payment has not been confirmed as completed yet.",
+        });
+        return null;
+      }
+
+      if (!settlement.transaction_ref || !settlement.paypal_capture_id) {
+        setPaymentNotice({
+          type: "warning",
+          title: "Invoice details are being finalized",
+          message: "The payment is confirmed, but its receipt details are not ready yet. Please try again shortly.",
+        });
+        return null;
+      }
+
+      setPaymentStates((prev) => ({
+        ...prev,
+        [milestone.id]: {
+          ...(prev[milestone.id] || { status: "completed" }),
+          status: "completed",
+          orderId: settlement.paypal_order_id || undefined,
+          captureId: settlement.paypal_capture_id || undefined,
+          transactionRef: settlement.transaction_ref || undefined,
+          amount: settlement.agreed_amount || undefined,
+          currency: settlement.currency,
+        },
+      }));
+
       const ledger = await fetchLedgerTransactions();
       const transaction = ledger.items.find(
         (item) =>
-          item.transaction_ref === paymentState.transactionRef &&
+          item.transaction_ref === settlement.transaction_ref &&
           item.status === "COMPLETED" &&
-          item.paypal_capture_id === paymentState.captureId &&
+          item.paypal_capture_id === settlement.paypal_capture_id &&
           item.deal_room_id === roomId &&
           item.milestone_id === milestone.id
       );
@@ -670,15 +696,36 @@ export function MilestoneExecutionWorkspace({
           </div>
           <button
             onClick={() => setError(null)}
-            className="text-rose-500 hover:text-rose-800 text-xs font-semibold"
+            className="text-rose-500 hover:text-rose-800 text-xs font-semibold cursor-pointer"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Zero Milestones Initial State */}
-      {items.length === 0 ? (
+      {/* Error State when milestones failed to load */}
+      {error && !milestonesData ? (
+        <div className="bg-white rounded-3xl border border-rose-200/80 p-8 shadow-sm text-center space-y-4">
+          <div className="h-14 w-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto text-rose-600">
+            <AlertCircle className="h-7 w-7" />
+          </div>
+          <div className="max-w-md mx-auto space-y-1">
+            <h3 className="text-base font-extrabold text-slate-900">
+              Unable to Load Milestones
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              We encountered an issue retrieving the milestone records for this Deal Room. Please ensure the backend is connected and try again.
+            </p>
+          </div>
+          <button
+            onClick={loadMilestones}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition shadow-sm cursor-pointer"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Retry Loading Milestones</span>
+          </button>
+        </div>
+      ) : items.length === 0 ? (
         <div className="bg-white rounded-3xl border border-slate-200/80 p-8 shadow-sm text-center space-y-4">
           <div className="h-14 w-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto text-indigo-600">
             <ListChecks className="h-7 w-7" />

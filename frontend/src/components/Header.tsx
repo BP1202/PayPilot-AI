@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="hidden md:flex items-center space-x-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-            <span>PayPal Simulated Sandbox</span>
+            <span>PayPal Checkout</span>
           </div>
         </div>
       </div>

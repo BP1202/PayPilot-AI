@@ -76,7 +76,7 @@ export const CommerceLedger: React.FC<CommerceLedgerProps> = ({
               : currentUser?.id === "demo_solver_priya"
               ? "Priya Nair — Earnings & Received Payouts"
               : currentUser
-              ? `${currentUser.name || currentUser.full_name || "Account"} Ledger & Invoices`
+              ? `${currentUser.full_name || "Account"} Ledger & Invoices`
               : "Milestone Payouts & Invoices"}
           </h2>
           <p className="text-xs text-slate-500">

@@ -1422,7 +1422,7 @@ export const UnifiedWorkspaceView: React.FC<UnifiedWorkspaceViewProps> = ({
       </section>
 
       {/* ========================================================================= */}
-      {/* 7 · COMMERCIAL LEDGER SUMMARY (Factual Sandbox Overview)                  */}
+      {/* 7 · COMMERCIAL LEDGER SUMMARY (Factual Settlement Overview)               */}
       {/* ========================================================================= */}
       {overview?.totals && (
         <section aria-label="Commercial Ledger Summary" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3">
@@ -1436,7 +1436,7 @@ export const UnifiedWorkspaceView: React.FC<UnifiedWorkspaceViewProps> = ({
                   Commercial Settlement Overview
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Prototype sandbox ledger records for verified commercial milestones.
+                  Recorded commercial transactions and milestone settlements.
                 </p>
               </div>
             </div>
@@ -1476,13 +1476,13 @@ export const UnifiedWorkspaceView: React.FC<UnifiedWorkspaceViewProps> = ({
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                Environment
+                Payment Environment
               </span>
               <p className="text-sm font-bold text-slate-800">
-                PayPal Developer Sandbox
+                Configured by the server
               </p>
-              <p className="text-[10px] text-slate-400">
-                Transactions reflect prototype milestone settlements without live funding.
+              <p className="text-[10px] text-slate-500">
+                Confirm whether the backend uses PayPal Sandbox or Live before checkout.
               </p>
             </div>
           </div>
