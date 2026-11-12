@@ -94,13 +94,14 @@ export const ApprovalModal: React.FC<ApprovalModalProps> = ({
           </div>
           <div className="flex justify-between text-xs text-slate-500 pt-1">
             <span>Payment Provider:</span>
-            <span className="font-medium text-slate-700">PayPal Simulated Checkout</span>
+            <span className="font-medium text-slate-700">PayPal Checkout</span>
           </div>
         </div>
 
         <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-          <strong>Security Notice:</strong> PayPilot AI never executes payments automatically.
-          Funds will be captured via the simulated PayPal provider only upon your explicit confirmation below.
+          <strong>Security Notice:</strong> Opnly never executes payments automatically.
+          The payment environment (Sandbox or Live) is managed by the server.
+          Confirm the configured environment before approving this payment.
         </div>
 
         {error && (
@@ -159,4 +160,3 @@ export const ApprovalModal: React.FC<ApprovalModalProps> = ({
     </div>
   );
 };
-

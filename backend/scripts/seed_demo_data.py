@@ -1,45 +1,29 @@
-"""PayPilot AI — Database Demo Seeding Script.
+"""Create a fictional, local-only Opnly workflow for manual testing.
 
-Seeds 3 test accounts with complete opportunity-to-business records:
-1. Alice Architect (Developer / Service Provider) -> alice@paypilot.ai / Password123!
-2. Bob Founder (Startup Founder / Problem Owner) -> bob@paypilot.ai / Password123!
-3. Carol Designer (UI/UX & Design Specialist) -> carol@paypilot.ai / Password123!
-
-Includes:
-- Public individual profiles with skills, experience, and services.
-- Published opportunities across Fintech and Tech categories.
-- Accepted connection between Alice and Bob.
-- Accepted proposal ($10,000.00 USD) with milestone breakdown.
-- Active AI Deal Room collaboration workspace with notes, clarifications, and documents.
-- 3 Execution milestones demonstrating:
-    - Milestone 1: APPROVED with payment readiness READY_FOR_PAYMENT_REVIEW.
-    - Milestone 2: SUBMITTED_FOR_REVIEW with evidence v1 pending Bob's review.
-    - Milestone 3: NOT_STARTED.
+The CLI is opt-in, development-only, and never deletes or resets existing data.
 """
 
+from __future__ import annotations
+
+import argparse
 import os
 import sys
-from datetime import UTC, datetime, timedelta
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
+from urllib.parse import urlparse
 
-# Ensure backend root is on sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from sqlalchemy.orm import Session
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.security import hash_password
+from app.models.business import Business
 from app.models.connection import Connection, ConnectionIntent, ConnectionStatus
-from app.models.deal_room import (
-    DealRoom,
-    DealRoomActivity,
-    DealRoomActivityType,
-    DealRoomClarification,
-    DealRoomClarificationStatus,
-    DealRoomDocument,
-    DealRoomDocumentType,
-    DealRoomNote,
-    DealRoomParticipant,
-    DealRoomStatus,
-)
+from app.models.deal_room import DealRoom, DealRoomParticipant, DealRoomStatus
 from app.models.milestone_execution import (
     EvidenceReviewStatus,
     MilestoneEvidence,
@@ -63,699 +47,643 @@ from app.models.profile import IndividualProfile, ProfileVisibility
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.proposal_revision import ProposalRevision
 from app.models.user import User
+from app.services.payment_service import PaymentService
+
+DEMO_ACCOUNTS = (
+    {
+        "id": "demo_org_northstar",
+        "email": "northstar.owner@opnly-demo.test",
+        "name": "Jordan Lee",
+        "headline": "Retail technology operator",
+        "bio": "Fictional demo account representing a business seeking a retail inventory integration.",
+        "location": "Demo City",
+        "industry": "Retail Technology",
+        "skills": ["Retail operations", "Inventory planning"],
+        "experience": ["Demo profile for local workflow testing"],
+        "services": [],
+        "resources": ["Sample retail workflow"],
+        "interests": ["Inventory integration"],
+        "business": {
+            "name": "Northstar Retail Systems (Demo)",
+            "industry": "Retail Technology",
+            "business_type": "Technology company",
+            "description": "Fictional local demo company seeking help connecting inventory systems.",
+            "category": OpportunityCategory.TECH.value,
+            "opportunity_title": "Connect store inventory with online orders",
+            "opportunity_description": "Demo need: reduce manual inventory updates between physical stores and online orders.",
+            "required": ["API integration", "Inventory systems", "Web development"],
+        },
+    },
+    {
+        "id": "demo_org_cedar_grove",
+        "email": "cedar.owner@opnly-demo.test",
+        "name": "Morgan Patel",
+        "headline": "Food business owner",
+        "bio": "Fictional demo account representing a growing food business with an operations challenge.",
+        "location": "Demo City",
+        "industry": "Food and Beverage",
+        "skills": ["Food operations", "Supplier coordination"],
+        "experience": ["Demo profile for local workflow testing"],
+        "services": [],
+        "resources": ["Sample wholesale workflow"],
+        "interests": ["Order management", "Operations"],
+        "business": {
+            "name": "Cedar Grove Foods (Demo)",
+            "industry": "Food and Beverage",
+            "business_type": "Food business",
+            "description": "Fictional local demo company seeking help organizing wholesale orders.",
+            "category": OpportunityCategory.BUSINESS.value,
+            "opportunity_title": "Simplify wholesale order coordination",
+            "opportunity_description": "Demo need: coordinate wholesale orders and delivery updates across a small supplier network.",
+            "required": ["Operations design", "Order management", "Data workflows"],
+        },
+    },
+    {
+        "id": "demo_org_solaris",
+        "email": "solaris.owner@opnly-demo.test",
+        "name": "Riley Chen",
+        "headline": "Clean mobility business operator",
+        "bio": "Fictional demo account representing a clean mobility business exploring a charging operations solution.",
+        "location": "Demo City",
+        "industry": "Clean Mobility",
+        "skills": ["Fleet operations", "Partnership development"],
+        "experience": ["Demo profile for local workflow testing"],
+        "services": [],
+        "resources": ["Sample charging-site workflow"],
+        "interests": ["Energy monitoring", "Fleet charging"],
+        "business": {
+            "name": "Solaris Mobility (Demo)",
+            "industry": "Clean Mobility",
+            "business_type": "Mobility company",
+            "description": "Fictional local demo company seeking help monitoring fleet charging.",
+            "category": OpportunityCategory.LOCAL.value,
+            "opportunity_title": "Monitor charging at shared fleet depots",
+            "opportunity_description": "Demo need: understand charger availability and energy usage across shared fleet depots.",
+            "required": ["IoT monitoring", "Energy systems", "Data visualization"],
+        },
+    },
+    {
+        "id": "demo_solver_priya",
+        "email": "priya.solver@opnly-demo.test",
+        "name": "Priya Nair",
+        "headline": "Full-stack software developer",
+        "bio": "Fictional demo solver profile focused on web applications and system integrations.",
+        "location": "Demo City",
+        "industry": "Software",
+        "skills": ["TypeScript", "React", "Python", "REST APIs"],
+        "experience": ["Demo profile for local workflow testing"],
+        "services": ["Web application development", "API integration"],
+        "resources": [],
+        "interests": ["Retail technology", "Business software"],
+        "business": None,
+    },
+    {
+        "id": "demo_solver_omar",
+        "email": "omar.solver@opnly-demo.test",
+        "name": "Omar Hassan",
+        "headline": "Business operations and data specialist",
+        "bio": "Fictional demo solver profile focused on process mapping and operational data workflows.",
+        "location": "Demo City",
+        "industry": "Business Operations",
+        "skills": ["Process mapping", "SQL", "Data analysis", "Automation"],
+        "experience": ["Demo profile for local workflow testing"],
+        "services": ["Operations analysis", "Workflow automation"],
+        "resources": [],
+        "interests": ["Wholesale", "Supply chain"],
+        "business": None,
+    },
+    {
+        "id": "demo_solver_mei",
+        "email": "mei.solver@opnly-demo.test",
+        "name": "Mei Tan",
+        "headline": "IoT and energy systems engineer",
+        "bio": "Fictional demo solver profile focused on sensor integration and energy monitoring.",
+        "location": "Demo City",
+        "industry": "IoT and Energy",
+        "skills": ["Embedded systems", "IoT", "Sensor integration", "Data visualization"],
+        "experience": ["Demo profile for local workflow testing"],
+        "services": ["IoT prototyping", "Energy monitoring"],
+        "resources": [],
+        "interests": ["Clean mobility", "Fleet operations"],
+        "business": None,
+    },
+)
+
+SOLVER_OPPORTUNITIES = {
+    "demo_solver_priya": {
+        "title": "Offer: Retail software and API integration",
+        "description": "Fictional demo offer: help businesses connect web applications with existing APIs.",
+        "category": OpportunityCategory.TECH.value,
+        "industry": "Software",
+        "capabilities": ["TypeScript", "React", "Python", "REST APIs"],
+    },
+    "demo_solver_omar": {
+        "title": "Offer: Wholesale operations and workflow automation",
+        "description": "Fictional demo offer: help map order workflows and improve operational data handling.",
+        "category": OpportunityCategory.BUSINESS.value,
+        "industry": "Business Operations",
+        "capabilities": ["Process mapping", "SQL", "Data analysis", "Automation"],
+    },
+    "demo_solver_mei": {
+        "title": "Offer: IoT monitoring and energy systems",
+        "description": "Fictional demo offer: help prototype sensor-based monitoring and energy data views.",
+        "category": OpportunityCategory.LOCAL.value,
+        "industry": "IoT and Energy",
+        "capabilities": ["Embedded systems", "IoT", "Sensor integration", "Data visualization"],
+    },
+}
+
+DEMO_PASSWORD_ENV = "OPNLY_DEMO_PASSWORD"
+DEMO_ROOM_ID = "demo_room_northstar_priya"
+DEMO_MILESTONE_ID = "demo_milestone_northstar_priya"
+DEMO_OPPORTUNITY_ID = "demo_opportunity_northstar"
+DEMO_CONNECTION_ID = "demo_connection_northstar_priya"
+DEMO_PROPOSAL_ID = "demo_proposal_northstar_priya"
 
 
-def seed_demo_data() -> None:
-    with SessionLocal() as db:
-        print("[*] Seeding PayPilot AI demo test accounts and lifecycle records...")
-        now = datetime.now(UTC)
-        default_pwd_hash = hash_password("Password123!")
+@dataclass(frozen=True)
+class DemoSeedSummary:
+    accounts: tuple[str, ...]
+    organizations: tuple[str, ...]
+    solver_profiles: tuple[str, ...]
+    sandbox_room_id: str
+    sandbox_milestone_id: str
 
-        # ---------------------------------------------------------------------
-        # 1. Test Users & Profiles
-        # ---------------------------------------------------------------------
-        users_meta = [
-            {
-                "id": "usr_demo_alice",
-                "email": "alice@paypilot.ai",
-                "full_name": "Alice Architect",
-                "headline": "Principal Cloud Architect & AI Engineer",
-                "bio": "Specializing in distributed fintech architectures, AI orchestration, and high-throughput transaction pipelines.",
-                "location": "San Francisco, CA",
-                "industry": "Fintech & Cloud Systems",
-                "skills": [
-                    "Python",
-                    "FastAPI",
-                    "React",
-                    "Next.js",
-                    "PostgreSQL",
-                    "System Architecture",
-                    "Cloud Infrastructure",
-                ],
-                "services": [
-                    "AI Architecture Consulting",
-                    "Full-Stack Development",
-                    "Technical Due Diligence",
-                ],
-                "interests": [
-                    "Fintech",
-                    "Payment Networks",
-                    "Distributed Systems",
-                    "AI Agentic Workflows",
-                ],
-            },
-            {
-                "id": "usr_demo_bob",
-                "email": "bob@paypilot.ai",
-                "full_name": "Bob Founder",
-                "headline": "Fintech Founder & Product Executive",
-                "bio": "Building next-generation B2B commercial tools and opportunity networks. 10+ years scaling fintech products.",
-                "location": "New York, NY",
-                "industry": "Fintech & B2B SaaS",
-                "skills": [
-                    "Product Strategy",
-                    "Fintech Compliance",
-                    "Commercialization",
-                    "B2B SaaS",
-                    "Roadmapping",
-                ],
-                "services": [
-                    "Product Strategy",
-                    "Venture Advisory",
-                    "Commercial Partnerships",
-                ],
-                "interests": [
-                    "Automated Reconciliation",
-                    "Opportunity Networks",
-                    "Cross-Border Settlement",
-                ],
-            },
-            {
-                "id": "usr_demo_carol",
-                "email": "carol@paypilot.ai",
-                "full_name": "Carol Designer",
-                "headline": "Senior Product & Design Systems Lead",
-                "bio": "Passionate about building intuitive, enterprise-grade design systems and user-centric financial interfaces.",
-                "location": "Austin, TX",
-                "industry": "Design & Product Tech",
-                "skills": [
-                    "UI/UX Design",
-                    "Figma",
-                    "Design Systems",
-                    "User Research",
-                    "Frontend Prototyping",
-                ],
-                "services": [
-                    "Design Systems Architecture",
-                    "Product UI/UX Audits",
-                    "Rapid Prototyping",
-                ],
-                "interests": ["Accessible Design", "Design Tokens", "Modern Web UX"],
-            },
-        ]
 
-        created_users = {}
-        for meta in users_meta:
-            user = db.query(User).filter(User.email == meta["email"]).first()
-            if not user:
-                user = User(
-                    id=meta["id"],
-                    email=meta["email"],
-                    hashed_password=default_pwd_hash,
-                    full_name=meta["full_name"],
-                    is_active=True,
-                )
-                db.add(user)
-                db.flush()
-                print(f"  + User created: {user.email}")
-            else:
-                user.full_name = meta["full_name"]
-                user.hashed_password = default_pwd_hash
-                user.is_active = True
-                print(f"  * User updated: {user.email}")
-            created_users[meta["email"]] = user
+def seed_demo_data(db: Session, password: str) -> DemoSeedSummary:
+    """Create six fictional local test accounts and a ready Sandbox workflow.
 
-            # Profile
-            profile = (
-                db.query(IndividualProfile)
-                .filter(IndividualProfile.user_id == user.id)
-                .first()
+    Existing accounts and records are never reset, overwritten, or deleted.
+    """
+    if len(password) < 12:
+        raise ValueError("The demo password must be at least 12 characters.")
+
+    now = datetime.now(UTC)
+    password_hash = hash_password(password)
+    users: dict[str, User] = {}
+    businesses: dict[str, Business] = {}
+
+    for account in DEMO_ACCOUNTS:
+        user = _get_or_create_user(db, account, password_hash)
+        users[account["id"]] = user
+        _get_or_create_profile(db, user, account)
+
+        business_data = account["business"]
+        if business_data:
+            business = _get_or_create_business(db, user, account, business_data)
+            businesses[account["id"]] = business
+            _get_or_create_seeking_opportunity(
+                db, user, business, account, business_data, now
             )
-            if not profile:
-                profile = IndividualProfile(
-                    user_id=user.id,
-                    headline=meta["headline"],
-                    bio=meta["bio"],
-                    location=meta["location"],
-                    industry=meta["industry"],
-                    skills=meta["skills"],
-                    services=meta["services"],
-                    interests=meta["interests"],
-                    visibility=ProfileVisibility.PUBLIC.value,
-                )
-                db.add(profile)
-                print(f"  + Profile created: {user.email}")
-            else:
-                profile.headline = meta["headline"]
-                profile.bio = meta["bio"]
-                profile.location = meta["location"]
-                profile.industry = meta["industry"]
-                profile.skills = meta["skills"]
-                profile.services = meta["services"]
-                profile.interests = meta["interests"]
-                profile.visibility = ProfileVisibility.PUBLIC.value
-                print(f"  * Profile updated: {user.email}")
-
-        alice = created_users["alice@paypilot.ai"]
-        bob = created_users["bob@paypilot.ai"]
-        carol = created_users["carol@paypilot.ai"]
-
-        # ---------------------------------------------------------------------
-        # 2. Sample Opportunities
-        # ---------------------------------------------------------------------
-        opp_data = [
-            {
-                "id": "opp_demo_ai_recon",
-                "user_id": bob.id,
-                "title": "AI Financial Reconciliation Engine",
-                "submission_type": OpportunityType.PROBLEM.value,
-                "intent": OpportunityIntent.SEEKING_SOLUTION.value,
-                "category": OpportunityCategory.FINTECH.value,
-                "status": OpportunityStatus.PUBLISHED.value,
-                "visibility": OpportunityVisibility.PUBLIC.value,
-                "published_at": now - timedelta(days=5),
-                "original_description": "We need an automated reconciliation engine that matches high-volume multi-currency ledger entries with bank transaction feeds and flags discrepancies.",
-                "problem_statement": "Manual accounting reconciliation for B2B cross-border settlements takes 15+ hours weekly, creating delayed ledger balancing.",
-                "proposed_solution": "Deploy a containerized FastAPI reconciliation engine with rule-based and AI fuzzy matching capabilities.",
-                "industry": "Fintech & Accounting",
-                "value_proposition": "Cut reconciliation latency by 90% and prevent financial discrepancy leakage.",
-                "target_customer_segments": [
-                    "Mid-Market Fintechs",
-                    "Cross-Border Marketplaces",
-                    "Digital Banks",
-                ],
-                "customer_pain_points": [
-                    "Manual spreadsheet reconciliation",
-                    "Delayed month-end close",
-                    "Unmatched transaction errors",
-                ],
-                "required_skills_and_resources": [
-                    "Python",
-                    "FastAPI",
-                    "PostgreSQL",
-                    "Financial Data Pipelines",
-                    "AI Matching",
-                ],
-                "potential_business_models": [
-                    "SaaS Subscription",
-                    "Volume-Based API Usage",
-                ],
-                "key_assumptions": [
-                    "Bank transaction feeds available via standard CSV/API",
-                    "Tolerable discrepancy window is within 48 hours",
-                ],
-                "risks_and_uncertainties": [
-                    "Bank feed schema variability",
-                    "High volume peak load concurrency",
-                ],
-                "missing_information": [
-                    "Target batch processing window (real-time vs 6-hour batch)"
-                ],
-                "suggested_follow_up_questions": [
-                    "What is the expected daily transaction volume?"
-                ],
-                "provenance": {
-                    "problem_statement": ProvenanceCategory.USER_PROVIDED.value,
-                    "proposed_solution": ProvenanceCategory.AI_SUGGESTION.value,
-                    "value_proposition": ProvenanceCategory.AI_HYPOTHESIS.value,
-                },
-                "ai_metadata": {
-                    "provider": "google-gemini",
-                    "model": "gemini-1.5-flash",
-                    "confidence": 0.94,
-                    "mode": "LIVE_AI",
-                },
-            },
-            {
-                "id": "opp_demo_fraud_guard",
-                "user_id": alice.id,
-                "title": "Real-Time Fraud Pattern Recognition Pipeline",
-                "submission_type": OpportunityType.IDEA.value,
-                "intent": OpportunityIntent.OFFERING_SOLUTION.value,
-                "category": OpportunityCategory.FINTECH.value,
-                "status": OpportunityStatus.PUBLISHED.value,
-                "visibility": OpportunityVisibility.PUBLIC.value,
-                "published_at": now - timedelta(days=3),
-                "original_description": "Pre-built anomaly detection pipeline for payment flows and commercial deal room interactions.",
-                "problem_statement": "Online commercial transactions are vulnerable to synthetic identity attacks and duplicate invoice fraud.",
-                "proposed_solution": "Lightweight inference pipeline combining rule heuristics with embedding distance anomaly checks.",
-                "industry": "Fintech & Cybersecurity",
-                "value_proposition": "Stop duplicate and suspicious payment releases before irreversible execution.",
-                "target_customer_segments": [
-                    "Payment Facilitators",
-                    "B2B Deal Networks",
-                ],
-                "customer_pain_points": ["Payment disputes", "Fraudulent invoices"],
-                "required_skills_and_resources": [
-                    "Python",
-                    "Kafka",
-                    "PostgreSQL",
-                    "Machine Learning",
-                ],
-                "potential_business_models": [
-                    "Per-Transaction Fee",
-                    "Enterprise License",
-                ],
-                "key_assumptions": ["Transaction latency budget is under 150ms"],
-                "risks_and_uncertainties": [
-                    "False positive rate during initial warm-up"
-                ],
-                "missing_information": [],
-                "suggested_follow_up_questions": [],
-                "provenance": {
-                    "problem_statement": ProvenanceCategory.USER_PROVIDED.value
-                },
-                "ai_metadata": {
-                    "provider": "google-gemini",
-                    "model": "gemini-1.5-flash",
-                    "confidence": 0.91,
-                    "mode": "LIVE_AI",
-                },
-            },
-            {
-                "id": "opp_demo_design_sys",
-                "user_id": carol.id,
-                "title": "Accessible Design System for Financial Products",
-                "submission_type": OpportunityType.IDEA.value,
-                "intent": OpportunityIntent.OFFERING_SOLUTION.value,
-                "category": OpportunityCategory.TECH.value,
-                "status": OpportunityStatus.PUBLISHED.value,
-                "visibility": OpportunityVisibility.PUBLIC.value,
-                "published_at": now - timedelta(days=1),
-                "original_description": "High-converting, WCAG AAA compliant design system and component kit tailored for fintech and commerce apps.",
-                "problem_statement": "Most commercial products suffer from fragmented UI components, poor accessibility, and slow frontend iteration cycles.",
-                "proposed_solution": "A modern Tailwind + React component system with accessible primitives, financial charts, and dark mode.",
-                "industry": "Design Systems",
-                "value_proposition": "Accelerate product delivery by 3x while ensuring 100% accessibility compliance.",
-                "target_customer_segments": ["Fintech Startups", "Developer Teams"],
-                "customer_pain_points": [
-                    "Inconsistent UI",
-                    "Accessibility compliance audits",
-                ],
-                "required_skills_and_resources": [
-                    "Figma",
-                    "React",
-                    "Tailwind CSS",
-                    "WCAG 2.1 Guidelines",
-                ],
-                "potential_business_models": [
-                    "Productized Service",
-                    "One-Time Asset License",
-                ],
-                "key_assumptions": ["Tech stack uses modern React/Next.js"],
-                "risks_and_uncertainties": [],
-                "missing_information": [],
-                "suggested_follow_up_questions": [],
-                "provenance": {
-                    "problem_statement": ProvenanceCategory.USER_PROVIDED.value
-                },
-                "ai_metadata": {
-                    "provider": "google-gemini",
-                    "model": "gemini-1.5-flash",
-                    "confidence": 0.95,
-                    "mode": "LIVE_AI",
-                },
-            },
-        ]
-
-        for item in opp_data:
-            opp = db.query(Opportunity).filter(Opportunity.id == item["id"]).first()
-            if not opp:
-                opp = Opportunity(**item)
-                db.add(opp)
-                print(f"  + Opportunity created: {opp.title}")
-            else:
-                for k, v in item.items():
-                    setattr(opp, k, v)
-                print(f"  * Opportunity updated: {opp.title}")
-        db.flush()
-
-        # ---------------------------------------------------------------------
-        # 3. Connection: Alice Architect & Bob Founder
-        # ---------------------------------------------------------------------
-        conn_id = "conn_demo_alice_bob"
-        conn = db.query(Connection).filter(Connection.id == conn_id).first()
-        if not conn:
-            conn = Connection(
-                id=conn_id,
-                requester_id=alice.id,
-                recipient_id=bob.id,
-                opportunity_id="opp_demo_ai_recon",
-                status=ConnectionStatus.ACCEPTED.value,
-                intent=ConnectionIntent.OFFER_CAPABILITY.value,
-                message="Hi Bob! I reviewed your Financial Reconciliation problem. I have built similar automated pipeline engines and would love to collaborate on the core architecture.",
-                response_note="Hi Alice, your architecture background is exactly what we need. Looking forward to discussing proposal terms!",
-                accepted_at=now - timedelta(days=4),
-            )
-            db.add(conn)
-            print("  + Connection created: Alice <-> Bob (ACCEPTED)")
         else:
-            conn.status = ConnectionStatus.ACCEPTED.value
-            conn.accepted_at = now - timedelta(days=4)
-            print("  * Connection updated: Alice <-> Bob (ACCEPTED)")
-        db.flush()
+            _get_or_create_offering_opportunity(db, user, account, now)
 
-        # ---------------------------------------------------------------------
-        # 4. Accepted Proposal
-        # ---------------------------------------------------------------------
-        prop_id = "prop_demo_ai_recon"
-        agreed_milestones_data = [
-            {
-                "title": "Stage 1: Core Architecture & Ingestion Pipeline",
-                "description": "Deliver modular FastAPI service, PostgreSQL schema, and automated ingestion of multi-currency ledger CSV feeds.",
-                "amount": "3000.00",
-                "due_days": 14,
-            },
-            {
-                "title": "Stage 2: Fuzzy Reconciliation & Rule Engine",
-                "description": "Implement matching heuristics, tolerance window filters, and discrepancy flagging mechanisms.",
-                "amount": "4000.00",
-                "due_days": 21,
-            },
-            {
-                "title": "Stage 3: Integration Verification & Production Handover",
-                "description": "Deliver comprehensive integration test suite, performance benchmarks, and deployment documentation.",
-                "amount": "3000.00",
-                "due_days": 14,
-            },
-        ]
+    _create_ready_sandbox_room(
+        db,
+        payer=users["demo_org_northstar"],
+        payee=users["demo_solver_priya"],
+        business=businesses["demo_org_northstar"],
+        now=now,
+    )
+    db.flush()
 
-        prop = db.query(Proposal).filter(Proposal.id == prop_id).first()
-        if not prop:
-            prop = Proposal(
-                id=prop_id,
-                connection_id=conn.id,
-                opportunity_id="opp_demo_ai_recon",
-                proposer_id=alice.id,
-                recipient_id=bob.id,
-                status=ProposalStatus.ACCEPTED.value,
-                current_version=1,
-                title="AI Financial Reconciliation Core Service",
-                description="Engineering agreement to architect, build, and deploy an automated financial reconciliation engine.",
-                scope_of_work="Architect, develop, and deliver a production-ready reconciliation engine that handles multi-currency transactions, bank feed ingestion, and automated discrepancy reporting.",
-                deliverables=[
-                    "FastAPI Core Ingestion Service",
-                    "PostgreSQL Schema & Migration Scripts",
-                    "Fuzzy Matching & Rule-Based Reconciliation Engine",
-                    "Comprehensive Pytest Integration Suite (>90% coverage)",
-                    "Docker Deployment Configuration & API Docs",
-                ],
-                budget_amount=Decimal("10000.00"),
-                currency="USD",
-                timeline_summary="7 weeks agile delivery in 3 execution milestones",
-                estimated_duration_days=49,
-                milestones=agreed_milestones_data,
-                responsibilities={
-                    "proposer": "Lead technical architecture, service development, and API integration testing",
-                    "recipient": "Provide sample bank transaction feeds, review deliverables, and approve milestone completions",
-                },
-                assumptions=[
-                    "Bank feeds conform to standard ISO multi-currency format",
-                    "Deployment targets standard Linux Docker environment",
-                ],
-                conditions=[
-                    "Milestone deliverable reviews completed within 5 business days",
-                    "Verified approvals initiate payment review",
-                ],
-                notes="Weekly technical sprint reviews on Thursdays at 4 PM UTC.",
-                proposer_accepted_at=now - timedelta(days=3),
-                recipient_accepted_at=now - timedelta(days=3),
-                accepted_version=1,
-            )
-            db.add(prop)
-            print("  + Proposal created: prop_demo_ai_recon (ACCEPTED)")
-        else:
-            prop.status = ProposalStatus.ACCEPTED.value
-            prop.proposer_accepted_at = now - timedelta(days=3)
-            prop.recipient_accepted_at = now - timedelta(days=3)
-            prop.accepted_version = 1
-            print("  * Proposal updated: prop_demo_ai_recon (ACCEPTED)")
-        db.flush()
+    return DemoSeedSummary(
+        accounts=tuple(account["email"] for account in DEMO_ACCOUNTS),
+        organizations=tuple(
+            account["business"]["name"]
+            for account in DEMO_ACCOUNTS
+            if account["business"]
+        ),
+        solver_profiles=tuple(
+            account["email"]
+            for account in DEMO_ACCOUNTS
+            if account["id"].startswith("demo_solver_")
+        ),
+        sandbox_room_id=DEMO_ROOM_ID,
+        sandbox_milestone_id=DEMO_MILESTONE_ID,
+    )
 
-        # Proposal Revision record
-        rev = (
-            db.query(ProposalRevision)
-            .filter(
-                ProposalRevision.proposal_id == prop.id, ProposalRevision.version == 1
-            )
-            .first()
+
+def _get_or_create_user(
+    db: Session, account: dict[str, object], password_hash: str
+) -> User:
+    user_id = str(account["id"])
+    email = str(account["email"])
+    by_id = db.get(User, user_id)
+    by_email = db.query(User).filter(User.email == email).first()
+    if by_id or by_email:
+        if by_id is None or by_email is None or by_id.id != by_email.id:
+            raise ValueError(f"Demo account identity conflict for {email}; no changes made.")
+        return by_id
+
+    user = User(
+        id=user_id,
+        email=email,
+        full_name=str(account["name"]),
+        hashed_password=password_hash,
+        is_active=True,
+    )
+    db.add(user)
+    db.flush()
+    return user
+
+
+def _get_or_create_profile(
+    db: Session, user: User, account: dict[str, object]
+) -> IndividualProfile:
+    profile = db.get(IndividualProfile, user.id)
+    if profile:
+        return profile
+
+    profile = IndividualProfile(
+        user_id=user.id,
+        headline=str(account["headline"]),
+        bio=str(account["bio"]),
+        location=str(account["location"]),
+        industry=str(account["industry"]),
+        skills=list(account["skills"]),
+        experience=list(account["experience"]),
+        services=list(account["services"]),
+        resources=list(account["resources"]),
+        interests=list(account["interests"]),
+        visibility=ProfileVisibility.PUBLIC.value,
+    )
+    db.add(profile)
+    db.flush()
+    return profile
+
+
+def _get_or_create_business(
+    db: Session,
+    user: User,
+    account: dict[str, object],
+    business_data: dict[str, object],
+) -> Business:
+    business_name = str(business_data["name"])
+    business = (
+        db.query(Business)
+        .filter(Business.user_id == user.id, Business.name == business_name)
+        .first()
+    )
+    if business:
+        return business
+
+    business = Business(
+        name=business_name,
+        currency="USD",
+        industry=str(business_data["industry"]),
+        business_type=str(business_data["business_type"]),
+        country="Demo",
+        location=str(account["location"]),
+        description=str(business_data["description"]),
+        user_id=user.id,
+        visibility="PUBLIC",
+        skills=list(account["skills"]),
+        services=list(account["services"]),
+        resources=list(account["resources"]),
+        interests=list(account["interests"]),
+    )
+    db.add(business)
+    db.flush()
+    return business
+
+
+def _get_or_create_seeking_opportunity(
+    db: Session,
+    user: User,
+    business: Business,
+    account: dict[str, object],
+    business_data: dict[str, object],
+    now: datetime,
+) -> Opportunity:
+    opportunity_id = f"demo_opportunity_{user.id.removeprefix('demo_org_')}"
+    opportunity = db.get(Opportunity, opportunity_id)
+    if opportunity:
+        if opportunity.user_id != user.id:
+            raise ValueError(f"Demo opportunity ID conflict: {opportunity_id}.")
+        return opportunity
+
+    opportunity = Opportunity(
+        id=opportunity_id,
+        user_id=user.id,
+        business_id=business.id,
+        submission_type=OpportunityType.PROBLEM.value,
+        intent=OpportunityIntent.SEEKING_SOLUTION.value,
+        category=str(business_data["category"]),
+        status=OpportunityStatus.PUBLISHED.value,
+        visibility=OpportunityVisibility.PUBLIC.value,
+        published_at=now,
+        title=str(business_data["opportunity_title"]),
+        original_description=str(business_data["opportunity_description"]),
+        problem_statement=str(business_data["opportunity_description"]),
+        industry=str(business_data["industry"]),
+        required_skills_and_resources=list(business_data["required"]),
+        provenance={"original_description": ProvenanceCategory.USER_PROVIDED.value},
+        ai_metadata={"source": "LOCAL_DEMO_FIXTURE", "synthetic": True},
+    )
+    db.add(opportunity)
+    db.flush()
+    return opportunity
+
+
+def _get_or_create_offering_opportunity(
+    db: Session, user: User, account: dict[str, object], now: datetime
+) -> Opportunity:
+    opportunity_data = SOLVER_OPPORTUNITIES[user.id]
+    opportunity_id = f"demo_opportunity_{user.id.removeprefix('demo_solver_')}"
+    opportunity = db.get(Opportunity, opportunity_id)
+    if opportunity:
+        if opportunity.user_id != user.id:
+            raise ValueError(f"Demo opportunity ID conflict: {opportunity_id}.")
+        return opportunity
+
+    opportunity = Opportunity(
+        id=opportunity_id,
+        user_id=user.id,
+        submission_type=OpportunityType.IDEA.value,
+        intent=OpportunityIntent.OFFERING_SOLUTION.value,
+        category=str(opportunity_data["category"]),
+        status=OpportunityStatus.PUBLISHED.value,
+        visibility=OpportunityVisibility.PUBLIC.value,
+        published_at=now,
+        title=str(opportunity_data["title"]),
+        original_description=str(opportunity_data["description"]),
+        proposed_solution=str(opportunity_data["description"]),
+        industry=str(opportunity_data["industry"]),
+        required_skills_and_resources=list(opportunity_data["capabilities"]),
+        provenance={"original_description": ProvenanceCategory.USER_PROVIDED.value},
+        ai_metadata={"source": "LOCAL_DEMO_FIXTURE", "synthetic": True},
+    )
+    db.add(opportunity)
+    db.flush()
+    return opportunity
+
+
+def _create_ready_sandbox_room(
+    db: Session, *, payer: User, payee: User, business: Business, now: datetime
+) -> None:
+    opportunity = db.get(Opportunity, DEMO_OPPORTUNITY_ID)
+    if opportunity is None:
+        raise RuntimeError("The demo payer opportunity was not created.")
+
+    amount = Decimal("25.00")
+    milestone_terms = {
+        "id": DEMO_MILESTONE_ID,
+        "title": "Demo integration plan",
+        "description": "A fictional starter deliverable for Sandbox checkout testing.",
+        "amount": str(amount),
+        "currency": "USD",
+        "due_days": 7,
+        "payer_user_id": payer.id,
+        "payee_user_id": payee.id,
+    }
+
+    connection = db.get(Connection, DEMO_CONNECTION_ID)
+    if connection is None:
+        connection = Connection(
+            id=DEMO_CONNECTION_ID,
+            requester_id=payee.id,
+            recipient_id=payer.id,
+            opportunity_id=opportunity.id,
+            business_id=business.id,
+            status=ConnectionStatus.ACCEPTED.value,
+            intent=ConnectionIntent.OFFER_CAPABILITY.value,
+            message="Fictional seeded collaboration for local workflow testing.",
+            response_note="Fictional seeded acceptance for local workflow testing.",
+            accepted_at=now,
         )
-        if not rev:
-            rev = ProposalRevision(
-                proposal_id=prop.id,
+        db.add(connection)
+        db.flush()
+
+    proposal = db.get(Proposal, DEMO_PROPOSAL_ID)
+    if proposal is None:
+        proposal = Proposal(
+            id=DEMO_PROPOSAL_ID,
+            connection_id=connection.id,
+            opportunity_id=opportunity.id,
+            proposer_id=payee.id,
+            recipient_id=payer.id,
+            status=ProposalStatus.ACCEPTED.value,
+            current_version=1,
+            accepted_version=1,
+            title="Demo inventory integration agreement",
+            description="Fictional agreement included only to exercise the local workflow.",
+            scope_of_work="Prepare a short integration plan for the demo inventory workflow.",
+            deliverables=["Integration plan"],
+            budget_amount=amount,
+            currency="USD",
+            timeline_summary="One demo milestone",
+            estimated_duration_days=7,
+            milestones=[milestone_terms],
+            responsibilities={"payer_user_id": payer.id, "payee_user_id": payee.id},
+            assumptions=[],
+            conditions=["Sandbox payment testing only."],
+            proposer_accepted_at=now,
+            recipient_accepted_at=now,
+        )
+        db.add(proposal)
+        db.flush()
+        db.add(
+            ProposalRevision(
+                proposal_id=proposal.id,
                 version=1,
-                created_by_id=alice.id,
-                title=prop.title,
-                description=prop.description,
-                scope_of_work=prop.scope_of_work,
-                deliverables=prop.deliverables,
-                budget_amount=prop.budget_amount,
-                currency=prop.currency,
-                milestones=prop.milestones,
-                responsibilities=prop.responsibilities,
-                assumptions=prop.assumptions,
-                conditions=prop.conditions,
-                notes=prop.notes,
-                change_summary="Initial proposal draft accepted by both parties",
-            )
-            db.add(rev)
-            db.flush()
-
-        # ---------------------------------------------------------------------
-        # 5. Deal Room
-        # ---------------------------------------------------------------------
-        room_id = "room_demo_ai_recon"
-        room = db.query(DealRoom).filter(DealRoom.id == room_id).first()
-        if not room:
-            room = DealRoom(
-                id=room_id,
-                proposal_id=prop.id,
-                connection_id=conn.id,
-                opportunity_id=prop.opportunity_id,
-                title=prop.title,
-                description=prop.description,
-                status=DealRoomStatus.ACTIVE.value,
-                accepted_proposal_version=1,
-                agreed_scope_of_work=prop.scope_of_work,
-                agreed_deliverables=prop.deliverables,
-                agreed_budget_amount=prop.budget_amount,
-                agreed_currency=prop.currency,
-                agreed_timeline_summary=prop.timeline_summary,
-                agreed_estimated_duration_days=prop.estimated_duration_days,
-                agreed_milestones=prop.milestones,
-                agreed_responsibilities=prop.responsibilities,
-                agreed_assumptions=prop.assumptions,
-                agreed_conditions=prop.conditions,
-                agreed_notes=prop.notes,
-            )
-            db.add(room)
-            db.flush()
-            print("  + Deal Room created: room_demo_ai_recon (ACTIVE)")
-
-            # Participants
-            p1 = DealRoomParticipant(
-                room_id=room.id,
-                user_id=alice.id,
-                collaboration_role="Proposer / Lead Architect",
-                assigned_responsibilities="Lead technical architecture, service development, and API integration testing",
-            )
-            p2 = DealRoomParticipant(
-                room_id=room.id,
-                user_id=bob.id,
-                collaboration_role="Counterpart / Product Lead",
-                assigned_responsibilities="Provide sample bank transaction feeds, review deliverables, and approve milestone completions",
-            )
-            db.add_all([p1, p2])
-
-            # Activity
-            act1 = DealRoomActivity(
-                room_id=room.id,
-                actor_id=bob.id,
-                activity_type=DealRoomActivityType.ROOM_CREATED.value,
-                title="Deal Room Created",
-                details="Collaboration workspace established from accepted proposal v1.",
-            )
-            db.add(act1)
-
-            # Note
-            note1 = DealRoomNote(
-                room_id=room.id,
-                author_id=alice.id,
-                title="API Contracts & OpenAPI Schema Draft",
-                content="Initial draft of the reconciliation models and endpoints is ready for review in the swagger preview link.",
-                is_pinned=True,
-            )
-            db.add(note1)
-
-            # Clarification
-            clar1 = DealRoomClarification(
-                room_id=room.id,
-                asked_by_id=alice.id,
-                question="Could you confirm the maximum tolerance for timestamp drift on currency conversions (e.g. 24h vs 48h)?",
-                status=DealRoomClarificationStatus.RESOLVED.value,
-                answered_by_id=bob.id,
-                answer="48 hours is acceptable for international weekend settlements.",
-                answered_at=now - timedelta(days=2),
-            )
-            db.add(clar1)
-
-            # Document
-            doc1 = DealRoomDocument(
-                room_id=room.id,
-                uploaded_by_id=alice.id,
-                title="OpenAPI 3.1 Reconciliation Engine Specification",
-                document_type=DealRoomDocumentType.SPECIFICATION.value,
-                reference_url="https://paypilot.ai/docs/api/reconciliation",
-                description="Live OpenAPI schema defining batch ingestion, status checks, and discrepancy reports.",
-            )
-            db.add(doc1)
-            db.flush()
-        else:
-            print("  * Deal Room room_demo_ai_recon verified.")
-
-        # ---------------------------------------------------------------------
-        # 6. Deal Room Milestones Execution & Evidence
-        # ---------------------------------------------------------------------
-        ms1 = (
-            db.query(MilestoneExecution)
-            .filter(
-                MilestoneExecution.room_id == room.id,
-                MilestoneExecution.milestone_index == 0,
-            )
-            .first()
-        )
-
-        if not ms1:
-            ms1 = MilestoneExecution(
-                room_id=room.id,
-                source_proposal_id=prop.id,
-                accepted_proposal_version=1,
-                milestone_index=0,
-                title="Stage 1: Core Architecture & Ingestion Pipeline",
-                description="Deliver modular FastAPI service, PostgreSQL schema, and automated ingestion of multi-currency ledger CSV feeds.",
-                expected_deliverables=[
-                    "FastAPI Core Ingestion Service",
-                    "PostgreSQL Schema & Migration Scripts",
-                ],
-                agreed_amount=Decimal("3000.00"),
+                created_by_id=payee.id,
+                title=proposal.title,
+                description=proposal.description,
+                scope_of_work=proposal.scope_of_work,
+                deliverables=proposal.deliverables,
+                budget_amount=amount,
                 currency="USD",
-                due_days=14,
-                responsible_user_id=alice.id,
-                reviewer_user_id=bob.id,
-                status=MilestoneExecutionStatus.APPROVED.value,
-                payment_readiness=PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value,
-                started_at=now - timedelta(days=3),
-                submitted_at=now - timedelta(days=2),
-                approved_at=now - timedelta(days=1),
+                milestones=[milestone_terms],
+                responsibilities=proposal.responsibilities,
+                assumptions=[],
+                conditions=proposal.conditions,
+                change_summary="Fictional local demo agreement.",
             )
-            db.add(ms1)
-            db.flush()
+        )
+        db.flush()
 
-            ev1 = MilestoneEvidence(
-                milestone_id=ms1.id,
-                room_id=room.id,
-                submitted_by_id=alice.id,
-                submission_version=1,
-                title="FastAPI Core Ingestion Engine v1.0",
-                description="Completed the core FastAPI ingestion endpoints with comprehensive test coverage, Docker Compose file, and database migrations.",
-                evidence_type=MilestoneEvidenceType.CODE_REPOSITORY.value,
-                reference_url="https://github.com/paypilot/reconciliation-engine",
-                attachments=[
-                    {
-                        "type": "link",
-                        "url": "https://github.com/paypilot/reconciliation-engine/releases/tag/v1.0.0",
-                    }
-                ],
-                status=EvidenceReviewStatus.APPROVED.value,
-            )
-            db.add(ev1)
-            db.flush()
+    room = db.get(DealRoom, DEMO_ROOM_ID)
+    if room is None:
+        room = DealRoom(
+            id=DEMO_ROOM_ID,
+            proposal_id=proposal.id,
+            connection_id=connection.id,
+            opportunity_id=opportunity.id,
+            title=proposal.title,
+            description=proposal.description,
+            status=DealRoomStatus.ACTIVE.value,
+            accepted_proposal_version=1,
+            agreed_scope_of_work=proposal.scope_of_work,
+            agreed_deliverables=proposal.deliverables,
+            agreed_budget_amount=amount,
+            agreed_currency="USD",
+            agreed_timeline_summary=proposal.timeline_summary,
+            agreed_estimated_duration_days=7,
+            agreed_milestones=[milestone_terms],
+            agreed_responsibilities={"payer_user_id": payer.id, "payee_user_id": payee.id},
+            agreed_conditions=["Sandbox payment testing only."],
+        )
+        db.add(room)
+        db.flush()
+        db.add_all(
+            [
+                DealRoomParticipant(
+                    room_id=room.id,
+                    user_id=payer.id,
+                    collaboration_role="Demo payer",
+                    assigned_responsibilities="Fictional payer for Sandbox testing.",
+                ),
+                DealRoomParticipant(
+                    room_id=room.id,
+                    user_id=payee.id,
+                    collaboration_role="Demo solver",
+                    assigned_responsibilities="Fictional solver for Sandbox testing.",
+                ),
+            ]
+        )
+        db.flush()
 
-            rev1 = MilestoneReview(
-                milestone_id=ms1.id,
-                evidence_id=ev1.id,
+    milestone = db.get(MilestoneExecution, DEMO_MILESTONE_ID)
+    if milestone is None:
+        milestone = MilestoneExecution(
+            id=DEMO_MILESTONE_ID,
+            room_id=room.id,
+            source_proposal_id=proposal.id,
+            accepted_proposal_version=1,
+            milestone_index=0,
+            title=str(milestone_terms["title"]),
+            description=str(milestone_terms["description"]),
+            expected_deliverables=["Integration plan"],
+            agreed_amount=amount,
+            currency="USD",
+            due_days=7,
+            responsible_user_id=payee.id,
+            reviewer_user_id=payer.id,
+            status=MilestoneExecutionStatus.APPROVED.value,
+            payment_readiness=PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value,
+            started_at=now,
+            submitted_at=now,
+            approved_at=now,
+        )
+        db.add(milestone)
+        db.flush()
+        evidence = MilestoneEvidence(
+            id="demo_evidence_northstar_priya",
+            milestone_id=milestone.id,
+            room_id=room.id,
+            submitted_by_id=payee.id,
+            submission_version=1,
+            title="Demo integration plan",
+            description="Synthetic evidence row for exercising the approved-milestone flow.",
+            evidence_type=MilestoneEvidenceType.OTHER.value,
+            reference_url="https://example.test/opnly-demo-evidence",
+            status=EvidenceReviewStatus.APPROVED.value,
+            submission_notes="Fictional local demo evidence.",
+        )
+        db.add(evidence)
+        db.flush()
+        milestone.current_evidence_submission_id = evidence.id
+        db.add(
+            MilestoneReview(
+                milestone_id=milestone.id,
+                evidence_id=evidence.id,
                 evidence_version=1,
-                reviewer_id=bob.id,
+                reviewer_id=payer.id,
                 decision=MilestoneReviewDecision.APPROVED.value,
-                comments="Code reviewed, tests passing cleanly, and feed ingestion benchmark verified. Approved!",
+                comments="Fictional local demo approval.",
             )
-            db.add(rev1)
-            print("  + Milestone 1 created (APPROVED, READY_FOR_PAYMENT_REVIEW)")
-
-        ms2 = (
-            db.query(MilestoneExecution)
-            .filter(
-                MilestoneExecution.room_id == room.id,
-                MilestoneExecution.milestone_index == 1,
-            )
-            .first()
         )
+        db.flush()
 
-        if not ms2:
-            ms2 = MilestoneExecution(
-                room_id=room.id,
-                source_proposal_id=prop.id,
-                accepted_proposal_version=1,
-                milestone_index=1,
-                title="Stage 2: Fuzzy Reconciliation & Rule Engine",
-                description="Implement matching heuristics, tolerance window filters, and discrepancy flagging mechanisms.",
-                expected_deliverables=[
-                    "Fuzzy Matching & Rule-Based Reconciliation Engine",
-                    "Pytest Suite (>90% coverage)",
-                ],
-                agreed_amount=Decimal("4000.00"),
-                currency="USD",
-                due_days=21,
-                responsible_user_id=alice.id,
-                reviewer_user_id=bob.id,
-                status=MilestoneExecutionStatus.SUBMITTED_FOR_REVIEW.value,
-                payment_readiness=PaymentReadinessStatus.NOT_READY.value,
-                started_at=now - timedelta(days=1),
-                submitted_at=now - timedelta(hours=3),
-            )
-            db.add(ms2)
-            db.flush()
+    PaymentService(db).prepare_milestone_settlement(
+        caller_user_id=payer.id,
+        room_id=room.id,
+        milestone_id=milestone.id,
+        idempotency_key="demo_prep_northstar_priya_v1",
+        description="Demo Sandbox milestone settlement",
+    )
 
-            ev2 = MilestoneEvidence(
-                milestone_id=ms2.id,
-                room_id=room.id,
-                submitted_by_id=alice.id,
-                submission_version=1,
-                title="Rule Engine & Matching Algorithm Implementation",
-                description="Implemented the fuzzy reconciliation service. All unit tests passing with 94% coverage. Ready for counterparty review.",
-                evidence_type=MilestoneEvidenceType.CODE_REPOSITORY.value,
-                reference_url="https://github.com/paypilot/reconciliation-engine/pull/2",
-                attachments=[],
-                status=EvidenceReviewStatus.PENDING_REVIEW.value,
-            )
-            db.add(ev2)
-            print("  + Milestone 2 created (SUBMITTED_FOR_REVIEW)")
 
-        ms3 = (
-            db.query(MilestoneExecution)
-            .filter(
-                MilestoneExecution.room_id == room.id,
-                MilestoneExecution.milestone_index == 2,
-            )
-            .first()
+def validate_local_seed_environment(
+    *,
+    confirmed: bool,
+    app_env: str,
+    database_url: str,
+    paypal_environment: str,
+    paypal_base_url: str,
+    paypal_client_id: str,
+    paypal_client_secret: str,
+) -> None:
+    if not confirmed:
+        raise ValueError("Pass --confirm-local-demo-seed to create the demo fixture.")
+    if app_env.strip().lower() not in {"development", "local", "test"}:
+        raise ValueError("Demo data can only be seeded when APP_ENV is development, local, or test.")
+
+    parsed = urlparse(database_url)
+    local_hosts = {"localhost", "127.0.0.1", "::1"}
+    local_sqlite = parsed.scheme.startswith("sqlite")
+    if not local_sqlite and parsed.hostname not in local_hosts:
+        raise ValueError("The demo seeder only permits a local database host.")
+    database_name = parsed.path.rsplit("/", 1)[-1].lower()
+    if any(marker in database_name for marker in ("prod", "production", "live")):
+        raise ValueError("The demo seeder refuses a production/live database name.")
+
+    if paypal_environment.strip().lower() != "sandbox":
+        raise ValueError("Sandbox fixture setup requires PAYPAL_ENVIRONMENT=sandbox.")
+    if urlparse(paypal_base_url).hostname != "api-m.sandbox.paypal.com":
+        raise ValueError("Sandbox fixture setup requires the PayPal Sandbox API URL.")
+    if not paypal_client_id.strip() or not paypal_client_secret.strip():
+        raise ValueError("Configure local PayPal Sandbox credentials before seeding.")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--confirm-local-demo-seed",
+        action="store_true",
+        help="Create fictional accounts and workflows in a local development database.",
+    )
+    args = parser.parse_args()
+    if not args.confirm_local_demo_seed:
+        print(
+            "No data changed. Review the local-only safety checks and rerun with "
+            "--confirm-local-demo-seed to continue."
         )
+        return
 
-        if not ms3:
-            ms3 = MilestoneExecution(
-                room_id=room.id,
-                source_proposal_id=prop.id,
-                accepted_proposal_version=1,
-                milestone_index=2,
-                title="Stage 3: Integration Verification & Production Handover",
-                description="Deliver comprehensive integration test suite, performance benchmarks, and deployment documentation.",
-                expected_deliverables=[
-                    "Deployment Configuration & API Documentation",
-                    "Production Runbook",
-                ],
-                agreed_amount=Decimal("3000.00"),
-                currency="USD",
-                due_days=14,
-                responsible_user_id=alice.id,
-                reviewer_user_id=bob.id,
-                status=MilestoneExecutionStatus.NOT_STARTED.value,
-                payment_readiness=PaymentReadinessStatus.NOT_READY.value,
-            )
-            db.add(ms3)
-            print("  + Milestone 3 created (NOT_STARTED)")
+    try:
+        validate_local_seed_environment(
+            confirmed=args.confirm_local_demo_seed,
+            app_env=settings.APP_ENV,
+            database_url=settings.DATABASE_URL,
+            paypal_environment=settings.PAYPAL_ENVIRONMENT,
+            paypal_base_url=settings.PAYPAL_BASE_URL,
+            paypal_client_id=settings.PAYPAL_CLIENT_ID,
+            paypal_client_secret=settings.PAYPAL_CLIENT_SECRET,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
 
-        db.commit()
-        print("\n[SUCCESS] Demo test accounts and sample records are ready!")
+    password = os.environ.get(DEMO_PASSWORD_ENV, "")
+    if len(password) < 12:
+        parser.error(f"Set {DEMO_PASSWORD_ENV} to a password of at least 12 characters.")
+
+    with SessionLocal() as db:
+        try:
+            summary = seed_demo_data(db, password)
+        except Exception:
+            db.rollback()
+            raise
+
+    print("Created or preserved fictional local demo accounts:")
+    for email in summary.accounts:
+        print(f"  {email}")
+    print(f"Shared demo password: value of {DEMO_PASSWORD_ENV} (not printed)")
+    print(f"Sandbox Deal Room: {summary.sandbox_room_id}")
+    print(f"Sandbox milestone: {summary.sandbox_milestone_id} ($25.00 USD)")
+    print("No PayPal order or payment was created. Checkout requires your explicit action.")
 
 
 if __name__ == "__main__":
-    seed_demo_data()
+    main()

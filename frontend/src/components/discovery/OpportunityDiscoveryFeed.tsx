@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Send,
 } from "lucide-react";
 import {
   OpportunityPublic,
@@ -35,8 +36,10 @@ interface OpportunityDiscoveryFeedProps {
   currentUser?: User | null;
   initialIntent?: OpportunityIntent;
   initialCategory?: OpportunityCategory;
+  initialQuery?: string;
   onOpenInStudio?: (opp: OpportunityPublic) => void;
   onCreateOpportunity?: (intent?: OpportunityIntent, category?: OpportunityCategory) => void;
+  onConnect?: (opp: OpportunityPublic) => void;
 }
 
 const CATEGORIES: { label: string; value: OpportunityCategory }[] = [
@@ -50,8 +53,10 @@ export const OpportunityDiscoveryFeed: React.FC<OpportunityDiscoveryFeedProps> =
   currentUser,
   initialIntent,
   initialCategory,
+  initialQuery = "",
   onOpenInStudio,
   onCreateOpportunity,
+  onConnect,
 }) => {
   const [opportunities, setOpportunities] = useState<OpportunityPublic[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -61,7 +66,13 @@ export const OpportunityDiscoveryFeed: React.FC<OpportunityDiscoveryFeedProps> =
   const [error, setError] = useState<string | null>(null);
 
   // Search & Filters state
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+
+  useEffect(() => {
+    if (initialQuery !== undefined) {
+      setSearchQuery(initialQuery);
+    }
+  }, [initialQuery]);
   const [selectedIntent, setSelectedIntent] = useState<OpportunityIntent | undefined>(
     initialIntent
   );
@@ -571,9 +582,25 @@ export const OpportunityDiscoveryFeed: React.FC<OpportunityDiscoveryFeedProps> =
                   )}
                 </div>
 
-                <div className="flex items-center space-x-1 text-slate-400">
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 text-slate-400">
                   <Calendar className="h-3 w-3" />
                   <span>{formatDate(opp.published_at || opp.created_at)}</span>
+                </div>
+                  {onConnect && (!currentUser || currentUser.id !== opp.user_id) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onConnect(opp);
+                      }}
+                      className="inline-flex items-center space-x-1 rounded-lg bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition cursor-pointer border border-indigo-200/80"
+                      title="Connect with creator of this opportunity"
+                    >
+                      <Send className="h-2.5 w-2.5" />
+                      <span>Connect</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -619,7 +646,9 @@ export const OpportunityDiscoveryFeed: React.FC<OpportunityDiscoveryFeedProps> =
         }}
         opportunity={selectedOpportunity}
         onOpenInStudio={onOpenInStudio}
-        isOwner={false}
+        onConnect={onConnect}
+        currentUser={currentUser}
+        isOwner={Boolean(currentUser && selectedOpportunity?.user_id && currentUser.id === selectedOpportunity.user_id)}
       />
     </div>
   );

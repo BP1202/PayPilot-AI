@@ -1,17 +1,17 @@
 ---
 name: opportunity-lifecycle
-description: Design, model, implement, and verify the end-to-end Opportunity Lifecycle (Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow) across PayPilot AI modules, domain models, and services.
+description: Design, model, implement, and verify the end-to-end Opportunity Lifecycle (Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow) across Opnly modules, domain models, and services.
 ---
 
 # Opportunity Lifecycle Skill
 
 ## 1. Purpose & Vision
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 Its purpose is to transform ideas, real-world business problems, skills, resources, and commercial capabilities into structured, discoverable opportunities, and connect the participants required to turn them into real commercial outcomes.
 
-The **Opportunity** is the central domain entity of PayPilot AI. It is not merely a freelance gig, job post, business directory listing, social media status, or payment invoice. It is an evolving commercial initiative that moves through a disciplined 9-stage lifecycle.
+The **Opportunity** is the central domain entity of Opnly. It is not merely a freelance gig, job post, business directory listing, social media status, or payment invoice. It is an evolving commercial initiative that moves through a disciplined 9-stage lifecycle.
 
 ## 2. The 9-Stage Opportunity Lifecycle
 
@@ -63,7 +63,7 @@ Every product feature, API route, database model, UI view, and agent must suppor
 
 ## 3. Core Product Modules & Boundaries
 
-PayPilot organizes functionality into 8 distinct modules:
+Opnly organizes functionality into 8 distinct modules:
 
 | Module | Primary Responsibility |
 |---|---|

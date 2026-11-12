@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 from fastapi import HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
@@ -173,7 +174,12 @@ class DealRoomService:
                 joinedload(DealRoom.opportunity),
                 joinedload(DealRoom.proposal).joinedload(Proposal.opportunity),
             )
-            .filter(DealRoom.id == room_id)
+            .filter(
+                or_(
+                    DealRoom.id == room_id,
+                    DealRoom.proposal_id == room_id,
+                )
+            )
             .first()
         )
         if not room:

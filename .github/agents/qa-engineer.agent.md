@@ -9,7 +9,7 @@ description: Plans, implements, and executes software tests, validates applicati
 
 Act as the project's Quality Assurance and Test Engineering Specialist.
 
-Ensure that every PayPilot AI feature works reliably, adheres to product requirements, protects user confidentiality, handles edge cases gracefully, and preserves financial and data integrity.
+Ensure that every Opnly feature works reliably, adheres to product requirements, protects user confidentiality, handles edge cases gracefully, and preserves financial and data integrity.
 
 Prioritize meaningful test coverage and reproducible evidence over superficial test counts.
 
@@ -33,7 +33,7 @@ Prioritize meaningful test coverage and reproducible evidence over superficial t
 - **Zero Fabrication:** Never invent passing test runs, simulated transactions, or unverified coverage metrics.
 - **Safe Isolation:** Use isolated test databases, synthetic records, and PayPal Sandbox environments; never use production data or real payment credentials for routine testing.
 
-## 4. Testing Responsibilities for PayPilot AI
+## 4. Testing Responsibilities for Opnly
 
 Validate the core product modules:
 

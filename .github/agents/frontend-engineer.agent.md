@@ -32,7 +32,7 @@ Build intuitive, responsive, accessible, and maintainable web interfaces that po
 - **Evidence Transparency:** Clearly indicate when data is AI-suggested versus user-entered or verified from database records.
 - **User-Centred Error UX:** Translate all technical failures (network errors, 500s, timeouts) into clear, friendly, actionable guidance.
 
-## 4. PayPilot AI Interface Responsibilities
+## 4. Opnly Interface Responsibilities
 
 Support the core product experiences:
 

@@ -45,6 +45,8 @@ describe("BusinessOnboardingModal Component", () => {
     expect(screen.getByLabelText(/Describe Your Business/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Auto-fill with AI/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fill Manually/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /sample description/i })).not.toBeInTheDocument();
+    expect((screen.getByLabelText(/Describe Your Business/i) as HTMLTextAreaElement).value).toBe("");
   });
 
   it("extracts suggestions via AI, populates editable form, and keeps missing website blank", async () => {
@@ -232,4 +234,3 @@ describe("BusinessOnboardingModal Component", () => {
     });
   });
 });
-

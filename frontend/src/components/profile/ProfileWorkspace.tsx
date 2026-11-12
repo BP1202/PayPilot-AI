@@ -16,6 +16,8 @@ import {
   RefreshCw,
   Shield,
   Layers,
+  Wrench,
+  Award,
 } from "lucide-react";
 import {
   Business,
@@ -28,23 +30,33 @@ import {
   updateMyIndividualProfile,
   updateMyBusinessProfile,
 } from "@/lib/api";
+import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 
 interface ProfileWorkspaceProps {
   currentUser?: UserType | null;
   onOpenAuth?: () => void;
+  initialTab?: "individual" | "organization";
 }
 
 export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
   currentUser,
   onOpenAuth,
+  initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState<"individual" | "organization">(
-    "individual"
+    initialTab || "individual"
   );
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
 
   // Profile data
   const [individual, setIndividual] = useState<IndividualProfile | null>(null);
@@ -59,10 +71,16 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
   const [indLocation, setIndLocation] = useState("");
   const [indIndustry, setIndIndustry] = useState("");
   const [indSkills, setIndSkills] = useState<string[]>([]);
+  const [indServices, setIndServices] = useState<string[]>([]);
+  const [indResources, setIndResources] = useState<string[]>([]);
+  const [indExperience, setIndExperience] = useState<string[]>([]);
   const [indInterests, setIndInterests] = useState<string[]>([]);
   const [indVisibility, setIndVisibility] =
     useState<ProfileVisibility>("PRIVATE");
   const [newIndSkill, setNewIndSkill] = useState("");
+  const [newIndService, setNewIndService] = useState("");
+  const [newIndResource, setNewIndResource] = useState("");
+  const [newIndExperience, setNewIndExperience] = useState("");
   const [newIndInterest, setNewIndInterest] = useState("");
 
   // Organization Form State
@@ -74,10 +92,16 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
   const [orgCountry, setOrgCountry] = useState("");
   const [orgWebsite, setOrgWebsite] = useState("");
   const [orgSkills, setOrgSkills] = useState<string[]>([]);
+  const [orgServices, setOrgServices] = useState<string[]>([]);
+  const [orgResources, setOrgResources] = useState<string[]>([]);
+  const [orgExperience, setOrgExperience] = useState<string[]>([]);
   const [orgInterests, setOrgInterests] = useState<string[]>([]);
   const [orgVisibility, setOrgVisibility] =
     useState<ProfileVisibility>("PRIVATE");
   const [newOrgSkill, setNewOrgSkill] = useState("");
+  const [newOrgService, setNewOrgService] = useState("");
+  const [newOrgResource, setNewOrgResource] = useState("");
+  const [newOrgExperience, setNewOrgExperience] = useState("");
   const [newOrgInterest, setNewOrgInterest] = useState("");
 
   const loadProfiles = useCallback(async () => {
@@ -98,6 +122,9 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
       setIndLocation(data.individual.location || "");
       setIndIndustry(data.individual.industry || "TECH");
       setIndSkills(data.individual.skills || []);
+      setIndServices(data.individual.services || []);
+      setIndResources(data.individual.resources || []);
+      setIndExperience(data.individual.experience || []);
       setIndInterests(data.individual.interests || []);
       setIndVisibility(data.individual.visibility || "PRIVATE");
 
@@ -131,6 +158,9 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
     setOrgCountry(biz.country || "");
     setOrgWebsite(biz.website || "");
     setOrgSkills(biz.skills || []);
+    setOrgServices(biz.services || []);
+    setOrgResources(biz.resources || []);
+    setOrgExperience(biz.experience || []);
     setOrgInterests(biz.interests || []);
     setOrgVisibility(biz.visibility || "PRIVATE");
   };
@@ -143,6 +173,16 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
     }
   };
 
+  const handleBusinessCreated = (newBiz: Business) => {
+    setBusinesses((prev) => [...prev, newBiz]);
+    setSelectedBusinessId(newBiz.id);
+    populateOrgForm(newBiz);
+    setIsBusinessModalOpen(false);
+    setSaveSuccess(`Organization "${newBiz.name}" registered successfully!`);
+    setTimeout(() => setSaveSuccess(null), 4000);
+  };
+
+  // Individual Capability Handlers
   const handleAddIndSkill = (e: React.KeyboardEvent | React.MouseEvent) => {
     if ("key" in e && e.key !== "Enter") return;
     e.preventDefault();
@@ -155,6 +195,48 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
 
   const handleRemoveIndSkill = (skill: string) => {
     setIndSkills(indSkills.filter((s) => s !== skill));
+  };
+
+  const handleAddIndService = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ("key" in e && e.key !== "Enter") return;
+    e.preventDefault();
+    const trimmed = newIndService.trim();
+    if (trimmed && !indServices.includes(trimmed)) {
+      setIndServices([...indServices, trimmed]);
+      setNewIndService("");
+    }
+  };
+
+  const handleRemoveIndService = (service: string) => {
+    setIndServices(indServices.filter((s) => s !== service));
+  };
+
+  const handleAddIndResource = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ("key" in e && e.key !== "Enter") return;
+    e.preventDefault();
+    const trimmed = newIndResource.trim();
+    if (trimmed && !indResources.includes(trimmed)) {
+      setIndResources([...indResources, trimmed]);
+      setNewIndResource("");
+    }
+  };
+
+  const handleRemoveIndResource = (resource: string) => {
+    setIndResources(indResources.filter((r) => r !== resource));
+  };
+
+  const handleAddIndExperience = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ("key" in e && e.key !== "Enter") return;
+    e.preventDefault();
+    const trimmed = newIndExperience.trim();
+    if (trimmed && !indExperience.includes(trimmed)) {
+      setIndExperience([...indExperience, trimmed]);
+      setNewIndExperience("");
+    }
+  };
+
+  const handleRemoveIndExperience = (exp: string) => {
+    setIndExperience(indExperience.filter((e) => e !== exp));
   };
 
   const handleAddIndInterest = (e: React.KeyboardEvent | React.MouseEvent) => {
@@ -171,6 +253,7 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
     setIndInterests(indInterests.filter((i) => i !== interest));
   };
 
+  // Organization Capability Handlers
   const handleAddOrgSkill = (e: React.KeyboardEvent | React.MouseEvent) => {
     if ("key" in e && e.key !== "Enter") return;
     e.preventDefault();
@@ -183,6 +266,48 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
 
   const handleRemoveOrgSkill = (skill: string) => {
     setOrgSkills(orgSkills.filter((s) => s !== skill));
+  };
+
+  const handleAddOrgService = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ("key" in e && e.key !== "Enter") return;
+    e.preventDefault();
+    const trimmed = newOrgService.trim();
+    if (trimmed && !orgServices.includes(trimmed)) {
+      setOrgServices([...orgServices, trimmed]);
+      setNewOrgService("");
+    }
+  };
+
+  const handleRemoveOrgService = (service: string) => {
+    setOrgServices(orgServices.filter((s) => s !== service));
+  };
+
+  const handleAddOrgResource = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ("key" in e && e.key !== "Enter") return;
+    e.preventDefault();
+    const trimmed = newOrgResource.trim();
+    if (trimmed && !orgResources.includes(trimmed)) {
+      setOrgResources([...orgResources, trimmed]);
+      setNewOrgResource("");
+    }
+  };
+
+  const handleRemoveOrgResource = (resource: string) => {
+    setOrgResources(orgResources.filter((r) => r !== resource));
+  };
+
+  const handleAddOrgExperience = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ("key" in e && e.key !== "Enter") return;
+    e.preventDefault();
+    const trimmed = newOrgExperience.trim();
+    if (trimmed && !orgExperience.includes(trimmed)) {
+      setOrgExperience([...orgExperience, trimmed]);
+      setNewOrgExperience("");
+    }
+  };
+
+  const handleRemoveOrgExperience = (exp: string) => {
+    setOrgExperience(orgExperience.filter((e) => e !== exp));
   };
 
   const handleAddOrgInterest = (e: React.KeyboardEvent | React.MouseEvent) => {
@@ -210,6 +335,9 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
         location: indLocation,
         industry: indIndustry,
         skills: indSkills,
+        services: indServices,
+        resources: indResources,
+        experience: indExperience,
         interests: indInterests,
         visibility: indVisibility,
       });
@@ -243,6 +371,9 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
         country: orgCountry,
         website: orgWebsite,
         skills: orgSkills,
+        services: orgServices,
+        resources: orgResources,
+        experience: orgExperience,
         interests: orgInterests,
         visibility: orgVisibility,
       });
@@ -274,7 +405,7 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
         <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-6">
           Manage your individual professional identity and organization
           capabilities. Your profile powers secure collaboration across the
-          PayPilot Opportunity Network.
+          Opnly Opportunity Network.
         </p>
         <button
           onClick={onOpenAuth}
@@ -317,22 +448,22 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
             onClick={() => setActiveTab("individual")}
             className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition cursor-pointer ${
               activeTab === "individual"
-                ? "bg-white text-indigo-700 shadow-sm font-bold"
+                ? "bg-white text-blue-700 shadow-sm font-bold"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <User className="h-3.5 w-3.5" />
+            <User className="h-3.5 w-3.5 text-blue-600" />
             <span>Individual Profile</span>
           </button>
           <button
             onClick={() => setActiveTab("organization")}
             className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition cursor-pointer ${
               activeTab === "organization"
-                ? "bg-white text-indigo-700 shadow-sm font-bold"
+                ? "bg-white text-emerald-700 shadow-sm font-bold"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Building2 className="h-3.5 w-3.5" />
+            <Building2 className="h-3.5 w-3.5 text-emerald-600" />
             <span>Organization Profile</span>
           </button>
         </div>
@@ -443,7 +574,7 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
             {/* Skills Tag Input */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Skills & Capabilities
+                Skills & Competencies
               </label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {indSkills.map((skill) => (
@@ -474,6 +605,132 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={handleAddIndSkill}
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Services Offered Tag Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Services Offered
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {indServices.map((service) => (
+                  <span
+                    key={service}
+                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-800"
+                  >
+                    <span>{service}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveIndService(service)}
+                      className="text-emerald-500 hover:text-emerald-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add a service (e.g. Architecture Review, Full-stack MVP Development, API Security Audit)..."
+                  value={newIndService}
+                  onChange={(e) => setNewIndService(e.target.value)}
+                  onKeyDown={handleAddIndService}
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-hidden transition"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddIndService}
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Tools & Resources Tag Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Tools, Infrastructure & Specialized Resources
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {indResources.map((resource) => (
+                  <span
+                    key={resource}
+                    className="inline-flex items-center gap-1 rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1 text-xs font-semibold text-sky-800"
+                  >
+                    <span>{resource}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveIndResource(resource)}
+                      className="text-sky-500 hover:text-sky-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add a tool or resource (e.g. AWS GovCloud, Docker Enterprise, Lab Testing Rig)..."
+                  value={newIndResource}
+                  onChange={(e) => setNewIndResource(e.target.value)}
+                  onKeyDown={handleAddIndResource}
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-hidden transition"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddIndResource}
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Experience Highlights Tag Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Experience Highlights & Certifications
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {indExperience.map((exp) => (
+                  <span
+                    key={exp}
+                    className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-800"
+                  >
+                    <span>{exp}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveIndExperience(exp)}
+                      className="text-amber-500 hover:text-amber-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add an experience highlight (e.g. Ex-Fintech Lead Architect, 10+ Years Cloud Systems)..."
+                  value={newIndExperience}
+                  onChange={(e) => setNewIndExperience(e.target.value)}
+                  onKeyDown={handleAddIndExperience}
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-hidden transition"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddIndExperience}
                   className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -789,26 +1046,37 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
                 </p>
               </div>
 
-              {businesses.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-semibold text-slate-600">
-                    Entity:
-                  </label>
-                  <select
-                    value={selectedBusinessId || ""}
-                    onChange={(e) =>
-                      handleSelectBusiness(Number(e.target.value))
-                    }
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-900 focus:outline-hidden"
-                  >
-                    {businesses.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {businesses.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-slate-600">
+                      Entity:
+                    </label>
+                    <select
+                      value={selectedBusinessId || ""}
+                      onChange={(e) =>
+                        handleSelectBusiness(Number(e.target.value))
+                      }
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-900 focus:outline-hidden"
+                    >
+                      {businesses.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsBusinessModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 text-xs font-bold transition cursor-pointer shadow-2xs"
+                  title="Register another organization or business profile"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Register New Organization</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -818,7 +1086,7 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Apex Precision Gearworks"
+                  placeholder="Enter your organization name"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-hidden transition"
@@ -910,7 +1178,7 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
             {/* Org Capabilities Tag Input */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Organization Capabilities & Services
+                Organization Capabilities & Skills
               </label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {orgSkills.map((skill) => (
@@ -941,6 +1209,132 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={handleAddOrgSkill}
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Org Services Offered Tag Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Services Offered
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {orgServices.map((service) => (
+                  <span
+                    key={service}
+                    className="inline-flex items-center gap-1 rounded-lg bg-teal-50 border border-teal-200 px-2.5 py-1 text-xs font-semibold text-teal-800"
+                  >
+                    <span>{service}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOrgService(service)}
+                      className="text-teal-500 hover:text-teal-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add a service (e.g. Custom Fabrication, Turnkey Assembly, Bulk Distribution)..."
+                  value={newOrgService}
+                  onChange={(e) => setNewOrgService(e.target.value)}
+                  onKeyDown={handleAddOrgService}
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-hidden transition"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddOrgService}
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Org Equipment & Resources Tag Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Equipment, Facilities & Specialized Resources
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {orgResources.map((resource) => (
+                  <span
+                    key={resource}
+                    className="inline-flex items-center gap-1 rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-1 text-xs font-semibold text-purple-800"
+                  >
+                    <span>{resource}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOrgResource(resource)}
+                      className="text-purple-500 hover:text-purple-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add equipment or facility (e.g. 5-Axis CNC Mill, ISO-9001 Cleanroom, Warehousing Facility)..."
+                  value={newOrgResource}
+                  onChange={(e) => setNewOrgResource(e.target.value)}
+                  onKeyDown={handleAddOrgResource}
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-hidden transition"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddOrgResource}
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Org Domain Experience & Milestones Tag Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Domain Experience, Certifications & Milestones
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {orgExperience.map((exp) => (
+                  <span
+                    key={exp}
+                    className="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-semibold text-orange-800"
+                  >
+                    <span>{exp}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOrgExperience(exp)}
+                      className="text-orange-500 hover:text-orange-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add experience highlight (e.g. AS9100D Certified, Tier 1 Automotive Supplier, 25+ Years Operations)..."
+                  value={newOrgExperience}
+                  onChange={(e) => setNewOrgExperience(e.target.value)}
+                  onKeyDown={handleAddOrgExperience}
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-hidden transition"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddOrgExperience}
                   className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -1238,7 +1632,13 @@ export const ProfileWorkspace: React.FC<ProfileWorkspaceProps> = ({
           </div>
         </div>
       )}
+
+      {/* Integrated Organization Registration Modal */}
+      <BusinessOnboardingModal
+        isOpen={isBusinessModalOpen}
+        onClose={() => setIsBusinessModalOpen(false)}
+        onSuccess={handleBusinessCreated}
+      />
     </div>
   );
 };
-

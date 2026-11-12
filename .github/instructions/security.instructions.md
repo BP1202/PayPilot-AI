@@ -8,7 +8,7 @@ applyTo: "**/*.{py,ts,tsx,js,jsx,json,yml,yaml}"
 
 ## 1. Core Principles & Opportunity Confidentiality
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 Core security commitments:
 - **Idea Confidentiality & Creator Control:** A creator's ideas, internal notes, financial models, and intellectual property belong strictly to them. Ideas must never be leaked across tenant boundaries or exposed publicly without explicit creator consent.

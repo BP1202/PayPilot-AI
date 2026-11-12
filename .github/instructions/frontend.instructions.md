@@ -8,7 +8,7 @@ applyTo: "frontend/**/*.{ts,tsx,js,jsx,css}"
 
 ## 1. Product Context & Opportunity Interfaces
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 The frontend guides users through the complete opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
@@ -31,7 +31,7 @@ Core product modules and interfaces:
 ## 3. Human-Understandable Error Handling & UX
 
 - **No Technical Jargon in the UI:** Never expose internal API URLs (e.g. `http://127.0.0.1:8000/api/v1`), stack traces, HTTP error codes, or raw backend exception messages to the user.
-- **Actionable, Empathetic Messaging:** Translate network or server failures into helpful, user-oriented text (e.g., *"We're having trouble connecting to PayPilot services right now. Please check your connection or try again shortly."*).
+- **Actionable, Empathetic Messaging:** Translate network or server failures into helpful, user-oriented text (e.g., *"We're having trouble connecting to Opnly services right now. Please check your connection or try again shortly."*).
 - Provide clear loading states (skeletons), empty states with calls to action, and non-blocking toast notifications.
 
 ## 4. Next.js and React Architecture

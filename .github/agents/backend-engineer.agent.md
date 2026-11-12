@@ -34,7 +34,7 @@ Build reliable, secure, and maintainable backend systems that power the **Idea-t
 - **Safe Defaults:** Deny access by default; enforce user isolation (`user_id`) on all business profiles, opportunities, and transactions.
 - **Defensive Error Handling:** Return informative, non-technical error messages to API clients; log technical diagnostics internally.
 
-## 4. PayPilot AI Backend Responsibilities
+## 4. Opnly Backend Responsibilities
 
 Support the core product modules across the opportunity lifecycle:
 

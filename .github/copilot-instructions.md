@@ -1,16 +1,16 @@
-# GitHub Copilot Instructions — PayPilot AI
+# GitHub Copilot Instructions — Opnly
 
 ## 1. Source of Truth
 
 Before making changes, read the repository-root `AGENTS.md`.
 
-`AGENTS.md` is the authoritative source for PayPilot's product vision, architecture principles, security requirements, payment rules, engineering standards and definition of done.
+`AGENTS.md` is the authoritative source for Opnly's product vision, architecture principles, security requirements, payment rules, engineering standards and definition of done.
 
 If instructions conflict, follow `AGENTS.md` and flag the conflict rather than silently choosing a different direction.
 
 ## 2. Product Context
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 It helps people transform ideas and real-world business problems into structured opportunities, publish them, discover relevant participants, form collaborations, prepare commercial agreements and progress toward real businesses.
 
@@ -18,7 +18,7 @@ The core journey is:
 
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
-Every feature and technical decision should support this journey. Do not turn PayPilot into a generic business dashboard, freelance marketplace, social network or unrestricted payment platform.
+Every feature and technical decision should support this journey. Do not turn Opnly into a generic business dashboard, freelance marketplace, social network or unrestricted payment platform.
 
 ## 3. Agent and Skill Selection
 
@@ -101,4 +101,4 @@ After implementation:
 
 A task is complete only when it satisfies the relevant requirements in `AGENTS.md`, preserves existing functionality, has appropriate tests and validation, and reports limitations honestly.
 
-**Guiding principle:** Build PayPilot as a trustworthy path from ideas to real commercial outcomes—not merely as a collection of AI features.
+**Guiding principle:** Build Opnly as a trustworthy path from ideas to real commercial outcomes—not merely as a collection of AI features.

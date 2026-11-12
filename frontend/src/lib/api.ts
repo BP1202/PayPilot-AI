@@ -66,6 +66,11 @@ import {
   MilestoneReviewPayload,
   MilestoneCancelPayload,
   MilestoneAIAnalysisResponse,
+  CreatePayPalOrderPayload,
+  PayPalOrderResponse,
+  CapturePayPalOrderPayload,
+  PayPalCaptureResponse,
+  MilestoneSettlementStatus,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -85,12 +90,31 @@ export function getApiBaseUrl(): string {
   if (envUrl && envUrl.trim() !== "") {
     return envUrl.trim().replace(/\/+$/, "");
   }
+  if (typeof window !== "undefined" && !process.env.VITEST) {
+    return "/api/v1";
+  }
   return "http://127.0.0.1:8000/api/v1";
 }
 
 // ---------------------------------------------------------------------------
 // Cryptographic Token and Verified Session Management
 // ---------------------------------------------------------------------------
+
+export async function checkBackendHealth(): Promise<{
+  status: string;
+  application?: string;
+  environment?: string;
+} | null> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/health`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
 
 export const AUTH_STORAGE_KEY = "paypilot_access_token";
 export const USER_STORAGE_KEY = "paypilot_user_profile";
@@ -1651,6 +1675,120 @@ export async function analyzeMilestoneAI(
     return handleFetchError(
       err,
       "AI Milestone Copilot could not complete review analysis. Please try again."
+    );
+  }
+}
+
+
+export async function createMilestonePayPalOrder(
+  roomId: string,
+  milestoneId: string,
+  idempotencyKey: string,
+  returnUrl?: string,
+  cancelUrl?: string
+): Promise<PayPalOrderResponse> {
+  try {
+    const payload: CreatePayPalOrderPayload = {
+      idempotency_key: idempotencyKey,
+      return_url: returnUrl,
+      cancel_url: cancelUrl,
+    };
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/paypal/create-order`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<PayPalOrderResponse>(
+      res,
+      "Unable to create PayPal order. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to create PayPal order. Please try again."
+    );
+  }
+}
+
+
+export async function captureMilestonePayPalOrder(
+  roomId: string,
+  milestoneId: string,
+  idempotencyKey: string
+): Promise<PayPalCaptureResponse> {
+  try {
+    const payload: CapturePayPalOrderPayload = { idempotency_key: idempotencyKey };
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/paypal/capture-order`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    return await handleResponse<PayPalCaptureResponse>(
+      res,
+      "Unable to capture PayPal order. Please try again."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to capture PayPal order. Please try again."
+    );
+  }
+}
+
+
+export async function fetchMilestoneSettlementStatus(
+  roomId: string,
+  milestoneId: string
+): Promise<MilestoneSettlementStatus> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/settlement`,
+      {
+        method: "GET",
+        headers: getAuthHeaders(),
+      }
+    );
+    return await handleResponse<MilestoneSettlementStatus>(
+      res,
+      "Unable to fetch milestone settlement status."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to fetch milestone settlement status."
+    );
+  }
+}
+
+export async function prepareMilestoneSettlement(
+  roomId: string,
+  milestoneId: string,
+  idempotencyKey: string,
+  description?: string
+): Promise<any> {
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/deal-rooms/${encodeURIComponent(roomId)}/milestones/${encodeURIComponent(milestoneId)}/settlement`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ idempotency_key: idempotencyKey, description }),
+      }
+    );
+    return await handleResponse<any>(
+      res,
+      "Unable to prepare milestone settlement."
+    );
+  } catch (err) {
+    return handleFetchError(
+      err,
+      "Unable to prepare milestone settlement."
     );
   }
 }

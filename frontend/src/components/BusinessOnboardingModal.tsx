@@ -50,12 +50,6 @@ export const BusinessOnboardingModal: React.FC<BusinessOnboardingModalProps> = (
 
   if (!isOpen) return null;
 
-  const handleUseExample = () => {
-    setDescriptionInput(
-      "ABC Company is an electronics wholesaler based in Ahmedabad, India. We sell electronic components to retailers and receive payments online."
-    );
-  };
-
   const handleStartManual = () => {
     setName("");
     setIndustry("");
@@ -200,19 +194,12 @@ export const BusinessOnboardingModal: React.FC<BusinessOnboardingModalProps> = (
                 rows={4}
                 value={descriptionInput}
                 onChange={(e) => setDescriptionInput(e.target.value)}
-                placeholder="e.g., ABC Company is an electronics wholesaler based in Ahmedabad, India. We sell electronic components to retailers and receive payments online."
+                placeholder="Describe what your business does and what you need."
                 className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-              <button
-                type="button"
-                onClick={handleUseExample}
-                className="text-indigo-600 hover:text-indigo-700 hover:underline font-medium flex items-center space-x-1"
-              >
-                <span>Try sample description</span>
-              </button>
+            <div className="flex items-center justify-end text-xs text-slate-500 pt-1">
               <span>Anti-hallucination: only stated facts are extracted</span>
             </div>
 
@@ -487,4 +474,3 @@ export const BusinessOnboardingModal: React.FC<BusinessOnboardingModalProps> = (
     </div>
   );
 };
-

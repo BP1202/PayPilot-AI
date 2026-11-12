@@ -12,8 +12,8 @@ ENV_PATH = BACKEND_DIR / ".env"
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "PayPilot AI"
-    APP_DESCRIPTION: str = "AI-powered business and payment intelligence platform."
+    APP_NAME: str = "Opnly"
+    APP_DESCRIPTION: str = "AI-powered idea-to-business opportunity network. Where Ideas Find the Right People."
     APP_VERSION: str = "0.1.0"
     APP_ENV: str = "development"
     DEBUG: bool = True
@@ -37,9 +37,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
 
     # PayPal Integration
+    PAYPAL_ENVIRONMENT: str = "sandbox"
     PAYPAL_BASE_URL: str = "https://api-m.sandbox.paypal.com"
     PAYPAL_CLIENT_ID: str = ""
     PAYPAL_CLIENT_SECRET: str = ""
+    PAYPAL_WEBHOOK_ID: str = ""
 
     # AI Intelligence Service
     AI_API_KEY: str = ""
@@ -94,6 +96,15 @@ class Settings(BaseSettings):
             host = self.POSTGRES_HOST or "localhost"
             port = self.POSTGRES_PORT or 5433
             self.DATABASE_URL = f"postgresql+psycopg://{auth}@{host}:{port}/{db_name}"
+
+        # Resolve and validate PayPal base URL based on environment
+        env = (self.PAYPAL_ENVIRONMENT or "sandbox").strip().lower()
+        if env in {"production", "live"}:
+            if not self.PAYPAL_BASE_URL or "sandbox.paypal.com" in self.PAYPAL_BASE_URL:
+                self.PAYPAL_BASE_URL = "https://api-m.paypal.com"
+        else:
+            if not self.PAYPAL_BASE_URL or "api-m.paypal.com" == self.PAYPAL_BASE_URL.rstrip("/"):
+                self.PAYPAL_BASE_URL = "https://api-m.sandbox.paypal.com"
 
         return self
 

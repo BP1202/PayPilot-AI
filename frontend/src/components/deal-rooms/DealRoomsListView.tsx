@@ -85,6 +85,11 @@ export const DealRoomsListView: React.FC<DealRoomsListViewProps> = ({
   }, []);
 
   const loadRooms = async () => {
+    if (!currentUser) {
+      setLoading(false);
+      setRooms([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -109,6 +114,30 @@ export const DealRoomsListView: React.FC<DealRoomsListViewProps> = ({
     return matchesStatus && matchesSearch;
   });
 
+  if (!currentUser) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+          <Briefcase className="h-8 w-8" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-slate-900">
+            Deal Room Workspaces
+          </h2>
+          <p className="text-sm text-slate-500 mt-1 max-w-sm">
+            Sign in to access your collaboration workspaces, track milestones, and execute verified outcomes.
+          </p>
+        </div>
+        <button
+          onClick={onOpenBrowse}
+          className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition cursor-pointer"
+        >
+          Explore Opportunities
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -116,7 +145,7 @@ export const DealRoomsListView: React.FC<DealRoomsListViewProps> = ({
         <div className="relative z-10 max-w-2xl space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-md text-indigo-200 border border-white/10">
             <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-            <span>AI Deal Room Workspaces</span>
+            <span>Deal Room Workspaces</span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
             Collaboration Workspaces

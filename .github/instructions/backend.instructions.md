@@ -8,7 +8,7 @@ applyTo: "backend/**/*.py"
 
 ## 1. Product Context & Opportunity-Centric Architecture
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 The backend architecture revolves around the opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
@@ -19,7 +19,7 @@ Core domain models and entities:
 - **Proposal & Deal Room Agreement:** Terms, milestone breakdowns, deliverable criteria, and dual-party confirmation states.
 - **Transaction & Commerce Ledger:** Immutable record of financial events, milestone escrow releases, and PayPal payment references.
 
-Keep service boundaries clear. Prevent PayPilot from becoming an unstructured general-purpose marketplace or a generic CRM.
+Keep service boundaries clear. Prevent Opnly from becoming an unstructured general-purpose marketplace or a generic CRM.
 
 ## 2. Python and FastAPI Standards
 
@@ -50,7 +50,7 @@ Keep service boundaries clear. Prevent PayPilot from becoming an unstructured ge
 - Model payments as verified settlements of approved Deal Room milestones.
 - **Deterministic Arithmetic:** Always use Python `Decimal` for currency amounts, balances, fee calculations, and milestone sums. Never use binary floats or LLM arithmetic.
 - Authenticate PayPal integration using official REST API v2 endpoints via backend credentials (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`).
-- Enforce idempotency on order creation and capture using unique transaction reference IDs (`PayPilot-tx-<id>`).
+- Enforce idempotency on order creation and capture using unique transaction reference IDs (`Opnly-tx-<id>`).
 - Verify PayPal webhook signatures cryptographically before updating transaction states.
 - Never accept frontend payment events as authoritative proof; only server-to-server capture confirms payment.
 - Strictly isolate Sandbox testing credentials from live production environments.

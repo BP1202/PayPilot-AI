@@ -21,7 +21,9 @@ class TransactionBase(BaseModel):
     transaction_ref: str = Field(
         ..., min_length=3, max_length=64, description="Unique transaction reference"
     )
-    business_id: int = Field(..., gt=0, description="Associated business ID")
+    business_id: int | None = Field(
+        default=None, description="Associated business ID (nullable for individual settlements)"
+    )
     amount: Decimal = Field(
         ...,
         gt=Decimal("0.00"),
@@ -42,6 +44,17 @@ class TransactionBase(BaseModel):
     customer_email: str | None = Field(default=None, max_length=255)
     provider_reference: str | None = Field(default=None, max_length=128)
     metadata_json: str | None = None
+
+    # Settlement linkage fields (nullable for legacy transactions)
+    milestone_id: str | None = Field(default=None, max_length=64)
+    deal_room_id: str | None = Field(default=None, max_length=64)
+    payer_user_id: str | None = Field(default=None, max_length=64)
+    payee_user_id: str | None = Field(default=None, max_length=64)
+    payer_name: str | None = Field(default=None, max_length=100)
+    payee_name: str | None = Field(default=None, max_length=100)
+    paypal_order_id: str | None = Field(default=None, max_length=128)
+    paypal_capture_id: str | None = Field(default=None, max_length=128)
+    idempotency_key: str | None = Field(default=None, max_length=128)
 
     @field_validator("amount")
     @classmethod

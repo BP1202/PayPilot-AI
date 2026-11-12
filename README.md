@@ -1,7 +1,7 @@
-# PayPilot AI
-## From Ideas to Real Businesses
+# Opnly
+## Where Ideas Find the Right People
 
-**PayPilot AI** is an AI-powered opportunity creation and business-building platform. It helps people transform raw ideas, business problems, skills, products and resources into structured business opportunities—and connects them with the people and capabilities needed to turn those opportunities into real commercial outcomes.
+**Opnly** is an AI-powered opportunity creation and business-building platform. It helps people transform raw ideas, business problems, skills, products and resources into structured business opportunities—and connects them with the people and capabilities needed to turn those opportunities into real commercial outcomes.
 
 Our vision is simple:
 
@@ -21,11 +21,11 @@ People with ideas often lack the resources or connections to execute them.
 
 These participants are spread across freelance marketplaces, professional networks, startup communities, business directories and private conversations.
 
-PayPilot aims to bring these opportunity participants together around actual business needs.
+Opnly aims to bring these opportunity participants together around actual business needs.
 
 ## 2. The Solution
 
-PayPilot turns an idea or problem into a structured, discoverable business opportunity.
+Opnly turns an idea or problem into a structured, discoverable business opportunity.
 
 The platform supports the complete journey:
 
@@ -89,7 +89,7 @@ Investors, distributors, larger enterprises and other participants can be introd
 
 ## 5. Product Differentiation
 
-PayPilot is not intended to be another:
+Opnly is not intended to be another:
 - Freelance job marketplace
 - Generic business directory
 - Startup listing website
@@ -126,7 +126,7 @@ Do not create an unnecessarily large agent swarm. Start with a reliable orchestr
 
 ## 7. PayPal Integration
 
-PayPal is the transaction infrastructure for the commercial relationships formed through PayPilot.
+PayPal is the transaction infrastructure for the commercial relationships formed through Opnly.
 
 The prototype should demonstrate a real PayPal Sandbox workflow where supported, such as creating an order or payment request, obtaining approval and recording the verified result.
 
@@ -198,7 +198,7 @@ A task is complete only when:
 
 ## 12. Long-Term Vision
 
-PayPilot aims to become an opportunity-to-business network where ideas, problems, skills, customers, resources, capital and commercial relationships can find one another.
+Opnly aims to become an opportunity-to-business network where ideas, problems, skills, customers, resources, capital and commercial relationships can find one another.
 
 It should help people move from:
 
@@ -209,3 +209,31 @@ The ultimate measure of success is not the number of ideas published. It is the 
 ---
 
 **Product principle:** Every feature, agent, skill, API integration and engineering task must contribute to making this journey more useful, trustworthy and achievable.
+
+## Local Demo Accounts and PayPal Sandbox
+
+The optional demo fixture creates six **fictional local test accounts**: three business owners with different needs and three individual solvers with different capabilities. It also creates six public demo opportunities and one accepted Deal Room with an approved **$25.00 USD** milestone for testing checkout. The seeded agreement and evidence are synthetic workflow fixtures, not real businesses, people, work, or payment history.
+
+All six accounts share the password you supply as `OPNLY_DEMO_PASSWORD`. The seeder only creates missing demo records; it does not change or delete existing accounts or data. It requires explicit confirmation, a local development/test database, and PayPal Sandbox configuration. It never creates a PayPal order or starts a payment.
+
+From `backend` in PowerShell, configure the local Sandbox settings in `backend/.env`, run database migrations, then enter a local-only password without echoing it:
+
+```powershell
+$securePassword = Read-Host "Choose a local demo password (12+ characters)" -AsSecureString
+$env:OPNLY_DEMO_PASSWORD = [System.Net.NetworkCredential]::new("", $securePassword).Password
+python scripts/seed_demo_data.py --confirm-local-demo-seed
+Remove-Item Env:\OPNLY_DEMO_PASSWORD
+```
+
+Demo sign-ins:
+
+| Demo participant | Login email | Use |
+|---|---|---|
+| Jordan Lee — Northstar Retail Systems | `northstar.owner@opnly-demo.test` | Business with a retail inventory integration need; payer in the prepared Sandbox room |
+| Morgan Patel — Cedar Grove Foods | `cedar.owner@opnly-demo.test` | Business with a wholesale order coordination need |
+| Riley Chen — Solaris Mobility | `solaris.owner@opnly-demo.test` | Business with a fleet charging monitoring need |
+| Priya Nair | `priya.solver@opnly-demo.test` | Solver offering web application and API integration skills |
+| Omar Hassan | `omar.solver@opnly-demo.test` | Solver offering operations and data workflow skills |
+| Mei Tan | `mei.solver@opnly-demo.test` | Solver offering IoT and energy monitoring skills |
+
+Use the same password for each account. Sign in as Jordan Lee and open `/deal-rooms?room_id=demo_room_northstar_priya` to view the seeded Deal Room and its approved milestone. Start checkout yourself when ready. Complete approval only with a **PayPal Sandbox buyer account**; the Opnly login and PayPal buyer login are separate. No live credentials or live payments should be used for testing.

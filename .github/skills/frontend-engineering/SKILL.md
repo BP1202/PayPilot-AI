@@ -1,13 +1,13 @@
 ---
 name: frontend-engineering
-description: Design, implement, test, and maintain responsive, accessible, performant frontend applications, Opportunity lifecycle interfaces, human-in-the-loop forms, and user interactions for PayPilot AI.
+description: Design, implement, test, and maintain responsive, accessible, performant frontend applications, Opportunity lifecycle interfaces, human-in-the-loop forms, and user interactions for Opnly.
 ---
 
 # Frontend Engineering Skill
 
 ## 1. Purpose
 
-Build frontend experiences for PayPilot AI — the AI-powered Idea-to-Business Opportunity Network — that are intuitive, responsive, accessible, consistent, and reliable.
+Build frontend experiences for Opnly — the AI-powered Idea-to-Business Opportunity Network — that are intuitive, responsive, accessible, consistent, and reliable.
 
 The interface guides users through the complete 9-stage opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
@@ -16,7 +16,7 @@ The interface guides users through the complete 9-stage opportunity lifecycle:
 
 Use this skill when:
 
-- Creating or modifying opportunity pages, layouts, and components across the 8 PayPilot modules.
+- Creating or modifying opportunity pages, layouts, and components across the 8 Opnly modules.
 - Implementing Idea Capture Studio forms with editable AI-extracted suggestions.
 - Building AI Business Analyst opportunity breakdown and assumption views.
 - Developing Opportunity Press draft preview and creator publication controls.

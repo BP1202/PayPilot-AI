@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold tracking-tight text-slate-900">PayPilot AI</span>
+              <span className="text-xl font-bold tracking-tight text-slate-900">Opnly</span>
               <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200">
                 MVP Demo
               </span>
@@ -52,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden lg:flex items-center space-x-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
             <Building2 className="h-4 w-4 text-slate-400" />
             <span className="font-medium text-slate-900">
-              {business ? business.name : "Apex Precision Gearworks"}
+              {business ? business.name : currentUser?.full_name ? `${currentUser.full_name}'s Venture` : "Opnly Network"}
             </span>
             <span className="text-slate-400">|</span>
             <span className="font-semibold text-indigo-600">
@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="hidden md:flex items-center space-x-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-            <span>PayPal Simulated Sandbox</span>
+            <span>PayPal Checkout</span>
           </div>
         </div>
       </div>

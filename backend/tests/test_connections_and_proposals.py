@@ -190,6 +190,29 @@ def test_connection_request_success(
     assert data["intent"] == "EXPLORE_COLLABORATION"
 
 
+def test_connection_request_via_base_path(
+    client_with_db: TestClient, test_db_session: Session
+):
+    """Successful connection request creation via base /api/v1/connections path."""
+    sender, sender_token = make_user(test_db_session, "u-sender-base", "sender_base@test.com")
+    recipient, _ = make_user(test_db_session, "u-recip-base", "recip_base@test.com")
+
+    resp = client_with_db.post(
+        "/api/v1/connections",
+        json={
+            "recipient_id": recipient.id,
+            "intent": "EXPLORE_COLLABORATION",
+            "message": "Connecting via base path to verify endpoint accessibility.",
+        },
+        headers=AUTH_HEADER(sender_token),
+    )
+    assert resp.status_code == 201, resp.text
+    data = resp.json()
+    assert data["status"] == "PENDING"
+    assert data["requester"]["user_id"] == sender.id
+    assert data["recipient"]["user_id"] == recipient.id
+
+
 def test_connection_self_connection_blocked(
     client_with_db: TestClient, test_db_session: Session
 ):

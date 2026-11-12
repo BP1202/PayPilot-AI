@@ -27,19 +27,19 @@ from app.schemas.matching import (
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MATCHMAKING_PROMPT = """You are the PayPilot AI Matchmaking Intelligence Agent.
+GEMINI_MATCHMAKING_PROMPT = """You are the Opnly AI Matchmaking Intelligence Agent.
 Your responsibility is to explain and synthesize the alignment between an opportunity and a participant (or between two complementary opportunities).
 
 CRITICAL CONSTRAINTS:
-1. Zero-Invention Rule: Rely strictly on provided capabilities, skills, and industry data. Never fabricate credentials, past client work, revenue, or unverified claims.
-2. Grounded Evidence: You must justify why this match is relevant using the candidate's actual skills and the opportunity's explicit requirements.
+1. Zero-Invention Rule: Rely strictly on provided capabilities, skills, services, resources, and industry data. Never fabricate credentials, past client work, revenue, or unverified claims.
+2. Grounded Evidence: You must justify why this match is relevant using the candidate's actual skills, services, resources, and experience against the opportunity's explicit requirements.
 3. Be concise and professional: Keep explanation_summary to 2-3 clear sentences.
 
 Return a valid, strict JSON object with these exact keys:
 {
   "explanation_summary": "Concise natural language synthesis explaining why this candidate and opportunity fit together.",
   "strong_signals": ["Signal 1 directly grounded in data", "Signal 2"],
-  "partial_signals": ["Adjacent skill or secondary capability"],
+  "partial_signals": ["Adjacent skill, secondary capability, or available tooling"],
   "missing_information": ["Information not provided in profile/opportunity"],
   "potential_gaps": ["Uncovered requirement or potential mismatch"]
 }
@@ -72,9 +72,23 @@ def _find_overlapping_items(
     matched = []
     target_tokens = _normalize_tokens(target_items)
     for s in source_items:
+        if not s:
+            continue
+        s_clean = s.strip().lower()
         s_tokens = _normalize_tokens([s])
         if s_tokens & target_tokens:
             matched.append(s)
+            continue
+        # Sub-phrase word boundary match for multi-word capabilities & experience descriptions
+        for t in target_tokens:
+            if len(t) >= 4:
+                pattern = rf"(?:\b|_){re.escape(t)}(?:\b|_)"
+                if re.search(pattern, s_clean) or (
+                    len(s_clean) >= 4
+                    and re.search(rf"(?:\b|_){re.escape(s_clean)}(?:\b|_)", t)
+                ):
+                    matched.append(s)
+                    break
     return matched
 
 
@@ -88,14 +102,26 @@ class DeterministicMatchmakingEngine:
         participant_industry: str | None,
         required_skills: list[str],
         opportunity_industry: str | None,
+        participant_resources: list[str] | None = None,
+        participant_experience: list[str] | None = None,
+        participant_interests: list[str] | None = None,
     ) -> MatchExplanation:
-        candidate_capabilities = list(set(participant_skills + participant_services))
+        skills = participant_skills or []
+        services = participant_services or []
+        resources = participant_resources or []
+        experience = participant_experience or []
+        interests = participant_interests or []
 
-        # Direct skill matches
-        matched_skills = _find_overlapping_items(
-            required_skills, candidate_capabilities
-        )
-        missing_skills = [s for s in required_skills if s not in matched_skills]
+        # Find matching items per capability dimension
+        matched_skills = _find_overlapping_items(skills, required_skills)
+        matched_services = _find_overlapping_items(services, required_skills)
+        matched_resources = _find_overlapping_items(resources, required_skills)
+        matched_experience = _find_overlapping_items(experience, required_skills)
+
+        # Requirements satisfied across all capability dimensions
+        all_candidate_items = skills + services + resources + experience
+        covered_reqs = _find_overlapping_items(required_skills, all_candidate_items)
+        missing_reqs = [s for s in required_skills if s not in covered_reqs]
 
         # Industry match
         industry_matched = False
@@ -104,55 +130,99 @@ class DeterministicMatchmakingEngine:
             o_ind = opportunity_industry.strip().lower()
             industry_matched = (p_ind in o_ind) or (o_ind in p_ind)
 
-        # Calculate score
+        # Aligned interests with opportunity requirements or sector
+        aligned_interests = []
+        if interests:
+            interest_targets = list(required_skills)
+            if opportunity_industry:
+                interest_targets.append(opportunity_industry)
+            aligned_interests = _find_overlapping_items(interests, interest_targets)
+
+        # Calculate evidence-grounded score
         if required_skills:
-            overlap_ratio = len(matched_skills) / len(required_skills)
-            industry_bonus = 0.2 if industry_matched else 0.0
-            score = min(1.0, round((overlap_ratio * 0.8) + industry_bonus, 2))
+            coverage_ratio = len(covered_reqs) / len(required_skills)
+            industry_bonus = 0.15 if industry_matched else 0.0
+            service_bonus = 0.05 if matched_services else 0.0
+            resource_bonus = 0.05 if matched_resources else 0.0
+            experience_bonus = 0.05 if matched_experience else 0.0
+            score = min(
+                1.0,
+                round(
+                    (coverage_ratio * 0.70)
+                    + industry_bonus
+                    + service_bonus
+                    + resource_bonus
+                    + experience_bonus,
+                    2,
+                ),
+            )
         else:
             score = 0.5 if industry_matched else 0.2
 
         # Determine Tier
-        if score >= 0.6 or (len(matched_skills) >= 2 and score >= 0.5):
+        if score >= 0.6 or (len(covered_reqs) >= 2 and score >= 0.5):
             tier = MatchTier.STRONG_MATCH
-        elif score >= 0.35 or len(matched_skills) >= 1 or industry_matched:
+        elif score >= 0.35 or len(covered_reqs) >= 1 or industry_matched:
             tier = MatchTier.MODERATE_MATCH
         else:
             tier = MatchTier.EXPLORATORY
 
         # Build grounded signals
-        strong_signals = [f"Proficient in {s}" for s in matched_skills]
+        strong_signals: list[str] = []
+        for s in matched_skills:
+            strong_signals.append(f"Proficient in {s}")
+        for srv in matched_services:
+            strong_signals.append(f"Service offering: {srv}")
+        for res in matched_resources:
+            strong_signals.append(f"Equipped with: {res}")
+        for exp in matched_experience:
+            strong_signals.append(f"Domain experience: {exp}")
         if industry_matched and opportunity_industry:
             strong_signals.append(f"Domain alignment in {opportunity_industry}")
+        # Deduplicate signals while preserving order
+        strong_signals = list(dict.fromkeys(strong_signals))
 
-        partial_signals = []
-        # Additional capabilities not explicitly requested
-        extra_skills = [c for c in candidate_capabilities if c not in matched_skills][
-            :3
-        ]
-        if extra_skills:
-            partial_signals.append(
-                f"Additional capabilities: {', '.join(extra_skills)}"
-            )
+        partial_signals: list[str] = []
+        unmatched_skills = [s for s in skills if s not in matched_skills][:2]
+        unmatched_services = [s for s in services if s not in matched_services][:2]
+        extra_caps = unmatched_skills + unmatched_services
+        if extra_caps:
+            partial_signals.append(f"Additional capabilities: {', '.join(extra_caps)}")
 
-        potential_gaps = [f"Unmatched requirement: {m}" for m in missing_skills[:4]]
+        unmatched_resources = [r for r in resources if r not in matched_resources][:2]
+        if unmatched_resources:
+            partial_signals.append(f"Available tooling: {', '.join(unmatched_resources)}")
 
-        missing_info = []
-        if not candidate_capabilities:
+        if aligned_interests:
+            partial_signals.append(f"Aligned interests: {', '.join(aligned_interests[:2])}")
+
+        potential_gaps = [f"Unmatched requirement: {m}" for m in missing_reqs[:4]]
+
+        missing_info: list[str] = []
+        if not (skills or services or resources or experience):
             missing_info.append(
-                "Candidate has not specified detailed skills or services"
+                "Candidate has not specified detailed skills, services, or resources"
             )
         if not required_skills:
             missing_info.append(
                 "Opportunity does not specify exact technical prerequisites"
             )
 
-        # Natural language summary
+        # Fact-grounded natural language summary
+        matched_summaries: list[str] = []
         if matched_skills:
-            skills_str = ", ".join(matched_skills[:3])
+            matched_summaries.append(f"skills in {', '.join(matched_skills[:2])}")
+        if matched_services:
+            matched_summaries.append(f"services for {', '.join(matched_services[:2])}")
+        if matched_resources:
+            matched_summaries.append(f"tooling ({', '.join(matched_resources[:2])})")
+        if matched_experience:
+            matched_summaries.append(f"experience in {', '.join(matched_experience[:2])}")
+
+        if matched_summaries:
             summary = (
-                f"Candidate matches required capabilities including {skills_str}"
-                f"{f' with experience in {opportunity_industry}' if industry_matched else ''}."
+                f"Candidate matches required capabilities including {' and '.join(matched_summaries)}"
+                f"{f' with domain alignment in {opportunity_industry}' if industry_matched else ''}."
             )
         elif industry_matched:
             summary = f"Candidate operates in the {opportunity_industry} sector with relevant background."
@@ -269,6 +339,8 @@ class GeminiMatchmakingProvider:
         candidate_services: list[str],
         candidate_industry: str | None,
         fallback_explanation: MatchExplanation,
+        candidate_resources: list[str] | None = None,
+        candidate_experience: list[str] | None = None,
     ) -> MatchExplanation:
         """Call Gemini to provide an enriched, articulate synthesis while keeping factual groundings."""
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
@@ -280,7 +352,9 @@ class GeminiMatchmakingProvider:
             f"Candidate: {candidate_name}\n"
             f"Candidate Industry: {candidate_industry or 'Not specified'}\n"
             f"Candidate Skills: {', '.join(candidate_skills) if candidate_skills else 'None listed'}\n"
-            f"Candidate Services: {', '.join(candidate_services) if candidate_services else 'None listed'}\n\n"
+            f"Candidate Services: {', '.join(candidate_services) if candidate_services else 'None listed'}\n"
+            f"Candidate Resources & Tools: {', '.join(candidate_resources) if candidate_resources else 'None listed'}\n"
+            f"Candidate Experience: {', '.join(candidate_experience) if candidate_experience else 'None listed'}\n\n"
             f"Deterministic Match Tier: {fallback_explanation.match_tier.value}\n"
             f"Provide an articulate, grounded synthesis following the system prompt instructions."
         )
@@ -328,7 +402,7 @@ class GeminiMatchmakingProvider:
 
 
 class MatchmakingService:
-    """High-level orchestration service for intelligent, explainable PayPilot recommendations."""
+    """High-level orchestration service for intelligent, explainable Opnly recommendations."""
 
     def __init__(self, db: Session, api_key: str | None = None):
         self.db = db
@@ -340,10 +414,20 @@ class MatchmakingService:
 
     def _get_user_capabilities(
         self, user_id: str
-    ) -> tuple[list[str], list[str], str | None]:
-        """Aggregate skills, services, and industry across individual and business profiles."""
+    ) -> tuple[
+        list[str],
+        list[str],
+        list[str],
+        list[str],
+        list[str],
+        str | None,
+    ]:
+        """Aggregate skills, services, resources, experience, interests, and industry across individual and business profiles."""
         skills: list[str] = []
         services: list[str] = []
+        resources: list[str] = []
+        experience: list[str] = []
+        interests: list[str] = []
         industry: str | None = None
 
         # Individual profile
@@ -353,6 +437,9 @@ class MatchmakingService:
         if profile:
             skills.extend(profile.skills or [])
             services.extend(profile.services or [])
+            resources.extend(profile.resources or [])
+            experience.extend(profile.experience or [])
+            interests.extend(profile.interests or [])
             if profile.industry:
                 industry = profile.industry
 
@@ -363,16 +450,33 @@ class MatchmakingService:
         for b in businesses:
             skills.extend(b.skills or [])
             services.extend(b.services or [])
+            resources.extend(b.resources or [])
+            experience.extend(b.experience or [])
+            interests.extend(b.interests or [])
             if not industry and b.industry:
                 industry = b.industry
 
-        return list(set(skills)), list(set(services)), industry
+        return (
+            list(dict.fromkeys(skills)),
+            list(dict.fromkeys(services)),
+            list(dict.fromkeys(resources)),
+            list(dict.fromkeys(experience)),
+            list(dict.fromkeys(interests)),
+            industry,
+        )
 
     async def find_opportunities_for_user(
         self, user_id: str, limit: int = 10
     ) -> OpportunityMatchesResponse:
         """Find published opportunities matching the authenticated user's capabilities."""
-        user_skills, user_services, user_industry = self._get_user_capabilities(user_id)
+        (
+            user_skills,
+            user_services,
+            user_resources,
+            user_experience,
+            user_interests,
+            user_industry,
+        ) = self._get_user_capabilities(user_id)
 
         # Query candidate opportunities: PUBLISHED, not created by user, PUBLIC or AUTHENTICATED
         allowed_visibilities = [
@@ -398,6 +502,9 @@ class MatchmakingService:
                 self.deterministic_engine.score_participant_against_opportunity(
                     participant_skills=user_skills,
                     participant_services=user_services,
+                    participant_resources=user_resources,
+                    participant_experience=user_experience,
+                    participant_interests=user_interests,
                     participant_industry=user_industry,
                     required_skills=req_skills,
                     opportunity_industry=opp.industry,
@@ -429,6 +536,8 @@ class MatchmakingService:
                         candidate_name="Current User Profile",
                         candidate_skills=user_skills,
                         candidate_services=user_services,
+                        candidate_resources=user_resources,
+                        candidate_experience=user_experience,
                         candidate_industry=user_industry,
                         fallback_explanation=fallback_exp,
                     )
@@ -507,9 +616,15 @@ class MatchmakingService:
         for prof, usr in profile_results:
             p_skills = prof.skills or []
             p_services = prof.services or []
+            p_resources = prof.resources or []
+            p_experience = prof.experience or []
+            p_interests = prof.interests or []
             exp = self.deterministic_engine.score_participant_against_opportunity(
                 participant_skills=p_skills,
                 participant_services=p_services,
+                participant_resources=p_resources,
+                participant_experience=p_experience,
+                participant_interests=p_interests,
                 participant_industry=prof.industry,
                 required_skills=req_skills,
                 opportunity_industry=opp.industry,
@@ -518,13 +633,15 @@ class MatchmakingService:
             display_name = usr.full_name or "Independent Professional"
             cand = ParticipantCandidate(
                 participant_type="INDIVIDUAL",
-                id=prof.user_id[:8],  # Masked identifier for public participant listing
+                id=prof.user_id,
                 name=display_name,
                 headline=prof.headline,
                 industry=prof.industry,
                 location=prof.location,
                 skills=p_skills,
                 services=p_services,
+                resources=p_resources,
+                experience=p_experience,
                 explanation=exp,
             )
             candidates.append((cand, exp.score))
@@ -539,9 +656,15 @@ class MatchmakingService:
         for b in biz_results:
             b_skills = b.skills or []
             b_services = b.services or []
+            b_resources = b.resources or []
+            b_experience = b.experience or []
+            b_interests = b.interests or []
             exp = self.deterministic_engine.score_participant_against_opportunity(
                 participant_skills=b_skills,
                 participant_services=b_services,
+                participant_resources=b_resources,
+                participant_experience=b_experience,
+                participant_interests=b_interests,
                 participant_industry=b.industry,
                 required_skills=req_skills,
                 opportunity_industry=opp.industry,
@@ -555,6 +678,8 @@ class MatchmakingService:
                 location=b.location,
                 skills=b_skills,
                 services=b_services,
+                resources=b_resources,
+                experience=b_experience,
                 explanation=exp,
             )
             candidates.append((cand, exp.score))
@@ -575,6 +700,8 @@ class MatchmakingService:
                         candidate_name=item.name,
                         candidate_skills=item.skills,
                         candidate_services=item.services,
+                        candidate_resources=item.resources,
+                        candidate_experience=item.experience,
                         candidate_industry=item.industry,
                         fallback_explanation=item.explanation,
                     )

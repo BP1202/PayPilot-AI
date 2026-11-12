@@ -86,13 +86,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleFillDemo = () => {
-    setEmail("owner@apexgearworks.demo");
-    setPassword("Password123!");
-    setMode("login");
-    setErrorMessage(null);
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
@@ -116,7 +109,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
           <div>
             <h2 id="auth-modal-title" className="text-xl font-bold tracking-tight text-slate-900">
-              {mode === "login" ? "Sign In to PayPilot" : "Create Your Account"}
+              {mode === "login" ? "Sign In to Opnly" : "Create Your Account"}
             </h2>
             <p className="text-xs text-slate-500">
               {mode === "login"
@@ -176,6 +169,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span>{successMessage}</span>
           </div>
         )}
+
+        <div className="mb-5 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3 text-xs text-indigo-950 leading-relaxed">
+          Opnly gives you one unified account to both request solutions and offer your capabilities across the network.
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === "register" && (
@@ -255,7 +252,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="flex w-full items-center justify-center space-x-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition disabled:opacity-50"
+            className="flex w-full items-center justify-center space-x-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50"
           >
             {isLoading ? (
               <>
@@ -268,18 +265,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </form>
 
-        {/* Demo Account Quick-Fill */}
-        <div className="mt-6 border-t border-slate-100 pt-4 text-center">
-          <p className="text-xs text-slate-500 mb-2">Testing or evaluating PayPilot?</p>
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="inline-flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-            <span>Use Demo Account (Apex Owner)</span>
-          </button>
-        </div>
       </div>
     </div>
   );

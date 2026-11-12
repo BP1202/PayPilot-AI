@@ -69,7 +69,7 @@ export interface DashboardTotals {
 }
 
 export interface DashboardOverview {
-  business: Business;
+  business: Business | null;
   totals: DashboardTotals;
 }
 
@@ -89,6 +89,15 @@ export interface Transaction {
   customer_name?: string;
   customer_email?: string;
   provider_reference?: string;
+  milestone_id?: string | null;
+  deal_room_id?: string | null;
+  payer_user_id?: string | null;
+  payee_user_id?: string | null;
+  payer_name?: string | null;
+  payee_name?: string | null;
+  paypal_order_id?: string | null;
+  paypal_capture_id?: string | null;
+  idempotency_key?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -368,6 +377,8 @@ export interface BusinessProfileUpdatePayload {
 
 export interface OpportunityPublic {
   id: string;
+  user_id?: string;
+  creator_name?: string | null;
   business_id?: number | null;
   business_name?: string | null;
   submission_type: OpportunityType;
@@ -439,6 +450,8 @@ export interface ParticipantCandidate {
   location?: string | null;
   skills: string[];
   services: string[];
+  resources?: string[];
+  experience?: string[];
   explanation: MatchExplanation;
 }
 
@@ -831,6 +844,7 @@ export type MilestoneExecutionStatus =
   | "IN_PROGRESS"
   | "SUBMITTED_FOR_REVIEW"
   | "REVISION_REQUESTED"
+  | "REJECTED"
   | "APPROVED"
   | "CANCELLED";
 
@@ -851,14 +865,17 @@ export type MilestoneEvidenceType =
 export type EvidenceReviewStatus =
   | "PENDING_REVIEW"
   | "REVISION_REQUESTED"
+  | "REJECTED"
   | "APPROVED"
   | "SUPERSEDED";
 
-export type MilestoneReviewDecision = "APPROVED" | "REVISION_REQUESTED";
+export type MilestoneReviewDecision = "APPROVED" | "REVISION_REQUESTED" | "REJECTED";
 
 export interface MilestoneParticipantSummary {
   user_id: string;
+  id?: string;
   name: string;
+  full_name?: string;
   email?: string | null;
   role?: string | null;
 }
@@ -876,6 +893,7 @@ export interface MilestoneEvidence {
   reference_url: string;
   attachments: Record<string, any>[];
   status: EvidenceReviewStatus;
+  submission_notes?: string | null;
   created_at: string;
 }
 
@@ -906,10 +924,16 @@ export interface MilestoneExecution {
   planned_due_date?: string | null;
   responsible_user: MilestoneParticipantSummary;
   reviewer_user: MilestoneParticipantSummary;
+  payer_user_id?: string | null;
+  payee_user_id?: string | null;
+  payer_name?: string | null;
+  payee_name?: string | null;
   status: MilestoneExecutionStatus;
   cancellation_reason?: string | null;
   payment_readiness: PaymentReadinessStatus;
   current_evidence_submission?: MilestoneEvidence | null;
+  evidence_history?: MilestoneEvidence[];
+  review_history?: MilestoneReview[];
   evidence_submissions_count: number;
   reviews_count: number;
   started_at?: string | null;
@@ -949,6 +973,7 @@ export interface MilestoneEvidenceCreatePayload {
   description: string;
   evidence_type?: MilestoneEvidenceType;
   reference_url: string;
+  submission_notes?: string | null;
   attachments?: Record<string, any>[];
 }
 
@@ -980,4 +1005,64 @@ export interface MilestoneAIAnalysisResponse {
   provider: string;
   model: string;
 }
+
+export type DashboardView =
+  | "home"
+  | "opportunities"
+  | "collaborations"
+  | "deal-rooms"
+  | "ledger"
+  | "profile";
+
+export interface CreatePayPalOrderPayload {
+  idempotency_key: string;
+  return_url?: string;
+  cancel_url?: string;
+}
+
+export interface PayPalOrderResponse {
+  transaction_id: string;
+  transaction_ref: string;
+  paypal_order_id: string;
+  order_status: string;
+  approval_url: string;
+  currency: string;
+  amount: string;
+}
+
+export interface CapturePayPalOrderPayload {
+  idempotency_key: string;
+}
+
+export interface PayPalCaptureResponse {
+  transaction_id: string;
+  transaction_ref: string;
+  paypal_order_id: string;
+  paypal_capture_id: string;
+  capture_status: string;
+  transaction_status: string;
+  payment_readiness: string;
+  currency: string;
+  amount: string;
+}
+
+export interface MilestoneSettlementStatus {
+  milestone_id: string;
+  room_id: string;
+  status: "NOT_PREPARED" | "PREPARED" | "ORDER_CREATED" | "AWAITING_APPROVAL" | "COMPLETED" | "FAILED" | "CANCELLED";
+  payment_readiness: string;
+  agreed_amount?: string | null;
+  currency: string;
+  payer_user_id?: string | null;
+  payee_user_id?: string | null;
+  payer_name?: string | null;
+  payee_name?: string | null;
+  transaction_id?: string | null;
+  transaction_ref?: string | null;
+  paypal_order_id?: string | null;
+  paypal_capture_id?: string | null;
+  approval_url?: string | null;
+}
+
+
 

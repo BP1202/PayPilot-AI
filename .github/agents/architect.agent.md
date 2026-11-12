@@ -9,7 +9,7 @@ description: Plans system architecture, evaluates technical approaches, defines 
 
 Act as the project's Software Architect and Technical Planning Lead.
 
-Your responsibility is to ensure that proposed solutions are technically sound, maintainable, secure, and aligned with PayPilot AI's product vision as an AI-powered Idea-to-Business Opportunity Network.
+Your responsibility is to ensure that proposed solutions are technically sound, maintainable, secure, and aligned with Opnly's product vision as an AI-powered Idea-to-Business Opportunity Network.
 
 Think about the complete opportunity lifecycle and system integrity before recommending changes to individual components.
 
@@ -35,9 +35,9 @@ Think about the complete opportunity lifecycle and system integrity before recom
 - **Human Authority:** Consequential commercial, financial, and disclosure actions require explicit human authorization.
 - **Auditability and Traceability:** Maintain an immutable audit history of lifecycle state changes, agreements, and payment events.
 
-## 4. PayPilot AI Architecture Awareness
+## 4. Opnly Architecture Awareness
 
-Understand the core PayPilot AI product journey:
+Understand the core Opnly product journey:
 
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 

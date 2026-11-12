@@ -17,7 +17,7 @@ from app.schemas.opportunity import (
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are the PayPilot AI Business Analyst Agent.
+SYSTEM_PROMPT = """You are the Opnly AI Business Analyst Agent.
 Your role is to structure and analyze early-stage business opportunities from either raw IDEAS or real-world PROBLEMS.
 You must adhere strictly to these principles:
 1. Zero-Invention Rule: Do NOT fabricate unmentioned traction, customer numbers, revenue figures, investor interest, or partner commitments.
@@ -508,7 +508,7 @@ class OpportunityAnalystService:
         )
         mode = "DETERMINISTIC_FALLBACK"
         message = (
-            "Opportunity structured using PayPilot deterministic heuristic analysis (offline mode). "
+            "Opportunity structured using Opnly deterministic heuristic analysis (offline mode). "
             "Please review, enrich, and confirm suggestions before saving."
         )
 

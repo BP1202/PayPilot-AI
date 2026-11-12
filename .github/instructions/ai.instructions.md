@@ -8,7 +8,7 @@ applyTo: "backend/**/*ai*.py,backend/**/*llm*.py,backend/**/*prompt*.py,backend/
 
 ## 1. Product Context & AI Purpose
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 AI services must power the opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**

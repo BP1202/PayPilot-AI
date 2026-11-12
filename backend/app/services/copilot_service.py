@@ -28,16 +28,31 @@ class CopilotService:
     def mode(self) -> CopilotMode:
         return CopilotMode.LIVE_AI if self.api_key else CopilotMode.DETERMINISTIC_DEMO
 
-    def get_decision_recommendation(self) -> CopilotRecommendation:
-        business = self.biz_repo.get_or_create_default_business()
-        totals = self.tx_repo.get_dashboard_totals(business.id)
-        current_rev = totals["total_revenue"]
+    def get_decision_recommendation(
+        self, user_id: str | None = None
+    ) -> CopilotRecommendation:
+        if user_id:
+            business = self.biz_repo.get_by_user_id(user_id)
+            biz_id = business.id if business else None
+            totals = self.tx_repo.get_dashboard_totals_for_user(user_id, biz_id)
+            pending_items = self.tx_repo.list_for_user(
+                user_id=user_id,
+                business_id=biz_id,
+                status=TransactionStatus.PENDING,
+                limit=1,
+            )
+            biz_name = business.name if business else "Your Account"
+        else:
+            business = self.biz_repo.get_or_create_default_business()
+            totals = self.tx_repo.get_dashboard_totals(business.id)
+            pending_items = self.tx_repo.list(
+                business_id=business.id,
+                status=TransactionStatus.PENDING,
+                limit=1,
+            )
+            biz_name = business.name
 
-        pending_items = self.tx_repo.list(
-            business_id=business.id,
-            status=TransactionStatus.PENDING,
-            limit=1,
-        )
+        current_rev = totals["total_revenue"]
 
         now_str = datetime.now(UTC).isoformat()
 
@@ -62,7 +77,7 @@ class CopilotService:
             desc = pending_tx.description or "Customer Order"
 
             reasoning = (
-                f"Ledger analysis for {business.name} confirms ${current_rev:,.2f} in completed revenue, "
+                f"Ledger analysis for {biz_name} confirms ${current_rev:,.2f} in completed revenue, "
                 f"with ${net_change:,.2f} locked in pending customer order '{desc}' from {customer}. "
                 f"Executing customer payment confirmation immediately expands available working capital by "
                 f"{pct_inc}% and accelerates manufacturing order fulfillment."
@@ -98,7 +113,7 @@ class CopilotService:
             title="Commerce Ledger Reconciled: Zero Pending Receivables",
             mode=self.mode,
             reasoning=(
-                f"All customer transactions for {business.name} have been successfully verified and captured. "
+                f"All customer transactions for {biz_name} have been successfully verified and captured. "
                 f"Total settled revenue stands at ${current_rev:,.2f} across {totals['completed_count']} orders. "
                 "No immediate payment authorization is required."
             ),
@@ -107,17 +122,36 @@ class CopilotService:
             generated_at=now_str,
         )
 
-    def chat(self, prompt: str) -> CopilotChatResponse:
-        business = self.biz_repo.get_or_create_default_business()
-        totals = self.tx_repo.get_dashboard_totals(business.id)
+    def chat(self, prompt: str, user_id: str | None = None) -> CopilotChatResponse:
+        if user_id:
+            business = self.biz_repo.get_by_user_id(user_id)
+            biz_id = business.id if business else None
+            totals = self.tx_repo.get_dashboard_totals_for_user(user_id, biz_id)
+            pending_items = self.tx_repo.list_for_user(
+                user_id=user_id,
+                business_id=biz_id,
+                status=TransactionStatus.PENDING,
+                limit=1,
+            )
+            biz_name = business.name if business else "Your Account"
+            currency = business.currency if business else "USD"
+        else:
+            business = self.biz_repo.get_or_create_default_business()
+            totals = self.tx_repo.get_dashboard_totals(business.id)
+            pending_items = self.tx_repo.list(
+                business.id, status=TransactionStatus.PENDING, limit=1
+            )
+            biz_name = business.name
+            currency = business.currency
+
         current_rev = totals["total_revenue"]
         pending_total = totals["pending_total"]
         completed_count = totals["completed_count"]
         pending_count = totals["pending_count"]
 
         context_summary: dict[str, Any] = {
-            "business_name": business.name,
-            "currency": business.currency,
+            "business_name": biz_name,
+            "currency": currency,
             "total_revenue": str(current_rev),
             "completed_count": completed_count,
             "pending_count": pending_count,
@@ -128,14 +162,11 @@ class CopilotService:
         p_lower = prompt.lower()
         if "revenue" in p_lower or "sales" in p_lower or "income" in p_lower:
             reply = (
-                f"{business.name} currently has ${current_rev:,.2f} in verified settled revenue "
+                f"{biz_name} currently has ${current_rev:,.2f} in verified settled revenue "
                 f"from {completed_count} completed transactions. We also have ${pending_total:,.2f} "
                 f"in pending customer payments awaiting capture."
             )
         elif "pending" in p_lower or "order" in p_lower or "stratos" in p_lower:
-            pending_items = self.tx_repo.list(
-                business.id, status=TransactionStatus.PENDING, limit=1
-            )
             if pending_items:
                 tx = pending_items[0]
                 reply = (
@@ -148,7 +179,7 @@ class CopilotService:
                 reply = "There are currently no pending payments in the commerce ledger. All customer orders are settled."
         else:
             reply = (
-                f"PayPilot Copilot Overview for {business.name}: Settled revenue is ${current_rev:,.2f} "
+                f"Opnly Copilot Overview for {biz_name}: Settled revenue is ${current_rev:,.2f} "
                 f"({completed_count} completed orders). Pending receivables total ${pending_total:,.2f} "
                 f"({pending_count} pending order). You can review our recommended action to capture pending orders."
             )

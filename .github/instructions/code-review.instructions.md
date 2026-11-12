@@ -8,7 +8,7 @@ applyTo: "**/*"
 
 ## 1. Product Context & Review Purpose
 
-PayPilot AI is an **AI-powered Idea-to-Business Opportunity Network**.
+Opnly is an **AI-powered Idea-to-Business Opportunity Network**.
 
 Code reviews must evaluate whether changes align with the 9-stage opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**

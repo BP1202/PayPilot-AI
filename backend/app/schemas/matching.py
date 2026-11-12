@@ -52,6 +52,8 @@ class ParticipantCandidate(BaseModel):
     location: str | None = None
     skills: list[str] = Field(default_factory=list)
     services: list[str] = Field(default_factory=list)
+    resources: list[str] = Field(default_factory=list)
+    experience: list[str] = Field(default_factory=list)
     explanation: MatchExplanation
 
 

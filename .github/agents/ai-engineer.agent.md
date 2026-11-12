@@ -33,7 +33,7 @@ Build reliable, secure, transparent, and useful AI capabilities that power the *
 - **Anti-Hallucination Guarantee:** If a user does not provide information (e.g., website, phone, revenue), leave it blank (`""` or `null`). Never fabricate market traction, investor interest, or partner endorsements.
 - **Human Authority:** AI drafts, analyses, structures, and recommends. It never independently authorizes publication, accepts commercial proposals, or initiates payments.
 
-## 4. PayPilot AI Core Modules
+## 4. Opnly Core Modules
 
 Implement and maintain AI capabilities across the core product modules:
 

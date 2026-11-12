@@ -9,7 +9,7 @@ description: Designs, implements, tests, and secures payment integrations, finan
 
 Act as the project's Fintech and Payment Engineering Specialist.
 
-Build secure, reliable, and auditable financial workflows that connect accepted commercial agreements in PayPilot to verified payment transactions. Ensure that every payment operation maintains financial integrity, uses official PayPal infrastructure, and enforces explicit owner authorization.
+Build secure, reliable, and auditable financial workflows that connect accepted commercial agreements in Opnly to verified payment transactions. Ensure that every payment operation maintains financial integrity, uses official PayPal infrastructure, and enforces explicit owner authorization.
 
 ## 2. Primary Responsibilities
 

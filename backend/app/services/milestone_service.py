@@ -10,6 +10,8 @@ from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
+from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
@@ -28,6 +30,7 @@ from app.models.milestone_execution import (
     MilestoneReviewDecision,
     PaymentReadinessStatus,
 )
+from app.models.transaction import TransactionStatus
 from app.models.user import User
 from app.schemas.milestone_execution import (
     MilestoneAIAnalysisResponse,
@@ -71,6 +74,7 @@ def _evidence_to_response(evi: MilestoneEvidence) -> MilestoneEvidenceResponse:
         reference_url=evi.reference_url,
         attachments=list(evi.attachments or []),
         status=EvidenceReviewStatus(evi.status),
+        submission_notes=evi.submission_notes,
         created_at=evi.created_at,
     )
 
@@ -103,6 +107,38 @@ def _milestone_to_response(
         latest = milestone.evidence_submissions[-1]
         evidence_res = _evidence_to_response(latest)
 
+    # Chronological history
+    evidence_history = [
+        _evidence_to_response(e)
+        for e in sorted(
+            milestone.evidence_submissions or [],
+            key=lambda x: x.submission_version,
+        )
+    ]
+    review_history = [
+        _review_to_response(r)
+        for r in sorted(
+            milestone.reviews or [],
+            key=lambda x: x.created_at,
+        )
+    ]
+
+    # Authoritative settlement parties derivation
+    payer_user_id: str | None = None
+    payee_user_id: str | None = None
+    readiness_val = milestone.payment_readiness
+    if hasattr(milestone, "transactions") and milestone.transactions:
+        for t in milestone.transactions:
+            if t.payer_user_id:
+                payer_user_id = t.payer_user_id
+            if t.payee_user_id:
+                payee_user_id = t.payee_user_id
+            if getattr(t, "status", None) == "COMPLETED" or getattr(t, "status", None) == TransactionStatus.COMPLETED:
+                readiness_val = PaymentReadinessStatus.PAID.value
+    if not payer_user_id and milestone.reviewer_user_id:
+        payer_user_id = milestone.reviewer_user_id
+        payee_user_id = milestone.responsible_user_id
+
     return MilestoneExecutionResponse(
         id=milestone.id,
         room_id=milestone.room_id,
@@ -126,10 +162,14 @@ def _milestone_to_response(
         reviewer_user=_user_to_participant_summary(
             milestone.reviewer_user, "Designated Reviewer"
         ),
+        payer_user_id=payer_user_id,
+        payee_user_id=payee_user_id,
         status=MilestoneExecutionStatus(milestone.status),
         cancellation_reason=milestone.cancellation_reason,
-        payment_readiness=PaymentReadinessStatus(milestone.payment_readiness),
+        payment_readiness=PaymentReadinessStatus(readiness_val),
         current_evidence_submission=evidence_res,
+        evidence_history=evidence_history,
+        review_history=review_history,
         evidence_submissions_count=len(milestone.evidence_submissions or []),
         reviews_count=len(milestone.reviews or []),
         started_at=milestone.started_at,
@@ -152,7 +192,12 @@ class MilestoneService:
                 joinedload(DealRoom.participants).joinedload(DealRoomParticipant.user),
                 joinedload(DealRoom.proposal),
             )
-            .filter(DealRoom.id == room_id)
+            .filter(
+                or_(
+                    DealRoom.id == room_id,
+                    DealRoom.proposal_id == room_id,
+                )
+            )
             .first()
         )
         if not room:
@@ -171,6 +216,18 @@ class MilestoneService:
     def _get_milestone_or_404(
         self, db: Session, room_id: str, milestone_id: str
     ) -> MilestoneExecution:
+        resolved_room = (
+            db.query(DealRoom)
+            .filter(
+                or_(
+                    DealRoom.id == room_id,
+                    DealRoom.proposal_id == room_id,
+                )
+            )
+            .first()
+        )
+        target_room_id = resolved_room.id if resolved_room else room_id
+
         milestone = (
             db.query(MilestoneExecution)
             .options(
@@ -185,7 +242,7 @@ class MilestoneService:
             )
             .filter(
                 MilestoneExecution.id == milestone_id,
-                MilestoneExecution.room_id == room_id,
+                MilestoneExecution.room_id == target_room_id,
             )
             .first()
         )
@@ -195,6 +252,60 @@ class MilestoneService:
                 detail=f"Milestone '{milestone_id}' not found in this Deal Room",
             )
         return milestone
+
+    def _determine_milestone_roles(
+        self,
+        room: DealRoom,
+        m_data: dict[str, Any],
+        fallback_user_id: str,
+    ) -> tuple[str, str]:
+        """
+        Deterministically derive responsible worker and reviewer from authoritative accepted agreement data:
+        1. Explicit milestone-level configuration if present in agreed_milestones snapshot
+        2. Agreement-level responsibility mapping (room.agreed_responsibilities)
+        3. Authoritative accepted proposal parties (proposer_id as executing worker, recipient_id as reviewer)
+        4. Participant validation: ensures both participants belong to room.participants without order dependence.
+        """
+        room_user_ids = {p.user_id for p in room.participants}
+
+        # 1. Check milestone-level explicit assignment
+        responsible_id = m_data.get("responsible_user_id") or m_data.get("worker_id")
+        reviewer_id = m_data.get("reviewer_user_id") or m_data.get("reviewer_id")
+
+        # 2. Check room-level agreed responsibilities
+        resp_map = room.agreed_responsibilities or {}
+        if not responsible_id:
+            responsible_id = resp_map.get("worker_id") or resp_map.get("responsible_user_id")
+        if not reviewer_id:
+            reviewer_id = resp_map.get("reviewer_id") or resp_map.get("reviewer_user_id")
+
+        # 3. Check authoritative accepted proposal parties
+        if room.proposal:
+            if not responsible_id:
+                responsible_id = room.proposal.proposer_id
+            if not reviewer_id:
+                reviewer_id = room.proposal.recipient_id
+
+        # 4. Fallback if single participant or missing proposal
+        if not responsible_id:
+            responsible_id = fallback_user_id
+        if not reviewer_id:
+            other_participants = [uid for uid in room_user_ids if uid != responsible_id]
+            reviewer_id = other_participants[0] if other_participants else responsible_id
+
+        # Validate against Deal Room participants
+        if room_user_ids:
+            if responsible_id not in room_user_ids:
+                responsible_id = (
+                    fallback_user_id
+                    if fallback_user_id in room_user_ids
+                    else next(iter(room_user_ids))
+                )
+            if reviewer_id not in room_user_ids:
+                other = [uid for uid in room_user_ids if uid != responsible_id]
+                reviewer_id = other[0] if other else responsible_id
+
+        return responsible_id, reviewer_id
 
     def initialize_milestones(
         self, db: Session, user_id: str, room_id: str
@@ -223,20 +334,7 @@ class MilestoneService:
         if not agreed_list:
             return []
 
-        # 3. Determine responsible worker and reviewer participants
-        # By convention in PayPilot collaborations:
-        # - Proposer / Executing partner is responsible for deliverables
-        # - Counterpart / Recipient is reviewer
-        # If there are 2 participants, p1 and p2:
-        participants = room.participants
-        if len(participants) >= 2:
-            responsible_id = participants[0].user_id
-            reviewer_id = participants[1].user_id
-        else:
-            responsible_id = user_id
-            reviewer_id = user_id
-
-        # 4. Instantiate MilestoneExecution records
+        # 3. Instantiate MilestoneExecution records with deterministic role derivation
         created_milestones: list[MilestoneExecution] = []
         for idx, m_data in enumerate(agreed_list):
             amt = None
@@ -259,6 +357,10 @@ class MilestoneService:
                     if idx < len(room.agreed_deliverables or [])
                     else []
                 )
+
+            responsible_id, reviewer_id = self._determine_milestone_roles(
+                room=room, m_data=m_data, fallback_user_id=user_id
+            )
 
             m_obj = MilestoneExecution(
                 room_id=room.id,
@@ -365,8 +467,8 @@ class MilestoneService:
         room, _ = self._verify_room_participant(db, user_id, room_id)
         m = self._get_milestone_or_404(db, room_id, milestone_id)
 
-        # Worker authorization
-        if user_id != m.responsible_user_id and user_id != room.proposal.proposer_id:
+        # Worker authorization: must be designated responsible worker
+        if user_id != m.responsible_user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only the responsible participant can start work on this milestone",
@@ -376,6 +478,7 @@ class MilestoneService:
         valid_start_states = {
             MilestoneExecutionStatus.NOT_STARTED.value,
             MilestoneExecutionStatus.REVISION_REQUESTED.value,
+            MilestoneExecutionStatus.REJECTED.value,
         }
         if m.status not in valid_start_states:
             raise HTTPException(
@@ -412,19 +515,35 @@ class MilestoneService:
     ) -> MilestoneEvidenceResponse:
         """Responsible participant submits deliverables & supporting evidence for review."""
         room, _ = self._verify_room_participant(db, user_id, room_id)
-        m = self._get_milestone_or_404(db, room_id, milestone_id)
 
-        # Worker authorization
-        if user_id != m.responsible_user_id and user_id != room.proposal.proposer_id:
+        # 1. Lock parent milestone execution row within transaction
+        m = (
+            db.query(MilestoneExecution)
+            .filter(
+                MilestoneExecution.id == milestone_id,
+                MilestoneExecution.room_id == room_id,
+            )
+            .with_for_update()
+            .first()
+        )
+        if not m:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Milestone '{milestone_id}' not found in this Deal Room",
+            )
+
+        # 2. Worker authorization: must be designated responsible worker
+        if user_id != m.responsible_user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only the responsible participant can submit deliverables for review",
             )
 
-        # State validation: eligible states are IN_PROGRESS or REVISION_REQUESTED
+        # 3. State validation: eligible states are IN_PROGRESS, REVISION_REQUESTED, or REJECTED
         valid_submit_states = {
             MilestoneExecutionStatus.IN_PROGRESS.value,
             MilestoneExecutionStatus.REVISION_REQUESTED.value,
+            MilestoneExecutionStatus.REJECTED.value,
         }
         if m.status not in valid_submit_states:
             raise HTTPException(
@@ -432,19 +551,25 @@ class MilestoneService:
                 detail=f"Cannot submit deliverables for milestone in status '{m.status}'",
             )
 
-        # Monotonic versioning: calculate new version
-        previous_count = (
-            db.query(MilestoneEvidence)
+        # 4. Monotonic versioning: calculate next version monotonically under row lock
+        max_ver = (
+            db.query(func.coalesce(func.max(MilestoneEvidence.submission_version), 0))
             .filter(MilestoneEvidence.milestone_id == m.id)
-            .count()
+            .scalar()
         )
-        new_version = previous_count + 1
+        new_version = int(max_ver) + 1
 
-        # Supersede any previous pending reviews
-        db.query(MilestoneEvidence).filter(
-            MilestoneEvidence.milestone_id == m.id,
-            MilestoneEvidence.status == EvidenceReviewStatus.PENDING_REVIEW.value,
-        ).update({"status": EvidenceReviewStatus.SUPERSEDED.value})
+        # 5. Supersede any previous pending reviews
+        pending_evi = (
+            db.query(MilestoneEvidence)
+            .filter(
+                MilestoneEvidence.milestone_id == m.id,
+                MilestoneEvidence.status == EvidenceReviewStatus.PENDING_REVIEW.value,
+            )
+            .all()
+        )
+        for pe in pending_evi:
+            pe.status = EvidenceReviewStatus.SUPERSEDED.value
 
         evidence = MilestoneEvidence(
             milestone_id=m.id,
@@ -457,17 +582,21 @@ class MilestoneService:
             reference_url=payload.reference_url.strip(),
             attachments=payload.attachments or [],
             status=EvidenceReviewStatus.PENDING_REVIEW.value,
+            submission_notes=(
+                payload.submission_notes.strip()
+                if payload.submission_notes
+                else None
+            ),
         )
         db.add(evidence)
-        db.flush()
 
-        # Advance milestone status to SUBMITTED_FOR_REVIEW
+        # 6. Advance milestone status to SUBMITTED_FOR_REVIEW
         m.current_evidence_submission_id = evidence.id
         m.status = MilestoneExecutionStatus.SUBMITTED_FOR_REVIEW.value
         m.submitted_at = datetime.now(UTC)
         m.updated_at = datetime.now(UTC)
 
-        # Record activity
+        # 7. Record activity
         act_type = (
             DealRoomActivityType.EVIDENCE_RESUBMITTED.value
             if new_version > 1
@@ -481,7 +610,16 @@ class MilestoneService:
             details=f"Deliverable '{evidence.title}' submitted for '{m.title}'.",
         )
         db.add(activity)
-        db.commit()
+
+        # 8. Commit transactionally, handling uniqueness conflicts safely
+        try:
+            db.commit()
+        except IntegrityError as exc:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A concurrent evidence submission with version {new_version} was already recorded for this milestone. Please reload and resubmit.",
+            ) from exc
 
         loaded_evidence = (
             db.query(MilestoneEvidence)
@@ -510,8 +648,8 @@ class MilestoneService:
                 detail="Responsible participant cannot review or approve their own milestone deliverables",
             )
 
-        # 2. Reviewer authorization: must be reviewer_user_id
-        if user_id != m.reviewer_user_id and user_id != room.proposal.recipient_id:
+        # 2. Reviewer authorization: must be designated reviewer
+        if user_id != m.reviewer_user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only the authorized reviewer can review submitted deliverables",
@@ -544,7 +682,40 @@ class MilestoneService:
             evidence.status = EvidenceReviewStatus.APPROVED.value
             m.status = MilestoneExecutionStatus.APPROVED.value
             m.approved_at = datetime.now(UTC)
-            m.payment_readiness = PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+            has_financial_obligation = (
+                m.agreed_amount is not None
+                and Decimal(str(m.agreed_amount)) > Decimal("0.00")
+            )
+            if has_financial_obligation:
+                m.payment_readiness = PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+                # Automatically create official commercial invoice / settlement record in ledger
+                try:
+                    from app.models.transaction import Transaction
+                    from app.services.payment_service import PaymentService
+                    existing_tx = (
+                        db.query(Transaction)
+                        .filter(
+                            Transaction.milestone_id == m.id,
+                            Transaction.deal_room_id == room.id,
+                        )
+                        .first()
+                    )
+                    if not existing_tx:
+                        payment_svc = PaymentService(db)
+                        auto_idemp = f"inv_auto_{m.id}_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
+                        payment_svc.prepare_milestone_settlement(
+                            caller_user_id=user_id,
+                            room_id=room.id,
+                            milestone_id=m.id,
+                            idempotency_key=auto_idemp,
+                            description=f"Commercial Invoice #{m.id[:8].upper()} - {m.title}",
+                        )
+                except Exception as auto_inv_err:
+                    logger.warning(
+                        f"Automatic settlement invoice creation deferred for milestone {m.id}: {auto_inv_err}"
+                    )
+            else:
+                m.payment_readiness = PaymentReadinessStatus.NOT_READY.value
             act_title = "Milestone deliverables approved"
             act_type = DealRoomActivityType.MILESTONE_APPROVED.value
 
@@ -556,8 +727,27 @@ class MilestoneService:
                 )
             evidence.status = EvidenceReviewStatus.REVISION_REQUESTED.value
             m.status = MilestoneExecutionStatus.REVISION_REQUESTED.value
+            m.payment_readiness = PaymentReadinessStatus.NOT_READY.value
             act_title = "Milestone revisions requested"
             act_type = DealRoomActivityType.REVISION_REQUESTED.value
+
+        elif payload.decision == MilestoneReviewDecision.REJECTED:
+            if not payload.comments or not payload.comments.strip():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Rejection reason is mandatory when rejecting deliverables",
+                )
+            evidence.status = EvidenceReviewStatus.REJECTED.value
+            m.status = MilestoneExecutionStatus.REJECTED.value
+            m.payment_readiness = PaymentReadinessStatus.NOT_READY.value
+            act_title = "Milestone deliverables rejected"
+            act_type = DealRoomActivityType.MILESTONE_REJECTED.value
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported review decision '{payload.decision}'",
+            )
 
         m.updated_at = datetime.now(UTC)
 
@@ -641,12 +831,25 @@ class MilestoneService:
             .first()
         )
 
-        settlement_note = (
-            "Verified human approval on record. Eligible for PayPal checkout review."
-            if m.payment_readiness
-            == PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
-            else "Deliverables not yet approved. Not eligible for payment."
+        has_financial_obligation = (
+            m.agreed_amount is not None
+            and Decimal(str(m.agreed_amount)) > Decimal("0.00")
         )
+        if not has_financial_obligation:
+            settlement_note = (
+                "Non-monetary milestone: No financial settlement required upon completion."
+            )
+        elif (
+            m.payment_readiness
+            == PaymentReadinessStatus.READY_FOR_PAYMENT_REVIEW.value
+        ):
+            settlement_note = (
+                "Verified human approval on record. Eligible for PayPal checkout review."
+            )
+        else:
+            settlement_note = (
+                "Deliverables not yet approved. Not eligible for payment."
+            )
 
         return MilestonePaymentReadinessResponse(
             milestone_id=m.id,
@@ -762,7 +965,7 @@ class MilestoneService:
         if api_key and latest_evi:
             try:
                 system_prompt = (
-                    "You are the PayPilot AI Milestone Review Assistant. "
+                    "You are the Opnly AI Milestone Review Assistant. "
                     "Analyze the agreed deliverables against the submitted evidence description. "
                     "Output valid JSON with keys: completeness_score (int 0-100), observations (list of str), "
                     "review_checklist (list of str). Do NOT approve or reject work."

@@ -1,13 +1,13 @@
 ---
 name: backend-engineering
-description: Design, implement, test, and maintain backend services, APIs, opportunity domain logic, database operations, authentication, and external integrations for PayPilot AI.
+description: Design, implement, test, and maintain backend services, APIs, opportunity domain logic, database operations, authentication, and external integrations for Opnly.
 ---
 
 # Backend Engineering Skill
 
 ## 1. Purpose
 
-Build backend systems for PayPilot AI — the AI-powered Idea-to-Business Opportunity Network — that are reliable, secure, maintainable, and aligned with the 9-stage opportunity lifecycle:
+Build backend systems for Opnly — the AI-powered Idea-to-Business Opportunity Network — that are reliable, secure, maintainable, and aligned with the 9-stage opportunity lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
 
 The backend must provide consistent domain logic, validated schemas, strict tenant isolation, clean non-technical error handling, and dependable communication between services.
@@ -29,7 +29,7 @@ For overall lifecycle and module guidance, consult the `opportunity-lifecycle` s
 
 ## 3. Architecture Principles
 
-- Align services with PayPilot's 8 core modules: Idea Capture Studio, AI Business Analyst, Opportunity Press, Opportunity Discovery Network, Intelligent Matchmaking, AI Deal Room, Payments & Transaction Intelligence, and Opportunity Evolution.
+- Align services with Opnly's 8 core modules: Idea Capture Studio, AI Business Analyst, Opportunity Press, Opportunity Discovery Network, Intelligent Matchmaking, AI Deal Room, Payments & Transaction Intelligence, and Opportunity Evolution.
 - Keep responsibilities separated across routes, schemas, services, and data-access layers.
 - Keep domain and business logic out of API route handlers.
 - Prefer simple, modular, and maintainable architecture.

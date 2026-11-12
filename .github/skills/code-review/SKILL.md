@@ -1,13 +1,13 @@
 ---
 name: code-review
-description: Review code changes for correctness, security, maintainability, performance, opportunity lifecycle compliance, and regressions before approval or release for PayPilot AI.
+description: Review code changes for correctness, security, maintainability, performance, opportunity lifecycle compliance, and regressions before approval or release for Opnly.
 ---
 
 # Code Review Skill
 
 ## 1. Purpose
 
-Ensure code changes in PayPilot AI are correct, secure, maintainable, user-friendly, and consistent with the project's product vision:
+Ensure code changes in Opnly are correct, secure, maintainable, user-friendly, and consistent with the project's product vision:
 **AI-powered Idea-to-Business Opportunity Network** (`Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow`).
 
 A code review must identify meaningful defects and lifecycle violations before they reach users, without encouraging unnecessary rewrites or subjective nitpicks.
@@ -16,7 +16,7 @@ A code review must identify meaningful defects and lifecycle violations before t
 
 Use this skill when:
 
-- Reviewing new features, bug fixes, or pull requests across PayPilot's 8 core modules.
+- Reviewing new features, bug fixes, or pull requests across Opnly's 8 core modules.
 - Checking AI-generated extraction and prompt engineering code.
 - Reviewing Opportunity domain models, status transitions, and visibility permissions.
 - Inspecting Deal Room proposal workflows and dual-party confirmation states.

@@ -5,49 +5,54 @@ import {
   Rocket,
   Home as HomeIcon,
   Lightbulb,
-  Compass,
-  Building2,
   Receipt,
-  MessageSquare,
-  Settings,
-  HelpCircle,
-  ChevronDown,
-  Sparkles,
-  ArrowRight,
   Handshake,
   Briefcase,
+  User as UserIcon,
+  LogOut,
+  PlusCircle,
 } from "lucide-react";
-import { User, Business } from "@/types";
+import { User } from "@/types";
 
 export type DashboardView =
   | "home"
   | "opportunities"
-  | "browse"
   | "collaborations"
   | "deal-rooms"
   | "ledger"
   | "profile";
 
-interface AppSidebarProps {
+export interface AppSidebarProps {
   currentView: DashboardView;
   onNavigate: (view: DashboardView) => void;
   currentUser?: User | null;
-  business?: Business | null;
   onOpenProfile: () => void;
   onOpenAuth: () => void;
   onSignOut: () => void;
   onCreateOpportunity?: () => void;
+  myOppsCount?: number;
+  pendingProposalsCount?: number;
+  activeDealRoomsCount?: number;
+}
+
+interface NavItem {
+  id: DashboardView;
+  label: string;
+  icon: React.ElementType;
+  badge?: string | number;
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   currentView,
   onNavigate,
   currentUser,
-  business,
   onOpenProfile,
   onOpenAuth,
   onSignOut,
   onCreateOpportunity,
+  myOppsCount,
+  pendingProposalsCount,
+  activeDealRoomsCount,
 }) => {
   const getInitials = (name?: string | null, email?: string) => {
     if (name && name.trim()) {
@@ -63,24 +68,32 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     return "JD";
   };
 
-  const navItems: Array<{
-    id: DashboardView;
-    label: string;
-    icon: React.ElementType;
-    badge?: string;
-  }> = [
-    { id: "home", label: "Home", icon: HomeIcon },
-    { id: "opportunities", label: "My Opportunities", icon: Lightbulb },
-    { id: "browse", label: "Browse Opportunities", icon: Compass },
-    { id: "collaborations", label: "Connections & Proposals", icon: Handshake },
-    { id: "deal-rooms", label: "AI Deal Rooms", icon: Briefcase },
-    { id: "profile", label: "Profiles", icon: Building2 },
-    { id: "ledger", label: "Commerce Ledger", icon: Receipt },
+  const navItems: NavItem[] = [
+    { id: "home", label: "Dashboard", icon: HomeIcon },
+    {
+      id: "opportunities",
+      label: "Opportunities",
+      icon: Lightbulb,
+      badge: myOppsCount && myOppsCount > 0 ? myOppsCount : undefined,
+    },
+    {
+      id: "collaborations",
+      label: "Connections & Proposals",
+      icon: Handshake,
+      badge: pendingProposalsCount && pendingProposalsCount > 0 ? pendingProposalsCount : undefined,
+    },
+    {
+      id: "deal-rooms",
+      label: "Deal Rooms",
+      icon: Briefcase,
+      badge: activeDealRoomsCount && activeDealRoomsCount > 0 ? activeDealRoomsCount : undefined,
+    },
+    { id: "ledger", label: "Payments & Ledger", icon: Receipt },
   ];
 
   return (
-    <aside className="w-64 shrink-0 flex flex-col justify-between border-r border-slate-200/80 bg-white min-h-screen p-4 select-none">
-      <div className="space-y-6">
+    <aside className="w-64 h-full shrink-0 flex flex-col justify-between border-r border-slate-200/80 bg-white p-4 select-none overflow-y-auto">
+      <div className="space-y-4">
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-2 py-1">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-100">
@@ -89,146 +102,125 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-base font-extrabold tracking-tight text-slate-900">
-                PayPilot AI
+                Opnly
               </span>
             </div>
             <p className="text-[11px] font-semibold text-slate-400 tracking-tight">
-              Connect · Collaborate · Grow
+              Where Ideas Find the Right People
             </p>
           </div>
         </div>
 
-        {/* Navigation Links */}
-        <nav aria-label="Main Navigation" className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentView === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition cursor-pointer ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                      isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-rose-500 text-white"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
+        {/* Primary Action Button: + Create Opportunity */}
+        <div className="px-1 pt-1">
           <button
-            onClick={onOpenProfile}
-            className="w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition cursor-pointer"
+            type="button"
+            onClick={() => onCreateOpportunity?.()}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 py-2.5 px-3 text-xs font-extrabold text-white shadow-md shadow-indigo-100 hover:shadow-lg hover:shadow-indigo-200 hover:from-indigo-700 hover:to-violet-700 transition cursor-pointer active:scale-[0.98]"
           >
-            <div className="flex items-center gap-3">
-              <Building2 className="h-4 w-4 text-slate-500" />
-              <span>Business Profile</span>
-            </div>
+            <PlusCircle className="h-4 w-4" />
+            <span>+ Create Opportunity</span>
           </button>
+        </div>
 
-          <div className="pt-2 border-t border-slate-100 my-2" />
-
-          {/* Messages & Secondary Links */}
-          <div className="space-y-1">
-            <button
-              onClick={() => onNavigate("browse")}
-              className="w-full flex items-center justify-between rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <MessageSquare className="h-4 w-4 text-slate-400" />
-                <span>Messages</span>
-              </div>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-                2
-              </span>
-            </button>
-
-            <button
-              onClick={() => onNavigate("browse")}
-              className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition cursor-pointer"
-            >
-              <Settings className="h-4 w-4 text-slate-400" />
-              <span>Settings</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate("browse")}
-              className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition cursor-pointer"
-            >
-              <HelpCircle className="h-4 w-4 text-slate-400" />
-              <span>Help & Support</span>
-            </button>
+        {/* Five Primary Workspace Navigation Destinations */}
+        <nav aria-label="Main Navigation" className="space-y-1 pt-1">
+          <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Workspace
+          </div>
+          <div className="space-y-0.5">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onNavigate(item.id)}
+                  className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition cursor-pointer ${
+                    isActive
+                      ? "bg-indigo-600 text-white shadow-xs shadow-indigo-200"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Icon
+                      className={`h-4 w-4 shrink-0 ${
+                        isActive ? "text-white" : "text-slate-500"
+                      }`}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.badge !== undefined && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        isActive
+                          ? "bg-indigo-500 text-white"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </nav>
       </div>
 
-      <div className="space-y-4 pt-4">
-        {/* Turn Ideas into Impact Promo Card */}
-        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 via-white to-violet-50/60 p-4 text-center">
-          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs mb-2">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <h4 className="text-xs font-bold text-slate-900">Turn Ideas Into Impact</h4>
-          <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-            Together, we build a stronger, more innovative community.
-          </p>
-          <button
-            onClick={() => onNavigate("opportunities")}
-            className="mt-3 inline-flex items-center justify-center gap-1.5 w-full rounded-xl bg-indigo-600 py-1.5 px-3 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer"
-          >
-            <span>Explore Opportunities</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-
-        {/* User Identity / Auth Box */}
+      <div className="space-y-3 pt-4 border-t border-slate-100">
+        {/* User Identity & Account Card */}
         {currentUser ? (
-          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 flex items-center justify-between">
+          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-3 space-y-3">
+            <p className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Account
+            </p>
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs bg-gradient-to-tr from-indigo-600 to-violet-600 ring-2 ring-indigo-100">
                 {getInitials(currentUser.full_name, currentUser.email)}
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-900 truncate">
-                  {currentUser.full_name || currentUser.email.split("@")[0]}
+                  {currentUser.full_name || currentUser.email}
                 </p>
-                <p className="text-[10px] font-semibold text-indigo-600">
-                  Pro Member
+                <p className="text-[10px] text-slate-400 truncate">
+                  {currentUser.email}
                 </p>
               </div>
             </div>
-            <button
-              onClick={onSignOut}
-              className="text-slate-400 hover:text-slate-700 p-1 rounded-md transition"
-              title="Sign Out"
-              aria-label="Sign Out"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </button>
+            <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+              Unified Account
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onOpenProfile}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                title="My Profile & Capabilities"
+              >
+                <UserIcon className="h-3.5 w-3.5" />
+                <span>Profile</span>
+              </button>
+              <button
+                onClick={onSignOut}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
         ) : (
-          <button
-            onClick={onOpenAuth}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition cursor-pointer"
-          >
-            <span>Sign In / Register</span>
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={onOpenAuth}
+              className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white shadow-sm transition cursor-pointer bg-indigo-600 hover:bg-indigo-700"
+            >
+              <UserIcon className="h-4 w-4" />
+              <span>Sign In / Register</span>
+            </button>
+          </div>
         )}
       </div>
     </aside>

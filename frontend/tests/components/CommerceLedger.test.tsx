@@ -67,4 +67,14 @@ describe("CommerceLedger Component", () => {
       screen.getByText(/We couldn't load your transaction history right now/i)
     ).toBeInTheDocument();
   });
+
+  it("explains when verified milestone settlements will appear in an empty ledger", () => {
+    render(<CommerceLedger transactions={[]} onFilterChange={vi.fn()} />);
+
+    expect(
+      screen.getByText(
+        "Commercial settlements appear here after milestone deliverables are verified and payment is captured."
+      )
+    ).toBeInTheDocument();
+  });
 });

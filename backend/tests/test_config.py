@@ -7,7 +7,7 @@ def test_default_settings():
     settings = Settings(
         DATABASE_URL="postgresql+psycopg://user:pass@localhost:5433/paypilot_ai"
     )
-    assert settings.APP_NAME == "PayPilot AI"
+    assert settings.APP_NAME == "Opnly"
     assert settings.API_V1_PREFIX == "/api/v1"
     assert settings.DEBUG is True
     assert "postgresql" in settings.DATABASE_URL

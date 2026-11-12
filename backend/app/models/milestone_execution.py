@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
@@ -17,6 +17,7 @@ class MilestoneExecutionStatus(str, enum.Enum):
     SUBMITTED_FOR_REVIEW = "SUBMITTED_FOR_REVIEW"
     REVISION_REQUESTED = "REVISION_REQUESTED"
     APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
 
 
@@ -40,12 +41,14 @@ class EvidenceReviewStatus(str, enum.Enum):
     PENDING_REVIEW = "PENDING_REVIEW"
     REVISION_REQUESTED = "REVISION_REQUESTED"
     APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
     SUPERSEDED = "SUPERSEDED"
 
 
 class MilestoneReviewDecision(str, enum.Enum):
     APPROVED = "APPROVED"
     REVISION_REQUESTED = "REVISION_REQUESTED"
+    REJECTED = "REJECTED"
 
 
 class MilestoneExecution(Base):
@@ -153,10 +156,20 @@ class MilestoneExecution(Base):
         cascade="all, delete-orphan",
         order_by="MilestoneReview.created_at.desc()",
     )
+    transactions = relationship(
+        "Transaction",
+        back_populates="milestone",
+        order_by="Transaction.created_at.desc()",
+    )
 
 
 class MilestoneEvidence(Base):
     __tablename__ = "milestone_evidence"
+    __table_args__ = (
+        UniqueConstraint(
+            "milestone_id", "submission_version", name="uq_milestone_evidence_version"
+        ),
+    )
 
     id: Mapped[str] = mapped_column(
         String(64),
@@ -201,6 +214,7 @@ class MilestoneEvidence(Base):
         default=EvidenceReviewStatus.PENDING_REVIEW.value,
         index=True,
     )
+    submission_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

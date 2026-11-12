@@ -12,10 +12,12 @@ import {
   MapPin,
   Briefcase,
   UserPlus,
+  Eye,
 } from "lucide-react";
 import { ParticipantCandidate, ParticipantMatchesResponse } from "@/types";
 import { fetchOpportunityCandidates } from "@/lib/api";
 import { MatchRationaleCard } from "@/components/matching/MatchRationaleCard";
+import { ParticipantProfileModal } from "@/components/profile/ParticipantProfileModal";
 
 interface CandidateRecommendationsModalProps {
   isOpen: boolean;
@@ -31,6 +33,10 @@ export const CandidateRecommendationsModal: React.FC<
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ParticipantMatchesResponse | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<{
+    id: string | number;
+    type: "INDIVIDUAL" | "BUSINESS";
+  } | null>(null);
 
   useEffect(() => {
     if (!isOpen || !opportunityId) {
@@ -109,7 +115,7 @@ export const CandidateRecommendationsModal: React.FC<
             <strong className="font-semibold">Advisory Recommendations:</strong>{" "}
             Candidates are suggested based on verified skills and declared services.
             Proposal drafting, negotiations, and milestone agreements will be managed in
-            the upcoming <em>AI Deal Room</em>.
+            the upcoming <em>Deal Room</em>.
           </p>
         </div>
 
@@ -119,7 +125,7 @@ export const CandidateRecommendationsModal: React.FC<
             <div className="flex flex-col items-center justify-center py-12 space-y-3">
               <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
               <p className="text-xs text-slate-500">
-                Analyzing complementary capabilities across the PayPilot network...
+                Analyzing complementary capabilities across the Opnly network...
               </p>
             </div>
           )}
@@ -224,34 +230,68 @@ export const CandidateRecommendationsModal: React.FC<
                       </div>
                     </div>
 
-                    {onConnectCandidate && (
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={() => onConnectCandidate(candidate)}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer shrink-0"
+                        onClick={() =>
+                          setSelectedParticipant({
+                            id: candidate.id,
+                            type: candidate.participant_type,
+                          })
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                        title="View public profile & capabilities"
                       >
-                        <UserPlus className="h-3.5 w-3.5" />
-                        <span>Connect</span>
+                        <Eye className="h-3.5 w-3.5 text-slate-500" />
+                        <span>View Profile</span>
                       </button>
-                    )}
+                      {onConnectCandidate && (
+                        <button
+                          onClick={() => onConnectCandidate(candidate)}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition cursor-pointer shrink-0"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" />
+                          <span>Connect</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Skills & Services Pills */}
-                  {(candidate.skills.length > 0 || candidate.services.length > 0) && (
+                  {/* Capabilities & Signals Pills */}
+                  {((candidate.skills && candidate.skills.length > 0) ||
+                    (candidate.services && candidate.services.length > 0) ||
+                    (candidate.resources && candidate.resources.length > 0) ||
+                    (candidate.experience && candidate.experience.length > 0)) && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      {candidate.skills.slice(0, 5).map((sk, sIdx) => (
+                      {candidate.skills?.slice(0, 4).map((sk, sIdx) => (
                         <span
-                          key={sIdx}
+                          key={`sk-${sIdx}`}
                           className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700"
                         >
                           {sk}
                         </span>
                       ))}
-                      {candidate.services.slice(0, 3).map((srv, srvIdx) => (
+                      {candidate.services?.slice(0, 3).map((srv, srvIdx) => (
                         <span
-                          key={srvIdx}
+                          key={`srv-${srvIdx}`}
                           className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 border border-indigo-100"
                         >
                           {srv}
+                        </span>
+                      ))}
+                      {candidate.resources?.slice(0, 2).map((res, rIdx) => (
+                        <span
+                          key={`res-${rIdx}`}
+                          className="rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 border border-purple-100"
+                        >
+                          {res}
+                        </span>
+                      ))}
+                      {candidate.experience?.slice(0, 2).map((exp, eIdx) => (
+                        <span
+                          key={`exp-${eIdx}`}
+                          className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 border border-amber-100"
+                        >
+                          {exp}
                         </span>
                       ))}
                     </div>
@@ -280,6 +320,16 @@ export const CandidateRecommendationsModal: React.FC<
           </button>
         </div>
       </div>
+
+      {/* Participant Profile Modal */}
+      {selectedParticipant && (
+        <ParticipantProfileModal
+          isOpen={true}
+          onClose={() => setSelectedParticipant(null)}
+          participantId={selectedParticipant.id}
+          participantType={selectedParticipant.type}
+        />
+      )}
     </div>
   );
 };

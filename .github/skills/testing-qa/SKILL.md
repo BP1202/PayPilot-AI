@@ -1,13 +1,13 @@
 ---
 name: testing-qa
-description: Design, implement, execute, and evaluate automated tests, QA strategies, opportunity lifecycle verification, anti-hallucination checks, and regression suites for PayPilot AI.
+description: Design, implement, execute, and evaluate automated tests, QA strategies, opportunity lifecycle verification, anti-hallucination checks, and regression suites for Opnly.
 ---
 
 # Testing and QA Skill
 
 ## 1. Purpose
 
-Ensure PayPilot AI features are reliable, secure, accessible, functionally correct, and resilient against regression.
+Ensure Opnly features are reliable, secure, accessible, functionally correct, and resilient against regression.
 
 Testing must verify real behavior against defined user acceptance criteria across all stages of the Opportunity Lifecycle:
 **Capture → Understand → Develop → Publish → Discover → Match → Negotiate → Transact → Grow**
@@ -28,7 +28,7 @@ Use this skill when:
 - **Verify Real Outcomes:** Never consider code tested simply because it compiled or tests passed without assertions. Test expected state transitions, database mutations, and API responses.
 - **Isolate Test State:** Keep tests repeatable and independent. Never allow one test's state or database mutations to pollute another.
 - **Fail Loudly and Accurately:** When an assertion fails, the error message should explain what requirement was violated.
-- **Zero Mocking of Core Logic:** Mock external third-party boundaries (e.g. PayPal REST API, external LLM providers), but never mock away PayPilot's own business logic, Decimal arithmetic, or validation layers.
+- **Zero Mocking of Core Logic:** Mock external third-party boundaries (e.g. PayPal REST API, external LLM providers), but never mock away Opnly's own business logic, Decimal arithmetic, or validation layers.
 
 ## 4. Opportunity Lifecycle Testing Strategies
 
