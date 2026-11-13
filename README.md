@@ -210,6 +210,171 @@ The ultimate measure of success is not the number of ideas published. It is the 
 
 **Product principle:** Every feature, agent, skill, API integration and engineering task must contribute to making this journey more useful, trustworthy and achievable.
 
+---
+
+## 13. Getting Started (Local Development Setup)
+
+Follow these step-by-step instructions to set up and run Opnly locally on your machine.
+
+### Prerequisites
+
+- **Git**
+- **Python 3.11+** (Python 3.13 supported)
+- **Node.js 18+** or **20+** & **npm** (or **pnpm**)
+- **Docker & Docker Compose** (for running PostgreSQL 18)
+
+---
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/BP1202/PayPilot-AI.git
+cd PayPilot-AI
+```
+
+---
+
+### Step 2: Start the PostgreSQL Database
+
+Start the containerized PostgreSQL instance using Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+> **Note:** The compose configuration maps host port **5433** to container port `5432` with database `paypilot_ai`.
+
+---
+
+### Step 3: Backend Setup (FastAPI & Python)
+
+1. Open a terminal and navigate to the `backend` folder:
+   ```bash
+   cd backend
+   ```
+
+2. Create and activate a Python virtual environment:
+   - **Windows (PowerShell):**
+     ```powershell
+     python -m venv venv
+     .\venv\Scripts\Activate.ps1
+     ```
+   - **macOS / Linux:**
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     ```
+
+3. Install backend dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+   *(Optional: install development/linting tools using `pip install -r requirements-dev.txt`)*
+
+4. Configure backend environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   The default configuration connects to the local Docker PostgreSQL database on `localhost:5433`. If you want to test live PayPal Sandbox checkouts, configure your PayPal Sandbox Client ID and Secret in `backend/.env`.
+
+5. Run database migrations with Alembic:
+   ```bash
+   alembic upgrade head
+   ```
+
+---
+
+### Step 4: Seed Demo Data (Optional)
+
+The platform provides a safe local seeder that populates 6 realistic demo accounts, public opportunity profiles, and an active Deal Room with an approved milestone:
+
+From `backend` in PowerShell, run:
+
+```powershell
+$securePassword = Read-Host "Choose a local demo password (12+ characters)" -AsSecureString
+$env:OPNLY_DEMO_PASSWORD = [System.Net.NetworkCredential]::new("", $securePassword).Password
+python scripts/seed_demo_data.py --confirm-local-demo-seed
+Remove-Item Env:\OPNLY_DEMO_PASSWORD
+```
+
+*(See [Local Demo Accounts and PayPal Sandbox](#local-demo-accounts-and-paypal-sandbox) below for login credentials and usage).*
+
+---
+
+### Step 5: Start the Backend Server
+
+Start the FastAPI application with Uvicorn:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+- API Base URL: `http://localhost:8000/api/v1`
+- Interactive OpenAPI / Swagger Docs: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
+
+---
+
+### Step 6: Frontend Setup (Next.js 15)
+
+In a **separate terminal window**, navigate to the `frontend` directory:
+
+1. Change directory to `frontend`:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   pnpm install
+   ```
+
+3. Configure frontend environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+   *(Configures `NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1`)*
+
+4. Start the Next.js development server:
+   ```bash
+   npm run dev
+   # or
+   pnpm dev
+   ```
+
+5. Open your browser and navigate to:
+   ```
+   http://localhost:3000
+   ```
+
+---
+
+### Step 7: Running Verification & Tests
+
+To verify your local installation, you can run the test suites:
+
+- **Backend tests:**
+  ```bash
+  cd backend
+  pytest
+  ```
+- **Backend linting & code formatting:**
+  ```bash
+  ruff check app tests
+  ruff format --check app tests
+  ```
+- **Frontend unit & component tests:**
+  ```bash
+  cd frontend
+  npm test
+  # or
+  pnpm test
+  ```
+
+---
+
 ## Local Demo Accounts and PayPal Sandbox
 
 The optional demo fixture creates six **fictional local test accounts**: three business owners with different needs and three individual solvers with different capabilities. It also creates six public demo opportunities and one accepted Deal Room with an approved **$25.00 USD** milestone for testing checkout. The seeded agreement and evidence are synthetic workflow fixtures, not real businesses, people, work, or payment history.
